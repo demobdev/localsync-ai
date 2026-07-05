@@ -481,4 +481,31 @@ export const crawlerChecks = pgTable(
   ],
 );
 
+export const connectorCredentials = pgTable(
+  "connector_credentials",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: text("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    provider: text("provider").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scope: text("scope"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("connector_credentials_org_provider_idx").on(
+      table.organizationId,
+      table.provider,
+    ),
+  ],
+);
+
 export const enablePgVector = sql`CREATE EXTENSION IF NOT EXISTS vector`;

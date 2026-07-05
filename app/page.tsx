@@ -19,9 +19,13 @@ export default async function HomePage() {
             </p>
           </div>
           {session.userId ? (
-            <Button render={<Link href="/dashboard" />}>Open dashboard</Button>
+            <Button nativeButton={false} render={<Link href="/dashboard" />}>
+              Open dashboard
+            </Button>
           ) : (
-            <Button render={<Link href="/sign-in" />}>Sign in</Button>
+            <Button nativeButton={false} render={<Link href="/sign-in" />}>
+              Sign in
+            </Button>
           )}
         </div>
       </header>

@@ -6,6 +6,7 @@ import {
   listTaxonomyAction,
 } from "@/app/actions/locations";
 import { LocationProfileEditor } from "@/components/locations/location-profile-editor";
+import { LocationTabs } from "@/components/locations/location-tabs";
 
 export default async function LocationDetailPage({
   params,
@@ -24,21 +25,24 @@ export default async function LocationDetailPage({
   }
 
   return (
-    <LocationProfileEditor
-      locationId={location.id}
-      initialProfile={location.profile}
-      initialVersions={versions}
-      taxonomy={{
-        categories: taxonomy.categories.map((category) => ({
-          slug: category.slug,
-          name: category.name,
-        })),
-        services: taxonomy.services.map((service) => ({
-          slug: service.slug,
-          name: service.name,
-          categorySlug: service.categorySlug,
-        })),
-      }}
-    />
+    <div>
+      <LocationTabs locationId={locationId} />
+      <LocationProfileEditor
+        locationId={location.id}
+        initialProfile={location.profile}
+        initialVersions={versions}
+        taxonomy={{
+          categories: taxonomy.categories.map((category) => ({
+            slug: category.slug,
+            name: category.name,
+          })),
+          services: taxonomy.services.map((service) => ({
+            slug: service.slug,
+            name: service.name,
+            categorySlug: service.categorySlug,
+          })),
+        }}
+      />
+    </div>
   );
 }

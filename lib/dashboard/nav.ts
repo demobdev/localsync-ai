@@ -1,6 +1,7 @@
 import {
   Building2,
   ClipboardList,
+  Download,
   LayoutDashboard,
   MapPin,
   Share2,
@@ -31,5 +32,10 @@ export const dashboardNav = [
     title: "Tasks",
     href: "/dashboard/tasks",
     icon: ClipboardList,
+  },
+  {
+    title: "Import",
+    href: "/dashboard/import/google",
+    icon: Download,
   },
 ] as const;

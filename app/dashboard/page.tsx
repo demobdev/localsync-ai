@@ -69,7 +69,10 @@ export default async function DashboardPage() {
               Open a location to edit its Master Business Profile.
             </CardDescription>
           </div>
-          <Button render={<Link href="/dashboard/locations" />}>
+          <Button
+            nativeButton={false}
+            render={<Link href="/dashboard/locations" />}
+          >
             View all
           </Button>
         </CardHeader>
