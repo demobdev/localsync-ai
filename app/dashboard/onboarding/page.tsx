@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 
 import { listOnboardingCategoriesAction } from "@/app/actions/onboarding";
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
-import { AgencyWorkspaceOption } from "@/components/onboarding/agency-workspace-option";
-import { BusinessSetupWizard } from "@/components/onboarding/business-setup-wizard";
+import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getOrganization } from "@/lib/auth/organizations";
 import { countOrgLocations } from "@/lib/org/locations";
 
 export default async function DashboardOnboardingPage({
@@ -17,6 +17,7 @@ export default async function DashboardOnboardingPage({
     location?: string;
     publishers?: string;
     add?: string;
+    accountType?: string;
   }>;
 }) {
   const [session, categories, params] = await Promise.all([
@@ -27,6 +28,9 @@ export default async function DashboardOnboardingPage({
 
   const setupComplete = params.done === "1" && params.location;
   const addingAnother = params.add === "1";
+  const organization = session.orgId
+    ? await getOrganization(session.orgId)
+    : null;
 
   if (
     session.orgId &&
@@ -51,29 +55,18 @@ export default async function DashboardOnboardingPage({
             <SetupCompleteCard
               locationId={params.location!}
               publishersTracked={Number(params.publishers ?? 0) || 20}
+              accountType={
+                params.accountType === "agency" ? "agency" : "business"
+              }
             />
           ) : (
-            <>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  {addingAnother
-                    ? "Add another business"
-                    : "Let's get your business found"}
-                </h1>
-                <p className="mt-2 text-muted-foreground">
-                  {addingAnother
-                    ? "Each business gets its own profile and directory tracking."
-                    : "Takes about a minute. We handle the workspace, profile, and directory tracking for you."}
-                </p>
-              </div>
-
-              <BusinessSetupWizard
-                categories={categories}
-                hasWorkspace={Boolean(session.orgId)}
-              />
-
-              <AgencyWorkspaceOption />
-            </>
+            <OnboardingFlow
+              categories={categories}
+              hasWorkspace={Boolean(session.orgId)}
+              organizationType={organization?.type ?? null}
+              organizationName={organization?.name ?? null}
+              addingAnother={addingAnother}
+            />
           )}
         </div>
       </div>

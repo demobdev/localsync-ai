@@ -3,11 +3,14 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { organizations } from "@/db/schema";
 
+export type OrganizationType = "business" | "agency";
+
 export async function upsertOrganization(input: {
   id: string;
   name: string;
   slug?: string | null;
   imageUrl?: string | null;
+  type?: OrganizationType;
 }) {
   const db = getDb();
   const now = new Date();
@@ -19,6 +22,7 @@ export async function upsertOrganization(input: {
       name: input.name,
       slug: input.slug ?? null,
       imageUrl: input.imageUrl ?? null,
+      type: input.type ?? "business",
       createdAt: now,
       updatedAt: now,
     })
@@ -28,6 +32,7 @@ export async function upsertOrganization(input: {
         name: input.name,
         slug: input.slug ?? null,
         imageUrl: input.imageUrl ?? null,
+        ...(input.type !== undefined ? { type: input.type } : {}),
         updatedAt: now,
       },
     });

@@ -4,9 +4,18 @@ import {
   LayoutDashboard,
   MapPin,
   Share2,
+  UserPlus,
+  Users,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-export const dashboardNav = [
+export type DashboardNavItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+};
+
+const baseDashboardNav: DashboardNavItem[] = [
   {
     title: "Dashboard",
     href: "/dashboard",
@@ -32,4 +41,38 @@ export const dashboardNav = [
     href: "/dashboard/connect",
     icon: Download,
   },
-] as const;
+];
+
+const clientsNavItem: DashboardNavItem = {
+  title: "Clients",
+  href: "/dashboard/clients",
+  icon: Users,
+};
+
+const teamNavItem: DashboardNavItem = {
+  title: "Team",
+  href: "/dashboard/team",
+  icon: UserPlus,
+};
+
+export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
+  const teamItem = teamNavItem;
+
+  if (!isAgency) {
+    return [
+      baseDashboardNav[0]!,
+      teamItem,
+      ...baseDashboardNav.slice(1),
+    ];
+  }
+
+  return [
+    baseDashboardNav[0]!,
+    clientsNavItem,
+    teamItem,
+    ...baseDashboardNav.slice(1),
+  ];
+}
+
+/** @deprecated Use getDashboardNav(isAgency) for workspace-aware navigation. */
+export const dashboardNav = baseDashboardNav;

@@ -14,6 +14,7 @@ import {
   publishers,
 } from "@/db/schema";
 import { upsertOrganization } from "@/lib/auth/organizations";
+import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
@@ -56,6 +57,50 @@ export type QuickSetupResult = {
   publishersTracked: number;
 };
 
+export type CreateAgencyWorkspaceResult = {
+  organizationId: string;
+  organizationName: string;
+};
+
+export async function createAgencyWorkspaceAction(input: {
+  agencyName: string;
+}): Promise<CreateAgencyWorkspaceResult> {
+  const session = await auth();
+
+  if (!session.userId) {
+    throw new Error("Not authenticated");
+  }
+
+  if (session.orgId) {
+    throw new Error("You already have an active workspace");
+  }
+
+  const agencyName = input.agencyName.trim();
+
+  if (!agencyName) {
+    throw new Error("Enter your agency name");
+  }
+
+  const client = await clerkClient();
+  const organization = await client.organizations.createOrganization({
+    name: agencyName,
+    createdBy: session.userId,
+  });
+
+  await upsertOrganization({
+    id: organization.id,
+    name: organization.name,
+    slug: organization.slug,
+    imageUrl: organization.imageUrl,
+    type: "agency",
+  });
+
+  return {
+    organizationId: organization.id,
+    organizationName: organization.name,
+  };
+}
+
 export async function quickSetupBusinessAction(input: {
   businessName: string;
   categorySlug: string;
@@ -63,6 +108,7 @@ export async function quickSetupBusinessAction(input: {
   city?: string;
   state?: string;
   website?: string;
+  workspaceType?: OrganizationType;
 }): Promise<QuickSetupResult> {
   const session = await auth();
 
@@ -81,6 +127,7 @@ export async function quickSetupBusinessAction(input: {
   // 1. Workspace: reuse the active org, or create one named after the business.
   let organizationId = session.orgId ?? null;
   let createdOrganization = false;
+  const workspaceType = input.workspaceType ?? "business";
 
   if (!organizationId) {
     const client = await clerkClient();
@@ -97,10 +144,11 @@ export async function quickSetupBusinessAction(input: {
       name: organization.name,
       slug: organization.slug,
       imageUrl: organization.imageUrl,
+      type: workspaceType,
     });
   }
 
-  // 2. Client record (for solo businesses this mirrors the business itself).
+  // 2. Client record (solo businesses mirror the business; agencies get one per end-customer).
   const [existingClient] = await db
     .select()
     .from(clients)
@@ -109,7 +157,11 @@ export async function quickSetupBusinessAction(input: {
 
   let clientId: string;
 
-  if (existingClient && existingClient.name === businessName) {
+  if (
+    workspaceType === "business" &&
+    existingClient &&
+    existingClient.name === businessName
+  ) {
     clientId = existingClient.id;
   } else {
     const [createdClient] = await db

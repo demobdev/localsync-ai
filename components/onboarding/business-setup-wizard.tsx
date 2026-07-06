@@ -22,12 +22,51 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+export type BusinessSetupMode =
+  | "initial-business"
+  | "agency-client"
+  | "add-business";
+
+const copyByMode = {
+  "initial-business": {
+    title: "Tell us about your business",
+    description:
+      "One form — we'll set up your workspace, master profile, and directory tracking automatically.",
+    nameLabel: "Business name *",
+    namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
+    submitIdle: "Create my workspace",
+    submitWithWorkspace: "Add this business",
+  },
+  "agency-client": {
+    title: "Your first client business",
+    description:
+      "We create a client record and master profile under your agency workspace.",
+    nameLabel: "Client business name *",
+    namePlaceholder: "e.g. Smith Heating & Cooling",
+    submitIdle: "Add first client",
+    submitWithWorkspace: "Add this client",
+  },
+  "add-business": {
+    title: "Tell us about your business",
+    description:
+      "Each business gets its own client record, profile, and directory tracking.",
+    nameLabel: "Business name *",
+    namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
+    submitIdle: "Add this business",
+    submitWithWorkspace: "Add this business",
+  },
+} as const;
+
 export function BusinessSetupWizard({
   categories,
   hasWorkspace,
+  mode = "initial-business",
+  agencyName,
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
+  mode?: BusinessSetupMode;
+  agencyName?: string;
 }) {
   const router = useRouter();
   const { setActive } = useClerk();
@@ -37,6 +76,7 @@ export function BusinessSetupWizard({
       "internet-saas",
   );
   const [isPending, startTransition] = useTransition();
+  const copy = copyByMode[mode];
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -48,6 +88,7 @@ export function BusinessSetupWizard({
           city: String(formData.get("city") ?? "") || undefined,
           state: String(formData.get("state") ?? "") || undefined,
           website: String(formData.get("website") ?? "") || undefined,
+          workspaceType: mode === "agency-client" ? "agency" : "business",
         });
 
         if (setup.createdOrganization) {
@@ -57,7 +98,7 @@ export function BusinessSetupWizard({
         }
 
         router.replace(
-          `/dashboard/onboarding?done=1&location=${setup.locationId}&publishers=${setup.publishersTracked}`,
+          `/dashboard/onboarding?done=1&location=${setup.locationId}&publishers=${setup.publishersTracked}&accountType=${mode === "agency-client" ? "agency" : "business"}`,
         );
         router.refresh();
       } catch (error) {
@@ -71,20 +112,21 @@ export function BusinessSetupWizard({
   return (
     <Card className="localmap-card-glow">
       <CardHeader>
-        <CardTitle>Tell us about your business</CardTitle>
+        <CardTitle>{copy.title}</CardTitle>
         <CardDescription>
-          One form — we&apos;ll set up your workspace, master profile, and
-          directory tracking automatically.
+          {agencyName && mode === "agency-client"
+            ? `${copy.description} Workspace: ${agencyName}.`
+            : copy.description}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="businessName">Business name *</Label>
+            <Label htmlFor="businessName">{copy.nameLabel}</Label>
             <Input
               id="businessName"
               name="businessName"
-              placeholder="e.g. LocalSync or Smith Heating & Cooling"
+              placeholder={copy.namePlaceholder}
               required
               autoFocus
             />
@@ -125,8 +167,8 @@ export function BusinessSetupWizard({
             {isPending
               ? "Setting everything up…"
               : hasWorkspace
-                ? "Add this business"
-                : "Create my workspace"}
+                ? copy.submitWithWorkspace
+                : copy.submitIdle}
             {!isPending && <ArrowRightIcon className="size-4" />}
           </Button>
 

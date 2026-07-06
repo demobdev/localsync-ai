@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { ensureOrganizationAction } from "@/app/actions/org";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { getOrganization } from "@/lib/auth/organizations";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +21,14 @@ export default async function DashboardLayout({
   }
 
   await ensureOrganizationAction();
+  const organization = await getOrganization(session.orgId);
 
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <DashboardShell
+      isAgency={organization?.type === "agency"}
+      workspaceName={organization?.name ?? "LocalSync workspace"}
+    >
+      {children}
+    </DashboardShell>
+  );
 }

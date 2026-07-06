@@ -19,7 +19,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { dashboardNav } from "@/lib/dashboard/nav";
+import { getDashboardNav } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
 
 function NavLink({
@@ -56,18 +56,28 @@ function NavLink({
   );
 }
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({
+  onNavigate,
+  isAgency,
+  workspaceName,
+}: {
+  onNavigate?: () => void;
+  isAgency: boolean;
+  workspaceName: string;
+}) {
+  const navItems = getDashboardNav(isAgency);
+
   return (
     <>
       <div className="mb-6">
         <LocalMapLogo />
         <p className="mt-3 text-sm text-muted-foreground">
-          LocalSync workspace
+          {isAgency ? `${workspaceName} · Agency` : workspaceName}
         </p>
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
-        {dashboardNav.map((item) => (
+        {navItems.map((item) => (
           <NavLink key={item.href} {...item} onNavigate={onNavigate} />
         ))}
       </nav>
@@ -86,7 +96,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({
+  children,
+  isAgency = false,
+  workspaceName = "LocalSync workspace",
+}: {
+  children: React.ReactNode;
+  isAgency?: boolean;
+  workspaceName?: string;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -109,7 +127,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <SheetTitle>Navigation</SheetTitle>
               </SheetHeader>
               <div className="flex h-full flex-col pt-2">
-                <SidebarContent onNavigate={() => setMobileOpen(false)} />
+                <SidebarContent
+                  onNavigate={() => setMobileOpen(false)}
+                  isAgency={isAgency}
+                  workspaceName={workspaceName}
+                />
               </div>
             </SheetContent>
           </Sheet>
@@ -119,7 +141,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <div className="mx-auto flex min-h-[calc(100vh-57px)] max-w-7xl gap-0 md:min-h-screen md:gap-6 md:p-6">
         <aside className="hidden w-64 shrink-0 md:block">
           <div className="sticky top-6 flex h-[calc(100vh-3rem)] flex-col rounded-2xl border bg-card p-4 localmap-card-glow">
-            <SidebarContent />
+            <SidebarContent isAgency={isAgency} workspaceName={workspaceName} />
           </div>
         </aside>
 

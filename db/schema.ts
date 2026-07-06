@@ -99,11 +99,17 @@ export const reviewReplyStatusEnum = pgEnum("review_reply_status", [
   "skipped",
 ]);
 
+export const organizationTypeEnum = pgEnum("organization_type", [
+  "business",
+  "agency",
+]);
+
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug"),
   imageUrl: text("image_url"),
+  type: organizationTypeEnum("type").default("business").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
