@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { ScanPrefill } from "@/lib/scan/leads";
 
 export type BusinessSetupMode =
   | "initial-business"
@@ -62,11 +63,13 @@ export function BusinessSetupWizard({
   hasWorkspace,
   mode = "initial-business",
   agencyName,
+  prefill = null,
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
   mode?: BusinessSetupMode;
   agencyName?: string;
+  prefill?: ScanPrefill | null;
 }) {
   const router = useRouter();
   const { setActive } = useClerk();
@@ -127,6 +130,7 @@ export function BusinessSetupWizard({
               id="businessName"
               name="businessName"
               placeholder={copy.namePlaceholder}
+              defaultValue={prefill?.businessName ?? undefined}
               required
               autoFocus
             />
@@ -144,22 +148,43 @@ export function BusinessSetupWizard({
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" placeholder="Austin" />
+              <Input
+                id="city"
+                name="city"
+                placeholder="Austin"
+                defaultValue={prefill?.city ?? undefined}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="state">State</Label>
-              <Input id="state" name="state" placeholder="TX" />
+              <Input
+                id="state"
+                name="state"
+                placeholder="TX"
+                defaultValue={prefill?.state ?? undefined}
+              />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" name="phone" type="tel" placeholder="(555) 010-0000" />
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="(555) 010-0000"
+                defaultValue={prefill?.phone ?? undefined}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
-              <Input id="website" name="website" placeholder="https://…" />
+              <Input
+                id="website"
+                name="website"
+                placeholder="https://…"
+                defaultValue={prefill?.url ?? undefined}
+              />
             </div>
           </div>
 

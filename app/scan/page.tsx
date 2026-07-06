@@ -59,7 +59,7 @@ export default async function ScanPage() {
               </p>
             </div>
 
-            <ScanTool />
+            <ScanTool signedIn={Boolean(session.userId)} />
           </div>
         </section>
 

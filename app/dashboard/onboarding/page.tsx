@@ -8,6 +8,7 @@ import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getOrganization } from "@/lib/auth/organizations";
 import { countOrgLocations } from "@/lib/org/locations";
+import { getScanPrefill } from "@/lib/scan/leads";
 
 export default async function DashboardOnboardingPage({
   searchParams,
@@ -18,6 +19,7 @@ export default async function DashboardOnboardingPage({
     publishers?: string;
     add?: string;
     accountType?: string;
+    scan?: string;
   }>;
 }) {
   const [session, categories, params] = await Promise.all([
@@ -35,6 +37,8 @@ export default async function DashboardOnboardingPage({
     ? await countOrgLocations(session.orgId)
     : 0;
   const showAccountTypeChoice = locationCount === 0 && !addingAnother;
+  const scanPrefill =
+    params.scan && !setupComplete ? await getScanPrefill(params.scan) : null;
 
   if (
     session.orgId &&
@@ -71,6 +75,7 @@ export default async function DashboardOnboardingPage({
               organizationName={organization?.name ?? null}
               addingAnother={addingAnother}
               showAccountTypeChoice={showAccountTypeChoice}
+              scanPrefill={scanPrefill}
             />
           )}
         </div>

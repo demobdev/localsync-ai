@@ -13,6 +13,8 @@ import {
 } from "@/components/onboarding/business-setup-wizard";
 import type { BusinessCategoryOption } from "@/components/onboarding/business-category-select";
 import type { OrganizationType } from "@/lib/auth/organizations";
+import type { ScanPrefill } from "@/lib/scan/leads";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 type OnboardingStep = "choose" | "agency-name" | "business";
@@ -49,6 +51,7 @@ export function OnboardingFlow({
   organizationName,
   addingAnother,
   showAccountTypeChoice,
+  scanPrefill = null,
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
@@ -56,6 +59,7 @@ export function OnboardingFlow({
   organizationName: string | null;
   addingAnother: boolean;
   showAccountTypeChoice: boolean;
+  scanPrefill?: ScanPrefill | null;
 }) {
   const [step, setStep] = useState<OnboardingStep>(() =>
     resolveInitialStep({
@@ -147,6 +151,14 @@ export function OnboardingFlow({
           {heading.title}
         </h1>
         <p className="mt-2 text-muted-foreground">{heading.description}</p>
+        {scanPrefill ? (
+          <Badge
+            variant="secondary"
+            className="mt-3 rounded-full border border-primary/20 bg-primary/10 text-primary"
+          >
+            Pre-filled from your scan of {scanPrefill.url.replace(/^https?:\/\//, "").replace(/\/$/, "")} · score {scanPrefill.score}/100
+          </Badge>
+        ) : null}
       </div>
 
       {step === "choose" ? (
@@ -183,6 +195,7 @@ export function OnboardingFlow({
             hasWorkspace={hasWorkspace || selectedType === "agency"}
             mode={businessMode}
             agencyName={agencyName || organizationName || undefined}
+            prefill={scanPrefill}
           />
           {!addingAnother && !hasWorkspace && selectedType !== "agency" ? (
             <Button

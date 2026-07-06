@@ -125,8 +125,17 @@ const LOCKED_ITEMS = [
   "Prioritized action plan, ranked by impact",
 ];
 
-function ScanResults({ result }: { result: PublicScanResult }) {
+function ScanResults({
+  result,
+  signedIn,
+}: {
+  result: PublicScanResult;
+  signedIn: boolean;
+}) {
   const grade = GRADE_COPY[result.grade];
+  const claimHref = signedIn
+    ? `/dashboard/onboarding?add=1&scan=${result.scanId}`
+    : `/sign-up?scan=${result.scanId}`;
 
   return (
     <div className="space-y-6">
@@ -202,10 +211,12 @@ function ScanResults({ result }: { result: PublicScanResult }) {
               size="lg"
               className="flex-1"
               nativeButton={false}
-              render={<Link href={`/sign-up?scan=${result.scanId}`} />}
+              render={<Link href={claimHref} />}
             >
               <SparklesIcon className="size-4" />
-              Claim your free profile & full report
+              {signedIn
+                ? "Add this business to your workspace"
+                : "Claim your free profile & full report"}
             </Button>
             <Button
               size="lg"
@@ -226,7 +237,7 @@ function ScanResults({ result }: { result: PublicScanResult }) {
   );
 }
 
-export function ScanTool() {
+export function ScanTool({ signedIn = false }: { signedIn?: boolean }) {
   const [result, setResult] = useState<PublicScanResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -252,7 +263,7 @@ export function ScanTool() {
   }
 
   if (result) {
-    return <ScanResults result={result} />;
+    return <ScanResults result={result} signedIn={signedIn} />;
   }
 
   return (
