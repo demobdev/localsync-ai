@@ -1,12 +1,22 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
+import {
+  ArrowRightIcon,
+  GlobeIcon,
+  MapPinIcon,
+  MessageSquareIcon,
+  RadarIcon,
+} from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { getOrgReviewSummaryAction } from "@/app/actions/reviews";
+import { getGoogleImportStateAction } from "@/app/actions/google-import";
+import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
 import {
-  listClientsAction,
   listLocationsAction,
-  listPublishersAction,
 } from "@/app/actions/locations";
+import { getOrgVisibilitySummaryAction } from "@/app/actions/visibility";
+import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -24,83 +35,273 @@ export default async function DashboardPage() {
     redirect("/dashboard/onboarding");
   }
 
-  const [clients, locations, publishers] = await Promise.all([
-    listClientsAction(),
-    listLocationsAction(),
-    listPublishersAction(),
-  ]);
+  const [locations, visibility, googleState, primarySetup, reviews] =
+    await Promise.all([
+      listLocationsAction(),
+      getOrgVisibilitySummaryAction(),
+      getGoogleImportStateAction(),
+      getPrimaryLocationSetupAction(),
+      getOrgReviewSummaryAction(),
+    ]);
+
+  if (locations.length === 0) {
+    redirect("/dashboard/onboarding");
+  }
+
+  const hasData = locations.length > 0;
+  const topLocation = visibility.locations[0];
+  const profileComplete =
+    (topLocation?.score.profileScore ?? 0) >= 35;
+  const googleConnected = googleState.status === "connected";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Sprint 1 control center — master profiles, publisher registry, and
-          version history.
-        </p>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Clients</CardDescription>
-            <CardTitle className="text-3xl">{clients.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Locations</CardDescription>
-            <CardTitle className="text-3xl">{locations.length}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Publishers in registry</CardDescription>
-            <CardTitle className="text-3xl">{publishers.length}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Recent locations</CardTitle>
-            <CardDescription>
-              Open a location to edit its Master Business Profile.
-            </CardDescription>
-          </div>
-          <Button
-            nativeButton={false}
-            render={<Link href="/dashboard/locations" />}
+    <div className="space-y-6 pb-8 md:space-y-8">
+      <div className="localmap-mesh relative overflow-hidden rounded-2xl border bg-card p-6 sm:p-8">
+        <div className="relative max-w-2xl space-y-3">
+          <Badge
+            variant="secondary"
+            className="rounded-full border border-primary/20 bg-primary/10 text-primary"
           >
-            View all
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {locations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No locations yet. Create a client, then add your first location.
-            </p>
-          ) : (
-            locations.slice(0, 5).map((location) => (
-              <Link
-                key={location.id}
-                href={`/dashboard/locations/${location.id}`}
-                className="flex items-center justify-between rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
-              >
-                <div>
-                  <p className="font-medium">{location.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {location.clientName}
-                    {location.profile.city ? ` · ${location.profile.city}` : ""}
-                  </p>
+            Local Intelligence · Sprint 4
+          </Badge>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Your local presence command center
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Master profiles, publisher registry, listing audits, and Google import
+            — the engine behind LocalMap agency services.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              size="sm"
+              nativeButton={false}
+              render={<Link href="/dashboard/locations" />}
+            >
+              <MapPinIcon className="size-4" />
+              Manage locations
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/dashboard/connect" />}
+            >
+              Connect sources
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {primarySetup.progress && primarySetup.locationId ? (
+        <SetupGuideCompact
+          progress={primarySetup.progress}
+          locationId={primarySetup.locationId}
+        />
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          {
+            label: "Visibility score",
+            value: hasData ? `${visibility.averageScore}` : "—",
+            hint: hasData
+              ? "How complete + consistent your business info is. Click to improve it."
+              : "Add a business to get your first score.",
+            icon: GlobeIcon,
+            tone: "text-primary",
+            href: topLocation
+              ? `/dashboard/locations/${topLocation.id}/visibility`
+              : "/dashboard/locations",
+          },
+          {
+            label: "Listing audits",
+            value: hasData ? String(topLocation?.score.auditScore ?? 0) : "—",
+            hint: "We crawl your public listings and flag wrong info. Click to run one.",
+            icon: RadarIcon,
+            tone: "text-chart-2",
+            href: topLocation
+              ? `/dashboard/locations/${topLocation.id}/listings`
+              : "/dashboard/locations",
+          },
+          {
+            label: "Businesses",
+            value: String(locations.length),
+            hint: "Locations you manage in this workspace.",
+            icon: MapPinIcon,
+            tone: "text-chart-3",
+            href: "/dashboard/locations",
+          },
+          {
+            label: "Reviews needing reply",
+            value:
+              reviews.totalReviews > 0
+                ? String(reviews.unrepliedCount)
+                : "—",
+            hint:
+              reviews.totalReviews > 0
+                ? "AI drafts replies — you approve before saving."
+                : "Load demo reviews or sync from Google to start.",
+            icon: MessageSquareIcon,
+            tone: "text-chart-5",
+            href: reviews.topLocation
+              ? `/dashboard/locations/${reviews.topLocation.id}/reviews`
+              : topLocation
+                ? `/dashboard/locations/${topLocation.id}/reviews`
+                : "/dashboard/locations",
+          },
+        ].map((stat) => (
+          <Link key={stat.label} href={stat.href} className="group">
+            <Card className="localmap-card-glow h-full overflow-hidden transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>{stat.label}</CardDescription>
+                  <stat.icon className={cn("size-4", stat.tone)} />
                 </div>
-                <Badge variant="outline">Profile</Badge>
+                <CardTitle className="text-3xl tabular-nums">{stat.value}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">{stat.hint}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Card className="localmap-card-glow lg:col-span-3">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Recent locations</CardTitle>
+              <CardDescription>
+                Open a location to edit its master profile or run audits.
+              </CardDescription>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/dashboard/locations" />}
+            >
+              View all
+              <ArrowRightIcon className="size-4" />
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {locations.length === 0 ? (
+              <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-8 text-center">
+                <p className="text-sm font-medium">No businesses yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  One quick form sets up your profile and directory tracking.
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <Button
+                    size="sm"
+                    nativeButton={false}
+                    render={<Link href="/dashboard/onboarding" />}
+                  >
+                    Add your business
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    nativeButton={false}
+                    render={<Link href="/dashboard/connect" />}
+                  >
+                    Connect Google
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              locations.slice(0, 5).map((location) => (
+                <Link
+                  key={location.id}
+                  href={`/dashboard/locations/${location.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border bg-background/60 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{location.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {location.clientName}
+                      {location.profile.city ? ` · ${location.profile.city}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">
+                    Profile
+                  </Badge>
+                </Link>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="localmap-card-glow lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Next actions</CardTitle>
+            <CardDescription>
+              The agency flywheel — notice, recommend, approve, execute.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[
+              {
+                title: "Set up master profile",
+                body: "Canonical NAP, hours, services, photos.",
+                href: topLocation
+                  ? `/dashboard/locations/${topLocation.id}`
+                  : "/dashboard/locations",
+                done: profileComplete,
+              },
+              {
+                title: "Connect Google Business Profile",
+                body: "OAuth import with field-by-field merge.",
+                href: "/dashboard/connect/google",
+                done: googleConnected,
+              },
+              {
+                title: "Generate AI visibility page",
+                body: "Schema.org JSON-LD, hosted page, llms.txt.",
+                href: topLocation
+                  ? `/dashboard/locations/${topLocation.id}/visibility`
+                  : "/dashboard/locations",
+                done: visibility.hasPublishedPage,
+              },
+              {
+                title: "Reply to customer reviews",
+                body: "Ingest reviews, AI-draft replies, approve before save.",
+                href: reviews.topLocation
+                  ? `/dashboard/locations/${reviews.topLocation.id}/reviews`
+                  : topLocation
+                    ? `/dashboard/locations/${topLocation.id}/reviews`
+                    : "/dashboard/locations",
+                done:
+                  reviews.totalReviews > 0 && reviews.unrepliedCount === 0,
+              },
+              {
+                title: "Run listing audits",
+                body: "Firecrawl + AI extraction vs master profile.",
+                href: locations[0]
+                  ? `/dashboard/locations/${locations[0].id}/listings`
+                  : "/dashboard/locations",
+                done: (topLocation?.score.auditScore ?? 0) > 0,
+              },
+            ].map((action) => (
+              <Link
+                key={action.title}
+                href={action.href}
+                className="block rounded-xl border px-4 py-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-sm font-medium">{action.title}</p>
+                  <Badge variant={action.done ? "default" : "secondary"}>
+                    {action.done ? "Done" : "Next"}
+                  </Badge>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{action.body}</p>
               </Link>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

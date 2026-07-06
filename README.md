@@ -65,9 +65,31 @@ npm run dev
 - Seeded home-services taxonomy and ~20 publisher registry entries
 - Dashboard shell
 
-## Out of scope (Sprint 2+)
+## Sprint 2 scope
 
-GBP OAuth import, Firecrawl audits, manual task UI, AI visibility pages, scoring dashboard, billing.
+- Google OAuth import (read-only) with field merge
+- Firecrawl listing audits + findings/evidence
+- Manual task tracker
+- Publisher registry UI
+
+## Sprint 3 scope
+
+- AI visibility tab per location (score, schema.org JSON-LD, llms.txt)
+- Hosted public pages at `/l/[locationId]` and `/l/[locationId]/llms.txt`
+- Crawler checks (JSON-LD + optional Firecrawl validation)
+- Dashboard visibility scorecards
+
+## Sprint 4 scope
+
+- Review inbox per location (ingest, score, response rate)
+- Demo review seed for walkthroughs without GBP quota
+- Google review sync when location is linked via GBP import
+- AI-drafted reply suggestions with approve-before-save guardrail
+- Dashboard review metrics and setup checklist steps
+
+## Out of scope (Phase 2+)
+
+GBP write sync (auto-post approved replies), Yelp review API, billing, agency white-label.
 
 ## Reference only
 

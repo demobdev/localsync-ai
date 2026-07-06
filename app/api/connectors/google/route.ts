@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   if (!isGoogleConfigured()) {
     return NextResponse.redirect(
-      new URL("/dashboard/import/google?error=not_configured", request.url),
+      new URL("/dashboard/connect/google?error=not_configured", request.url),
     );
   }
 

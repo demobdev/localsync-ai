@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPinIcon } from "lucide-react";
 
 import {
   listClientsAction,
@@ -6,7 +7,9 @@ import {
   listTaxonomyAction,
 } from "@/app/actions/locations";
 import { CreateLocationDialog } from "@/components/locations/create-location-dialog";
+import { DeleteLocationButton } from "@/components/locations/delete-location-button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -31,7 +34,16 @@ export default async function LocationsPage() {
             Master Business Profiles with immutable version history.
           </p>
         </div>
-        <CreateLocationDialog
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            nativeButton={false}
+            render={<Link href="/dashboard/onboarding?add=1" />}
+          >
+            Add another business
+          </Button>
+          <CreateLocationDialog
           clients={clients.map((client) => ({
             id: client.id,
             name: client.name,
@@ -39,8 +51,11 @@ export default async function LocationsPage() {
           categories={taxonomy.categories.map((category) => ({
             slug: category.slug,
             name: category.name,
+            vertical: category.vertical,
+            description: category.description ?? "",
           }))}
         />
+        </div>
       </div>
 
       <Card>
@@ -53,28 +68,47 @@ export default async function LocationsPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {locations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Create a client first, then add a location to start building a
-              master profile.
-            </p>
+            <div className="rounded-xl border border-dashed bg-muted/30 px-4 py-10 text-center">
+              <MapPinIcon className="mx-auto size-8 text-muted-foreground/60" />
+              <p className="mt-3 text-sm font-medium">No businesses yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                One quick form sets up your profile and directory tracking.
+              </p>
+              <Button
+                size="sm"
+                className="mt-4"
+                nativeButton={false}
+                render={<Link href="/dashboard/onboarding" />}
+              >
+                Add your business
+              </Button>
+            </div>
           ) : (
             locations.map((location) => (
-              <Link
+              <div
                 key={location.id}
-                href={`/dashboard/locations/${location.id}`}
-                className="flex items-center justify-between rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
+                className="flex items-center gap-2 rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
               >
-                <div>
-                  <p className="font-medium">{location.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {location.clientName}
-                    {location.profile.city ? ` · ${location.profile.city}` : ""}
-                  </p>
-                </div>
-                <Badge variant="outline">
-                  {location.profile.categorySlug ?? "uncategorized"}
-                </Badge>
-              </Link>
+                <Link
+                  href={`/dashboard/locations/${location.id}`}
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{location.name}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {location.clientName}
+                      {location.profile.city ? ` · ${location.profile.city}` : ""}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="shrink-0">
+                    {location.profile.categorySlug ?? "uncategorized"}
+                  </Badge>
+                </Link>
+                <DeleteLocationButton
+                  locationId={location.id}
+                  locationName={location.name}
+                />
+              </div>
             ))
           )}
         </CardContent>

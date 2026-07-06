@@ -102,6 +102,71 @@ export async function saveGoogleCredentials(
   }
 }
 
+export type GbpFetchErrorCode =
+  | "quota_exceeded"
+  | "api_not_approved"
+  | "permission_denied"
+  | "unknown";
+
+export function classifyGbpFetchError(error: unknown): {
+  code: GbpFetchErrorCode;
+  message: string;
+} {
+  const raw = typeof error === "string" ? error : error instanceof Error ? error.message : String(error);
+
+  if (
+    raw.includes("Quota exceeded") ||
+    raw.includes("RESOURCE_EXHAUSTED") ||
+    raw.includes('"code": 429')
+  ) {
+    return {
+      code: "quota_exceeded",
+      message:
+        "Google Business Profile API quota is not available yet. Submit the Basic API Access request in Google Cloud and wait for approval (often 2–6 weeks). OAuth connected successfully — location import will work once quota is granted.",
+    };
+  }
+
+  if (raw.includes("403") || raw.includes("PERMISSION_DENIED")) {
+    return {
+      code: "permission_denied",
+      message:
+        "This Google account does not have permission to read Business Profile data. The account must be an owner or manager on at least one verified listing.",
+    };
+  }
+
+  if (raw.includes("404") || raw.includes("NOT_FOUND")) {
+    return {
+      code: "api_not_approved",
+      message:
+        "Business Profile APIs may not be enabled or approved for this Google Cloud project. Enable Account Management and Business Information APIs, then submit the GBP API access form.",
+    };
+  }
+
+  return {
+    code: "unknown",
+    message: raw.slice(0, 280) || "Could not load Google Business Profile locations.",
+  };
+}
+
+export async function hasGoogleCredentials(
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+
+  const [credentials] = await db
+    .select({ id: connectorCredentials.id })
+    .from(connectorCredentials)
+    .where(
+      and(
+        eq(connectorCredentials.organizationId, organizationId),
+        eq(connectorCredentials.provider, "google"),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(credentials);
+}
+
 export async function getValidGoogleAccessToken(
   organizationId: string,
 ): Promise<string | null> {
@@ -192,9 +257,16 @@ function formatGbpTime(time?: { hours?: number; minutes?: number }): string {
   return `${hours}:${minutes}`;
 }
 
-export async function fetchGbpLocations(
+export type FetchGbpLocationsResult =
+  | { ok: true; locations: GbpLocation[] }
+  | {
+      ok: false;
+      error: { code: GbpFetchErrorCode; message: string };
+    };
+
+export async function fetchGbpLocationsSafe(
   accessToken: string,
-): Promise<GbpLocation[]> {
+): Promise<FetchGbpLocationsResult> {
   const accountsResponse = await fetch(
     "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
     { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -202,7 +274,10 @@ export async function fetchGbpLocations(
 
   if (!accountsResponse.ok) {
     const body = await accountsResponse.text();
-    throw new Error(`GBP accounts fetch failed: ${body.slice(0, 300)}`);
+    return {
+      ok: false,
+      error: classifyGbpFetchError(body),
+    };
   }
 
   const accountsPayload = (await accountsResponse.json()) as {
@@ -287,7 +362,18 @@ export async function fetchGbpLocations(
     }
   }
 
-  return locations;
+  return { ok: true, locations };
+}
+
+/** @deprecated Prefer fetchGbpLocationsSafe to avoid throwing on expected API errors. */
+export async function fetchGbpLocations(
+  accessToken: string,
+): Promise<GbpLocation[]> {
+  const result = await fetchGbpLocationsSafe(accessToken);
+  if (!result.ok) {
+    throw new Error(result.error.message);
+  }
+  return result.locations;
 }
 
 export type GbpFieldKey =

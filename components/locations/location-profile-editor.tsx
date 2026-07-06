@@ -8,6 +8,7 @@ import {
   listLocationVersionsAction,
   updateLocationProfileAction,
 } from "@/app/actions/locations";
+import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,13 +62,20 @@ export function LocationProfileEditor({
   initialProfile,
   taxonomy,
   initialVersions,
+  activeTab,
+  onTabChange,
 }: {
   locationId: string;
   initialProfile: LocationProfileSnapshot;
   taxonomy: Taxonomy;
   initialVersions: VersionRow[];
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }) {
   const [profile, setProfile] = useState(initialProfile);
+  const [internalTab, setInternalTab] = useState("nap");
+  const currentTab = activeTab ?? internalTab;
+  const setTab = onTabChange ?? setInternalTab;
   const [versions, setVersions] = useState(initialVersions);
   const [fromVersionId, setFromVersionId] = useState(
     initialVersions[1]?.id ?? initialVersions[0]?.id ?? "",
@@ -205,20 +213,14 @@ export function LocationProfileEditor({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold">{profile.name || "Untitled location"}</h2>
-          <p className="text-sm text-muted-foreground">
-            Master Business Profile — every save creates an immutable version.
-          </p>
-        </div>
-        <Button onClick={saveProfile} disabled={isPending}>
-          {isPending ? "Saving..." : "Save profile"}
+    <div className="relative space-y-6 pb-20">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <Button onClick={saveProfile} disabled={isPending} className="hidden sm:inline-flex">
+          {isPending ? "Saving…" : "Save profile"}
         </Button>
       </div>
 
-      <Tabs defaultValue="nap">
+      <Tabs value={currentTab} onValueChange={setTab}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
           <TabsTrigger value="nap">NAP</TabsTrigger>
           <TabsTrigger value="hours">Hours</TabsTrigger>
@@ -779,6 +781,14 @@ export function LocationProfileEditor({
           )}
         </CardContent>
       </Card>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background/95 p-3 backdrop-blur-md sm:hidden">
+        <Button onClick={saveProfile} disabled={isPending} className="w-full">
+          {isPending ? "Saving…" : "Save profile"}
+        </Button>
+      </div>
+
+      <ActionLoadingOverlay active={isPending} label="Saving profile…" />
     </div>
   );
 }

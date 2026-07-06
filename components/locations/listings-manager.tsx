@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { RadarIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -20,6 +21,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
 
 const railLabels: Record<string, string> = {
   api: "API",
@@ -39,7 +42,9 @@ type PublisherRow = {
   id: string;
   publisherId: string;
   publisherName: string;
+  publisherSlug: string;
   rail: string;
+  isCore: boolean;
   status: string;
   listingUrl: string | null;
   lastCheckedAt: Date | null;
@@ -52,6 +57,8 @@ type AuditRunRow = {
   createdAt: Date;
   completedAt: Date | null;
 };
+
+type FilterMode = "core" | "configured" | "all";
 
 export function ListingsManager({
   locationId,
@@ -66,12 +73,33 @@ export function ListingsManager({
   const [urls, setUrls] = useState<Record<string, string>>(
     Object.fromEntries(publisherRows.map((row) => [row.id, row.listingUrl ?? ""])),
   );
+  const [filter, setFilter] = useState<FilterMode>("core");
+  const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
   const [auditPending, startAuditTransition] = useTransition();
 
   const configuredCount = publisherRows.filter((row) =>
     (urls[row.id] ?? "").trim(),
   ).length;
+
+  const visibleRows = useMemo(() => {
+    let rows = publisherRows;
+
+    if (filter === "core") {
+      rows = rows.filter((row) => row.isCore);
+    } else if (filter === "configured") {
+      rows = rows.filter((row) => (urls[row.id] ?? "").trim());
+    }
+
+    const query = search.trim().toLowerCase();
+    if (query) {
+      rows = rows.filter((row) =>
+        row.publisherName.toLowerCase().includes(query),
+      );
+    }
+
+    return rows;
+  }, [filter, publisherRows, search, urls]);
 
   function saveUrl(row: PublisherRow) {
     startTransition(async () => {
@@ -122,75 +150,142 @@ export function ListingsManager({
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Listing URLs</CardTitle>
-            <CardDescription>
-              Add known listing URLs for this location. The audit engine crawls
-              each one and compares it to the master profile.
-            </CardDescription>
+    <div className="relative space-y-6">
+      <Card className="localmap-card-glow border-primary/20 bg-primary/5">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <RadarIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Demo tip</p>
+              <p className="text-sm text-muted-foreground">
+                Start with <strong>Yelp</strong> and <strong>BBB</strong> — paste
+                listing URLs, save, then run audit.
+              </p>
+            </div>
           </div>
           <Button
             onClick={runAudit}
             disabled={auditPending || configuredCount === 0}
+            className="shrink-0"
           >
             {auditPending
-              ? "Auditing..."
+              ? "Auditing…"
               : `Run audit (${configuredCount} URL${configuredCount === 1 ? "" : "s"})`}
           </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {publisherRows.map((row) => (
-            <div
-              key={row.id}
-              className="grid gap-3 rounded-lg border p-3 md:grid-cols-[200px_1fr_auto_auto]"
-            >
-              <div>
-                <p className="font-medium">{row.publisherName}</p>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <Badge variant="outline">{railLabels[row.rail] ?? row.rail}</Badge>
-                  <Badge variant={statusVariants[row.status] ?? "outline"}>
-                    {row.status}
-                  </Badge>
-                </div>
-                {row.lastCheckedAt ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Checked {new Date(row.lastCheckedAt).toLocaleString()}
-                  </p>
-                ) : null}
-              </div>
-              <Input
-                placeholder="https://..."
-                value={urls[row.id] ?? ""}
-                onChange={(event) =>
-                  setUrls((current) => ({
-                    ...current,
-                    [row.id]: event.target.value,
-                  }))
-                }
-              />
-              <Button
-                variant="outline"
-                disabled={isPending}
-                onClick={() => saveUrl(row)}
-              >
-                Save
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={isPending}
-                onClick={() => addChecklist(row)}
-              >
-                Add tasks
-              </Button>
-            </div>
-          ))}
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="localmap-card-glow relative overflow-hidden">
+        <CardHeader>
+          <CardTitle>Listing URLs</CardTitle>
+          <CardDescription>
+            Add known listing URLs. The audit engine crawls each one and compares
+            it to your master profile.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search publishers…"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1 rounded-lg border bg-muted/30 p-1">
+              {(
+                [
+                  ["core", "Core"],
+                  ["configured", "Configured"],
+                  ["all", "All"],
+                ] as const
+              ).map(([value, label]) => (
+                <Button
+                  key={value}
+                  type="button"
+                  size="sm"
+                  variant={filter === value ? "default" : "ghost"}
+                  onClick={() => setFilter(value)}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {visibleRows.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+              No publishers match this filter. Try &quot;All&quot; or clear search.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleRows.map((row) => (
+                <div
+                  key={row.id}
+                  className="space-y-3 rounded-xl border p-3 sm:p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{row.publisherName}</p>
+                        {row.isCore ? (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Core
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <Badge variant="outline">{railLabels[row.rail] ?? row.rail}</Badge>
+                        <Badge variant={statusVariants[row.status] ?? "outline"}>
+                          {row.status}
+                        </Badge>
+                      </div>
+                      {row.lastCheckedAt ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Checked {new Date(row.lastCheckedAt).toLocaleString()}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                    <div className="space-y-1">
+                      <Label className="sr-only">Listing URL for {row.publisherName}</Label>
+                      <Input
+                        placeholder="https://..."
+                        value={urls[row.id] ?? ""}
+                        onChange={(event) =>
+                          setUrls((current) => ({
+                            ...current,
+                            [row.id]: event.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      disabled={isPending}
+                      onClick={() => saveUrl(row)}
+                    >
+                      Save
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={isPending}
+                      onClick={() => addChecklist(row)}
+                    >
+                      Tasks
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="localmap-card-glow">
         <CardHeader>
           <CardTitle>Audit history</CardTitle>
           <CardDescription>
@@ -199,15 +294,18 @@ export function ListingsManager({
         </CardHeader>
         <CardContent className="space-y-3">
           {auditRuns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No audits yet. Add listing URLs above and run your first audit.
-            </p>
+            <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center">
+              <p className="text-sm font-medium">No audits yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add listing URLs above and run your first audit.
+              </p>
+            </div>
           ) : (
             auditRuns.map((run) => (
               <Link
                 key={run.id}
                 href={`/dashboard/locations/${locationId}/listings/${run.id}`}
-                className="flex items-center justify-between rounded-lg border px-4 py-3 transition-colors hover:bg-muted/50"
+                className="flex items-center justify-between rounded-xl border px-4 py-3 transition-colors hover:bg-muted/50"
               >
                 <div>
                   <p className="font-medium">
@@ -233,6 +331,11 @@ export function ListingsManager({
           )}
         </CardContent>
       </Card>
+      <ActionLoadingOverlay
+        active={auditPending}
+        label="Running listing audit — crawling URLs…"
+        className="rounded-2xl"
+      />
     </div>
   );
 }

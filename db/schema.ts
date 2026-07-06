@@ -85,6 +85,20 @@ export const crawlerCheckStatusEnum = pgEnum("crawler_check_status", [
   "failed",
 ]);
 
+export const reviewSourceEnum = pgEnum("review_source", [
+  "google",
+  "yelp",
+  "manual",
+  "demo",
+]);
+
+export const reviewReplyStatusEnum = pgEnum("review_reply_status", [
+  "unreplied",
+  "draft_pending",
+  "replied",
+  "skipped",
+]);
+
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -478,6 +492,46 @@ export const crawlerChecks = pgTable(
   (table) => [
     index("crawler_checks_location_id_idx").on(table.locationId),
     index("crawler_checks_status_idx").on(table.status),
+  ],
+);
+
+export const locationReviews = pgTable(
+  "location_reviews",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: text("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    source: reviewSourceEnum("source").notNull(),
+    externalId: text("external_id"),
+    authorName: text("author_name").notNull(),
+    rating: integer("rating").notNull(),
+    text: text("text").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    replyStatus: reviewReplyStatusEnum("reply_status")
+      .notNull()
+      .default("unreplied"),
+    replyText: text("reply_text"),
+    replyPostedAt: timestamp("reply_posted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("location_reviews_location_id_idx").on(table.locationId),
+    index("location_reviews_organization_id_idx").on(table.organizationId),
+    index("location_reviews_reply_status_idx").on(table.replyStatus),
+    index("location_reviews_location_source_external_idx").on(
+      table.locationId,
+      table.source,
+      table.externalId,
+    ),
   ],
 );
 

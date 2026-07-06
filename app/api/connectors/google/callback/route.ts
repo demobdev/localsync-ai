@@ -19,13 +19,13 @@ export async function GET(request: Request) {
 
   if (error || !code) {
     return NextResponse.redirect(
-      new URL(`/dashboard/import/google?error=${error ?? "missing_code"}`, request.url),
+      new URL(`/dashboard/connect/google?error=${error ?? "missing_code"}`, request.url),
     );
   }
 
   if (state !== session.orgId) {
     return NextResponse.redirect(
-      new URL("/dashboard/import/google?error=state_mismatch", request.url),
+      new URL("/dashboard/connect/google?error=state_mismatch", request.url),
     );
   }
 
@@ -35,9 +35,11 @@ export async function GET(request: Request) {
   } catch (exchangeError) {
     console.error("[google-oauth] exchange failed", exchangeError);
     return NextResponse.redirect(
-      new URL("/dashboard/import/google?error=exchange_failed", request.url),
+      new URL("/dashboard/connect/google?error=exchange_failed", request.url),
     );
   }
 
-  return NextResponse.redirect(new URL("/dashboard/import/google", request.url));
+  return NextResponse.redirect(
+    new URL("/dashboard/connect/google?connected=1", request.url),
+  );
 }

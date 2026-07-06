@@ -22,14 +22,31 @@ async function seedTaxonomy(db: ReturnType<typeof getDb>) {
     await db
       .insert(businessCategories)
       .values(category)
-      .onConflictDoNothing({ target: businessCategories.slug });
+      .onConflictDoUpdate({
+        target: businessCategories.slug,
+        set: {
+          name: category.name,
+          vertical: category.vertical,
+          schemaOrgType: category.schemaOrgType,
+          description: category.description,
+          sortOrder: category.sortOrder,
+        },
+      });
   }
 
   for (const service of TAXONOMY_SERVICES) {
     await db
       .insert(serviceTaxonomy)
       .values(service)
-      .onConflictDoNothing({ target: serviceTaxonomy.slug });
+      .onConflictDoUpdate({
+        target: serviceTaxonomy.slug,
+        set: {
+          categorySlug: service.categorySlug,
+          name: service.name,
+          description: service.description,
+          sortOrder: service.sortOrder,
+        },
+      });
   }
 }
 

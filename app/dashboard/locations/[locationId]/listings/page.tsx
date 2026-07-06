@@ -6,7 +6,6 @@ import {
 } from "@/app/actions/audits";
 import { getLocationAction } from "@/app/actions/locations";
 import { ListingsManager } from "@/components/locations/listings-manager";
-import { LocationTabs } from "@/components/locations/location-tabs";
 
 export default async function LocationListingsPage({
   params,
@@ -25,19 +24,10 @@ export default async function LocationListingsPage({
   }
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-2xl font-semibold">{location.name}</h2>
-        <p className="text-sm text-muted-foreground">
-          Listings, publisher status, and audit history for this location.
-        </p>
-      </div>
-      <LocationTabs locationId={locationId} />
-      <ListingsManager
-        locationId={locationId}
-        publisherRows={publisherRows}
-        auditRuns={auditRuns}
-      />
-    </div>
+    <ListingsManager
+      locationId={locationId}
+      publisherRows={publisherRows}
+      auditRuns={auditRuns}
+    />
   );
 }

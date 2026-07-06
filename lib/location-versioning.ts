@@ -65,6 +65,7 @@ export function diffLocationProfiles(
     { field: "attributes", label: "Attributes" },
     { field: "photos", label: "Photos" },
     { field: "sameAs", label: "Links & profiles" },
+    { field: "faqs", label: "FAQs" },
   ];
 
   for (const { field, label } of complexFields) {

@@ -34,6 +34,11 @@ export type LocationPhoto = {
   sortOrder: number;
 };
 
+export type LocationFaq = {
+  question: string;
+  answer: string;
+};
+
 export type LocationProfileSnapshot = {
   name: string;
   description?: string;
@@ -55,6 +60,7 @@ export type LocationProfileSnapshot = {
   attributes: Record<string, string | boolean | number>;
   photos: LocationPhoto[];
   sameAs: string[];
+  faqs?: LocationFaq[];
 };
 
 export const EMPTY_LOCATION_PROFILE: LocationProfileSnapshot = {

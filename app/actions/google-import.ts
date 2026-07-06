@@ -4,14 +4,16 @@ import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { getDb } from "@/db";
-import { locationVersions, locations } from "@/db/schema";
+import { locationPublishers, locationVersions, locations, publishers } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
 import {
   applyGbpFields,
-  fetchGbpLocations,
+  fetchGbpLocationsSafe,
   getValidGoogleAccessToken,
+  hasGoogleCredentials,
   isGoogleConfigured,
   type GbpFieldKey,
+  type GbpFetchErrorCode,
   type GbpLocation,
 } from "@/lib/connectors/google";
 import {
@@ -22,7 +24,14 @@ import {
 export type GoogleImportState =
   | { status: "not_configured" }
   | { status: "not_connected" }
-  | { status: "connected"; locations: GbpLocation[] };
+  | {
+      status: "connected";
+      locations: GbpLocation[];
+      fetchError?: {
+        code: GbpFetchErrorCode;
+        message: string;
+      };
+    };
 
 export async function getGoogleImportStateAction(): Promise<GoogleImportState> {
   const { orgId } = await requireOrgAuth();
@@ -31,19 +40,43 @@ export async function getGoogleImportStateAction(): Promise<GoogleImportState> {
     return { status: "not_configured" };
   }
 
+  const linked = await hasGoogleCredentials(orgId);
+
+  if (!linked) {
+    return { status: "not_connected" };
+  }
+
   const accessToken = await getValidGoogleAccessToken(orgId);
 
   if (!accessToken) {
-    return { status: "not_connected" };
+    return {
+      status: "connected",
+      locations: [],
+      fetchError: {
+        code: "unknown",
+        message:
+          "Google is connected but the access token could not be refreshed. Click Reconnect to authorize again.",
+      },
+    };
   }
 
-  try {
-    const gbpLocations = await fetchGbpLocations(accessToken);
-    return { status: "connected", locations: gbpLocations };
-  } catch (error) {
-    console.error("[google-import] fetch failed", error);
-    return { status: "not_connected" };
+  const result = await fetchGbpLocationsSafe(accessToken);
+
+  if (!result.ok) {
+    if (result.error.code === "quota_exceeded") {
+      console.warn("[google-import] GBP API quota not available yet");
+    } else {
+      console.warn("[google-import] GBP fetch failed:", result.error.code);
+    }
+
+    return {
+      status: "connected",
+      locations: [],
+      fetchError: result.error,
+    };
   }
+
+  return { status: "connected", locations: result.locations };
 }
 
 export async function importGbpFieldsAction(input: {
@@ -114,7 +147,47 @@ export async function importGbpFieldsAction(input: {
     })
     .where(eq(locations.id, location.id));
 
+  const [googlePublisher] = await db
+    .select({ id: publishers.id })
+    .from(publishers)
+    .where(eq(publishers.slug, "google-business-profile"))
+    .limit(1);
+
+  if (googlePublisher) {
+    const [existingLink] = await db
+      .select({ id: locationPublishers.id })
+      .from(locationPublishers)
+      .where(
+        and(
+          eq(locationPublishers.locationId, location.id),
+          eq(locationPublishers.publisherId, googlePublisher.id),
+        ),
+      )
+      .limit(1);
+
+    if (existingLink) {
+      await db
+        .update(locationPublishers)
+        .set({
+          externalId: input.gbpLocation.gbpName,
+          status: "synced",
+          updatedAt: new Date(),
+        })
+        .where(eq(locationPublishers.id, existingLink.id));
+    } else {
+      await db.insert(locationPublishers).values({
+        locationId: location.id,
+        publisherId: googlePublisher.id,
+        externalId: input.gbpLocation.gbpName,
+        status: "synced",
+      });
+    }
+  }
+
   revalidatePath(`/dashboard/locations/${location.id}`);
+  revalidatePath("/dashboard/connect/google");
+  revalidatePath("/dashboard/connect");
+  revalidatePath("/dashboard/import/google");
   revalidatePath("/dashboard/locations");
 
   return { changed: true, fieldCount: diff.length };

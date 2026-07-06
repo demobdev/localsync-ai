@@ -20,6 +20,7 @@ import {
   summarizeProfileDiff,
 } from "@/lib/location-versioning";
 import { uniqueSlug } from "@/lib/slugify";
+import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
 import {
   EMPTY_LOCATION_PROFILE,
   type LocationProfileSnapshot,
@@ -146,12 +147,26 @@ export async function createLocationAction(input: {
   await assertClientInOrg(input.clientId, orgId);
   const db = getDb();
 
-  const profile: LocationProfileSnapshot = {
+  const categorySlug = input.categorySlug ?? "internet-saas";
+
+  const profileBase: LocationProfileSnapshot = {
     ...EMPTY_LOCATION_PROFILE,
     name: input.name.trim(),
     city: input.city?.trim(),
-    categorySlug: input.categorySlug ?? "hvac",
+    categorySlug,
     serviceSlugs: [],
+  };
+
+  const packed = applyCategoryPackToProfile({
+    categorySlug,
+    businessName: input.name.trim(),
+    profile: profileBase,
+  });
+
+  const profile: LocationProfileSnapshot = {
+    ...profileBase,
+    description: packed.description,
+    serviceSlugs: packed.serviceSlugs,
   };
 
   const slug = uniqueSlug(input.name, input.city ?? crypto.randomUUID().slice(0, 6));
@@ -290,6 +305,17 @@ export async function compareLocationVersionsAction(input: {
   }
 
   return diffLocationProfiles(fromVersion.snapshot, toVersion.snapshot);
+}
+
+export async function deleteLocationAction(locationId: string) {
+  const { orgId } = await requireOrgAuth();
+  await assertLocationInOrg(locationId, orgId);
+  const db = getDb();
+
+  await db.delete(locations).where(eq(locations.id, locationId));
+
+  revalidatePath("/dashboard/locations");
+  revalidatePath("/dashboard");
 }
 
 export async function listPublishersAction() {

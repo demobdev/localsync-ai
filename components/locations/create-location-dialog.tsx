@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { createLocationAction } from "@/app/actions/locations";
+import {
+  BusinessCategorySelect,
+  type BusinessCategoryOption,
+} from "@/components/onboarding/business-category-select";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,12 +34,14 @@ export function CreateLocationDialog({
   categories,
 }: {
   clients: Array<{ id: string; name: string }>;
-  categories: Array<{ slug: string; name: string }>;
+  categories: BusinessCategoryOption[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
-  const [categorySlug, setCategorySlug] = useState(categories[0]?.slug ?? "hvac");
+  const [categorySlug, setCategorySlug] = useState(
+    categories[0]?.slug ?? "internet-saas",
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(formData: FormData) {
@@ -97,21 +103,11 @@ export function CreateLocationDialog({
           </div>
           <div className="space-y-2">
             <Label>Primary category</Label>
-            <Select
+            <BusinessCategorySelect
+              categories={categories}
               value={categorySlug}
-              onValueChange={(value) => setCategorySlug(value ?? "hvac")}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.slug} value={category.slug}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={setCategorySlug}
+            />
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isPending || !clientId}>

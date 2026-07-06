@@ -164,13 +164,17 @@ export function GoogleImportFlow({
   }
 
   if (gbpLocations.length === 0) {
+    return null;
+  }
+
+  if (targetLocations.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No Google locations found</CardTitle>
+          <CardTitle>Create a LocalSync location first</CardTitle>
           <CardDescription>
-            The connected Google account has no Business Profile locations, or
-            access has not been granted yet.
+            Google locations are available, but you need a target location in this
+            workspace before importing fields.
           </CardDescription>
         </CardHeader>
       </Card>

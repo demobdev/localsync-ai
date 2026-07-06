@@ -1,5 +1,4 @@
 import {
-  Building2,
   ClipboardList,
   Download,
   LayoutDashboard,
@@ -12,11 +11,6 @@ export const dashboardNav = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-  },
-  {
-    title: "Clients",
-    href: "/dashboard/clients",
-    icon: Building2,
   },
   {
     title: "Locations",
@@ -34,8 +28,8 @@ export const dashboardNav = [
     icon: ClipboardList,
   },
   {
-    title: "Import",
-    href: "/dashboard/import/google",
+    title: "Connect",
+    href: "/dashboard/connect",
     icon: Download,
   },
 ] as const;
