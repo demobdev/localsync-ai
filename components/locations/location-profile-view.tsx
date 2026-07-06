@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { LocationProfileEditor } from "@/components/locations/location-profile-editor";
 import { ProfileSetupGuide } from "@/components/locations/profile-setup-guide";
@@ -44,21 +44,33 @@ export function LocationProfileView({
   const [activeTab, setActiveTab] = useState(
     VALID_TABS.has(defaultTab) ? defaultTab : "nap",
   );
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  function goToTab(tab: string) {
+    setActiveTab(tab);
+    // The editor sits below the setup guide; without scrolling, clicking
+    // "Go" appears to do nothing.
+    requestAnimationFrame(() => {
+      editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
 
   return (
     <div className="space-y-6">
       <ProfileSetupGuide
         progress={setupProgress}
-        onProfileTab={(tab) => setActiveTab(tab)}
+        onProfileTab={(tab) => goToTab(tab)}
       />
-      <LocationProfileEditor
-        locationId={locationId}
-        initialProfile={initialProfile}
-        taxonomy={taxonomy}
-        initialVersions={initialVersions}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      <div ref={editorRef} className="scroll-mt-20">
+        <LocationProfileEditor
+          locationId={locationId}
+          initialProfile={initialProfile}
+          taxonomy={taxonomy}
+          initialVersions={initialVersions}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      </div>
     </div>
   );
 }

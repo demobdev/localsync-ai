@@ -569,3 +569,26 @@ export const connectorCredentials = pgTable(
 );
 
 export const enablePgVector = sql`CREATE EXTENSION IF NOT EXISTS vector`;
+
+/** Public "free AI visibility scan" leads — no auth, captured pre-signup. */
+export const scanLeads = pgTable(
+  "scan_leads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    url: text("url").notNull(),
+    businessName: text("business_name"),
+    phone: text("phone"),
+    city: text("city"),
+    state: text("state"),
+    score: integer("score").notNull().default(0),
+    checks: jsonb("checks").$type<
+      Array<{ id: string; label: string; passed: boolean; detail: string }>
+    >(),
+    extracted: jsonb("extracted"),
+    email: text("email"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("scan_leads_created_at_idx").on(table.createdAt)],
+);

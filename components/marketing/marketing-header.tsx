@@ -17,6 +17,24 @@ export function MarketingHeader({
         <Link href="/" className="min-w-0">
           <LocalMapLogo />
         </Link>
+        <nav className="hidden items-center gap-1 md:flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/platform/beacon" />}
+          >
+            Beacon
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/scan" />}
+          >
+            Free scan
+          </Button>
+        </nav>
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
           {signedIn ? (

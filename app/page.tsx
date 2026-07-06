@@ -96,9 +96,9 @@ export default async function HomePage() {
                     size="lg"
                     variant="outline"
                     nativeButton={false}
-                    render={<Link href="/sign-in" />}
+                    render={<Link href="/scan" />}
                   >
-                    Sign in
+                    Free AI visibility scan
                   </Button>
                 </div>
               </div>
