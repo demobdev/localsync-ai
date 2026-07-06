@@ -12,20 +12,33 @@ const isPublicRoute = createRouteMatcher([
 
 const isOnboardingRoute = createRouteMatcher(["/dashboard/onboarding(.*)"]);
 
+function nextWithPathname(req: Request, pathname: string) {
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+}
+
 export default clerkMiddleware(async (auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
   if (isPublicRoute(req)) {
-    return;
+    return nextWithPathname(req, pathname);
   }
 
   const session = await auth.protect();
 
   if (
-    req.nextUrl.pathname.startsWith("/dashboard") &&
+    pathname.startsWith("/dashboard") &&
     !session.orgId &&
     !isOnboardingRoute(req)
   ) {
     return NextResponse.redirect(new URL("/dashboard/onboarding", req.url));
   }
+
+  return nextWithPathname(req, pathname);
 });
 
 export const config = {
