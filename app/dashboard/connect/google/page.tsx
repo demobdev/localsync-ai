@@ -2,6 +2,7 @@ import { Suspense } from "react";
 
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
 import { getLocationAction, listLocationsAction } from "@/app/actions/locations";
+import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { GoogleConnectionStatus } from "@/components/import/google-connection-status";
 import { GoogleImportFlow } from "@/components/import/google-import-flow";
 import { GoogleImportToast } from "@/components/import/google-import-toast";
@@ -116,13 +117,18 @@ export default async function ConnectGooglePage({
             ← Connections
           </Link>
         </p>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-          Google Business Profile
-        </h1>
-        <p className="text-muted-foreground">
-          Read-only OAuth import with field-level diff and merge into your master
-          profile.
-        </p>
+        <div className="mt-2 flex items-center gap-3">
+          <PublisherIcon slug="google-business-profile" badge size={36} />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Google Business Profile
+            </h1>
+            <p className="text-muted-foreground">
+              Read-only OAuth import with field-level diff and merge into your master
+              profile.
+            </p>
+          </div>
+        </div>
       </div>
 
       <Suspense fallback={<ConnectGoogleSkeleton />}>

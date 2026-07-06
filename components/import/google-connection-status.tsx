@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { GbpFetchErrorCode } from "@/lib/connectors/google";
 import type { GoogleImportState } from "@/app/actions/google-import";
+import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,12 +45,17 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Connect your Google account</CardTitle>
-          <CardDescription>
-            Sign in with a Google account that is a test user in your Cloud
-            project and an owner/manager on at least one Business Profile. Read
-            only — nothing is written back to Google.
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <PublisherIcon slug="google-business-profile" badge size={32} />
+            <div className="space-y-1">
+              <CardTitle>Connect your Google account</CardTitle>
+              <CardDescription>
+                Sign in with a Google account that is a test user in your Cloud
+                project and an owner/manager on at least one Business Profile.
+                Read only — nothing is written back to Google.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
@@ -70,16 +76,19 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
   return (
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="text-lg">Google account connected</CardTitle>
-            <Badge variant="secondary">Linked to this workspace</Badge>
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <PublisherIcon slug="google-business-profile" badge size={32} />
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="text-lg">Google account connected</CardTitle>
+              <Badge variant="secondary">Linked to this workspace</Badge>
+            </div>
+            <CardDescription>
+              {state.locations.length > 0
+                ? `Found ${state.locations.length} Business Profile location${state.locations.length === 1 ? "" : "s"}.`
+                : "OAuth succeeded. Location data depends on listing access and API approval below."}
+            </CardDescription>
           </div>
-          <CardDescription>
-            {state.locations.length > 0
-              ? `Found ${state.locations.length} Business Profile location${state.locations.length === 1 ? "" : "s"}.`
-              : "OAuth succeeded. Location data depends on listing access and API approval below."}
-          </CardDescription>
         </div>
         <Button
           size="sm"

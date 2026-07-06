@@ -1,8 +1,18 @@
 import type { SimpleIcon } from "simple-icons";
 
+import { GoogleLogo } from "@/components/brand/google-logo";
 import { cn } from "@/lib/utils";
 
 import type { BrandDisplay } from "@/lib/publishers/brand-icons";
+
+type BrandLike = BrandDisplay | {
+  icon?: SimpleIcon;
+  fallbackClass?: string;
+  fallbackLetter?: string;
+  label: string;
+  multicolor?: boolean;
+  id?: string;
+};
 
 export function BrandIcon({
   brand,
@@ -10,12 +20,16 @@ export function BrandIcon({
   className,
   colored = true,
 }: {
-  brand: BrandDisplay | { icon?: SimpleIcon; fallbackClass?: string; fallbackLetter?: string; label: string };
+  brand: BrandLike;
   size?: number;
   className?: string;
   /** Use brand hex color on white/dark circle backgrounds */
   colored?: boolean;
 }) {
+  if (brand.multicolor) {
+    return <GoogleLogo size={size} className={className} />;
+  }
+
   if (brand.icon) {
     return (
       <svg

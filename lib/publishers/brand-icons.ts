@@ -40,6 +40,8 @@ export type BrandDisplay = {
   id: string;
   label: string;
   icon?: SimpleIcon;
+  /** Render the official multicolor mark (e.g. Google G) instead of single-fill SVG */
+  multicolor?: boolean;
   /** Tailwind bg class when no Simple Icon exists */
   fallbackClass?: string;
   /** Letter shown for fallback circles */
@@ -47,7 +49,7 @@ export type BrandDisplay = {
 };
 
 export const AI_PLATFORM_BRANDS: BrandDisplay[] = [
-  { id: "google", label: "Google", icon: siGoogle },
+  { id: "google", label: "Google", icon: siGoogle, multicolor: true },
   { id: "gemini", label: "Gemini", icon: siGooglegemini },
   {
     id: "chatgpt",
@@ -83,6 +85,15 @@ export const FEATURED_PUBLISHER_SLUGS = [
 ] as const;
 
 export function getPublisherBrand(slug: string): BrandDisplay {
+  if (slug === "google-business-profile" || slug === "google") {
+    return {
+      id: slug,
+      label: "Google",
+      icon: siGoogle,
+      multicolor: true,
+    };
+  }
+
   const icon = PUBLISHER_BRAND_ICONS[slug];
   if (icon) {
     return { id: slug, label: icon.title, icon };
