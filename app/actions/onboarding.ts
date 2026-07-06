@@ -13,14 +13,10 @@ import {
   locations,
   publishers,
 } from "@/db/schema";
-import { upsertOrganization, getOrganization } from "@/lib/auth/organizations";
+import { upsertOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
-import {
-  isIncompleteOrganization,
-  isPlaceholderOrganizationName,
-} from "@/lib/org/onboarding-state";
-import { countOrgLocations } from "@/lib/org/locations";
+import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
 import {
@@ -88,25 +84,6 @@ export async function createAgencyWorkspaceAction(input: {
     if (!incomplete) {
       throw new Error("You already have an active workspace");
     }
-
-    const client = await clerkClient();
-    const organization = await client.organizations.updateOrganization(
-      session.orgId,
-      { name: agencyName },
-    );
-
-    await upsertOrganization({
-      id: organization.id,
-      name: organization.name,
-      slug: organization.slug,
-      imageUrl: organization.imageUrl,
-      type: "agency",
-    });
-
-    return {
-      organizationId: organization.id,
-      organizationName: organization.name,
-    };
   }
 
   const client = await clerkClient();
@@ -152,12 +129,16 @@ export async function quickSetupBusinessAction(input: {
 
   const db = getDb();
 
-  // 1. Workspace: reuse the active org, or create one named after the business.
+  // 1. Workspace: create a new org when none exists or setup is still incomplete.
   let organizationId = session.orgId ?? null;
   let createdOrganization = false;
   const workspaceType = input.workspaceType ?? "business";
 
-  if (!organizationId) {
+  const needsNewWorkspace =
+    !organizationId ||
+    (organizationId ? await isIncompleteOrganization(organizationId) : false);
+
+  if (needsNewWorkspace) {
     const client = await clerkClient();
     const organization = await client.organizations.createOrganization({
       name: businessName,
@@ -174,29 +155,10 @@ export async function quickSetupBusinessAction(input: {
       imageUrl: organization.imageUrl,
       type: workspaceType,
     });
-  } else {
-    const organization = await getOrganization(organizationId);
-    const locationCount = await countOrgLocations(organizationId);
+  }
 
-    if (
-      locationCount === 0 &&
-      organization &&
-      isPlaceholderOrganizationName(organization.name)
-    ) {
-      const client = await clerkClient();
-      const updated = await client.organizations.updateOrganization(
-        organizationId,
-        { name: businessName },
-      );
-
-      await upsertOrganization({
-        id: updated.id,
-        name: updated.name,
-        slug: updated.slug,
-        imageUrl: updated.imageUrl,
-        type: workspaceType,
-      });
-    }
+  if (!organizationId) {
+    throw new Error("Failed to resolve workspace");
   }
 
   // 2. Client record (solo businesses mirror the business; agencies get one per end-customer).

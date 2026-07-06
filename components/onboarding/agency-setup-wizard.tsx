@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { ArrowRightIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ export function AgencySetupWizard({
 }: {
   onComplete: (agencyName: string) => void;
 }) {
+  const router = useRouter();
   const { setActive } = useClerk();
   const [isPending, startTransition] = useTransition();
 
@@ -32,6 +34,7 @@ export function AgencySetupWizard({
         const workspace = await createAgencyWorkspaceAction({ agencyName });
 
         await setActive({ organization: workspace.organizationId });
+        router.refresh();
         onComplete(workspace.organizationName);
       } catch (error) {
         toast.error(

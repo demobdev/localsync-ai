@@ -1,4 +1,3 @@
-import { getOrganization } from "@/lib/auth/organizations";
 import { countOrgLocations } from "@/lib/org/locations";
 
 const PLACEHOLDER_ORG_NAMES = new Set([
@@ -14,16 +13,5 @@ export function isPlaceholderOrganizationName(name: string): boolean {
 /** Org exists in Clerk but the user never finished LocalSync onboarding. */
 export async function isIncompleteOrganization(orgId: string): Promise<boolean> {
   const locationCount = await countOrgLocations(orgId);
-
-  if (locationCount > 0) {
-    return false;
-  }
-
-  const organization = await getOrganization(orgId);
-
-  if (!organization) {
-    return true;
-  }
-
-  return isPlaceholderOrganizationName(organization.name);
+  return locationCount === 0;
 }
