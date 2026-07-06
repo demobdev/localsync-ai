@@ -31,6 +31,10 @@ export default async function DashboardOnboardingPage({
   const organization = session.orgId
     ? await getOrganization(session.orgId)
     : null;
+  const locationCount = session.orgId
+    ? await countOrgLocations(session.orgId)
+    : 0;
+  const showAccountTypeChoice = locationCount === 0 && !addingAnother;
 
   if (
     session.orgId &&
@@ -66,6 +70,7 @@ export default async function DashboardOnboardingPage({
               organizationType={organization?.type ?? null}
               organizationName={organization?.name ?? null}
               addingAnother={addingAnother}
+              showAccountTypeChoice={showAccountTypeChoice}
             />
           )}
         </div>

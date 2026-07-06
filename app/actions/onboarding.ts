@@ -13,9 +13,14 @@ import {
   locations,
   publishers,
 } from "@/db/schema";
-import { upsertOrganization } from "@/lib/auth/organizations";
+import { upsertOrganization, getOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
+import {
+  isIncompleteOrganization,
+  isPlaceholderOrganizationName,
+} from "@/lib/org/onboarding-state";
+import { countOrgLocations } from "@/lib/org/locations";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
 import {
@@ -71,14 +76,37 @@ export async function createAgencyWorkspaceAction(input: {
     throw new Error("Not authenticated");
   }
 
-  if (session.orgId) {
-    throw new Error("You already have an active workspace");
-  }
-
   const agencyName = input.agencyName.trim();
 
   if (!agencyName) {
     throw new Error("Enter your agency name");
+  }
+
+  if (session.orgId) {
+    const incomplete = await isIncompleteOrganization(session.orgId);
+
+    if (!incomplete) {
+      throw new Error("You already have an active workspace");
+    }
+
+    const client = await clerkClient();
+    const organization = await client.organizations.updateOrganization(
+      session.orgId,
+      { name: agencyName },
+    );
+
+    await upsertOrganization({
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      imageUrl: organization.imageUrl,
+      type: "agency",
+    });
+
+    return {
+      organizationId: organization.id,
+      organizationName: organization.name,
+    };
   }
 
   const client = await clerkClient();
@@ -146,6 +174,29 @@ export async function quickSetupBusinessAction(input: {
       imageUrl: organization.imageUrl,
       type: workspaceType,
     });
+  } else {
+    const organization = await getOrganization(organizationId);
+    const locationCount = await countOrgLocations(organizationId);
+
+    if (
+      locationCount === 0 &&
+      organization &&
+      isPlaceholderOrganizationName(organization.name)
+    ) {
+      const client = await clerkClient();
+      const updated = await client.organizations.updateOrganization(
+        organizationId,
+        { name: businessName },
+      );
+
+      await upsertOrganization({
+        id: updated.id,
+        name: updated.name,
+        slug: updated.slug,
+        imageUrl: updated.imageUrl,
+        type: workspaceType,
+      });
+    }
   }
 
   // 2. Client record (solo businesses mirror the business; agencies get one per end-customer).

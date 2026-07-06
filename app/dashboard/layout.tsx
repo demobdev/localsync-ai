@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ensureOrganizationAction } from "@/app/actions/org";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { getOrganization } from "@/lib/auth/organizations";
+import { countOrgLocations } from "@/lib/org/locations";
 
 export default async function DashboardLayout({
   children,
@@ -21,6 +22,14 @@ export default async function DashboardLayout({
   }
 
   await ensureOrganizationAction();
+
+  const locationCount = await countOrgLocations(session.orgId);
+
+  // First-time setup: keep onboarding full-screen without dashboard chrome.
+  if (locationCount === 0) {
+    return <>{children}</>;
+  }
+
   const organization = await getOrganization(session.orgId);
 
   return (

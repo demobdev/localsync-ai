@@ -19,11 +19,16 @@ type OnboardingStep = "choose" | "agency-name" | "business";
 
 function resolveInitialStep(input: {
   addingAnother: boolean;
+  showAccountTypeChoice: boolean;
   hasWorkspace: boolean;
   organizationType: OrganizationType | null;
 }): OnboardingStep {
   if (input.addingAnother) {
     return "business";
+  }
+
+  if (input.showAccountTypeChoice) {
+    return "choose";
   }
 
   if (input.hasWorkspace && input.organizationType === "agency") {
@@ -43,15 +48,22 @@ export function OnboardingFlow({
   organizationType,
   organizationName,
   addingAnother,
+  showAccountTypeChoice,
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
   organizationType: OrganizationType | null;
   organizationName: string | null;
   addingAnother: boolean;
+  showAccountTypeChoice: boolean;
 }) {
   const [step, setStep] = useState<OnboardingStep>(() =>
-    resolveInitialStep({ addingAnother, hasWorkspace, organizationType }),
+    resolveInitialStep({
+      addingAnother,
+      showAccountTypeChoice,
+      hasWorkspace,
+      organizationType,
+    }),
   );
   const [selectedType, setSelectedType] = useState<AccountType | null>(() => {
     if (addingAnother) {
