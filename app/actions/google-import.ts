@@ -17,6 +17,7 @@ import {
   type GbpLocation,
 } from "@/lib/connectors/google";
 import { patchGbpLocationSafe } from "@/lib/connectors/google-write";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 import {
   diffLocationProfiles,
   summarizeProfileDiff,
@@ -200,6 +201,13 @@ export async function pushGbpFieldsAction(input: {
 }) {
   const { orgId } = await requireOrgAuth();
   const db = getDb();
+
+  const workspace = await getWorkspacePlan();
+  if (!workspace.features.apiSync) {
+    throw new Error(
+      "API listing sync is a Premium feature. Upgrade at /dashboard/billing to push changes to Google automatically.",
+    );
+  }
 
   if (input.fields.length === 0) {
     throw new Error("Select at least one field to push");

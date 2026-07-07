@@ -12,6 +12,7 @@ import {
   publishers,
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 import { fetchGoogleReviewsSafe } from "@/lib/connectors/google-reviews";
 import { getValidGoogleAccessToken } from "@/lib/connectors/google";
 import { buildDemoReviews } from "@/lib/reviews/demo-seed";
@@ -350,9 +351,29 @@ export async function syncGoogleReviewsAction(locationId: string) {
   return { inserted, updated, total: result.reviews.length };
 }
 
+/** Free AI reply drafts before the Reputation add-on is required. */
+const FREE_REPLY_DRAFTS = 3;
+
 export async function generateReviewReplyDraftAction(reviewId: string) {
   const { orgId, userId } = await requireOrgAuth();
   const db = getDb();
+
+  const workspace = await getWorkspacePlan();
+  if (!workspace.features.reputation) {
+    const draftsUsed = await db.$count(
+      approvalRequests,
+      and(
+        eq(approvalRequests.organizationId, orgId),
+        eq(approvalRequests.requestType, "review_reply_draft"),
+      ),
+    );
+
+    if (draftsUsed >= FREE_REPLY_DRAFTS) {
+      throw new Error(
+        `You've used your ${FREE_REPLY_DRAFTS} free AI reply drafts. Add Reputation from /dashboard/billing for unlimited drafts.`,
+      );
+    }
+  }
 
   const [review] = await db
     .select()

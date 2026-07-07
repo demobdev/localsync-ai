@@ -261,6 +261,46 @@ Example: **Home services contractor**, wants Google + Angi + AI pages + reviews.
 
 ---
 
+## Unit economics — what our prices cover (July 2026)
+
+Per-location monthly COGS at normal usage. Rounded, worst-case leaning.
+
+| Cost driver | Used by | Est. cost /location/mo |
+|-------------|---------|-----------------------:|
+| Firecrawl crawls | Listing audits (~4 runs × ~10 URLs), public scans | ~$0.20 – $0.60 |
+| AI Gateway tokens | Scan extraction, review reply drafts, FAQ drafts, audit comparison | ~$0.30 – $1.00 |
+| Neon Postgres + pgvector | All data + embeddings | ~$0.10 amortized |
+| Vercel (hosting, Blob, IndexNow pings) | App + visibility pages + photos | ~$0.15 amortized |
+| Clerk (MAU + billing) | Auth, orgs, subscriptions — Clerk Billing takes **0.7%** of revenue + Stripe ~2.9% + 30¢ | ~$0.25 + ~3.6% of revenue |
+| Resend / PostHog | Email + analytics | ~$0.05 amortized |
+| **Total COGS** | | **~$1 – $2.25 + ~3.6% of price** |
+
+**Gross margin by tier:** Basic $19 → ~88–92% · Premium $49 → ~93–95% · Pro $79 → ~95%+.
+Heaviest users are Pro (more audits + AI drafts) but Pro also carries the most price. Vertical add-ons (+$15) are nearly pure margin until vertical API rails exist.
+
+**Watch items:** public free scans are unmonetized COGS (~$0.05–0.10/scan) — acceptable CAC; cap per-IP if abused. AI reply drafts are the most variable token cost — hence the 3-free-then-Reputation gate.
+
+---
+
+## Where pricing shows in-product (surface map)
+
+Principle: **manual is always free — pricing appears exactly where automation saves time.**
+
+| Surface | Trigger | What it sells | Why there |
+|---------|---------|---------------|-----------|
+| `/pricing` (public) | Marketing nav | All tiers + vertical add-ons | Anchor vs Yext before sign-up |
+| `/scan` results | Free scan completes | Sign-up → tiers | Score capped + locked findings create pull |
+| `/dashboard/billing` | Sidebar nav | Clerk PricingTable (live checkout) | Single conversion point; banners deep-link here |
+| Listings page banner | No `api_sync` feature | Premium | User is mid-manual-work — show the automated path |
+| Publishers registry banner | No `api_sync` feature | Premium/Pro | Rails visibly labeled manual/audit-only |
+| Reviews page banner | No `reputation` feature | Reputation add-on | Reply fatigue is the pain point |
+| AI draft limit (action error) | 4th draft attempt without Reputation | Reputation | Value already proven by 3 free drafts |
+| GBP push (action error) | Push without `api_sync` | Premium | Write-sync is the flagship automation |
+
+Feature slugs in Clerk: `api_sync`, `analytics`, `ai_citation`, `reputation` — attached to plans in `billing.json`, checked via `getWorkspacePlan()` (`lib/billing/plans.ts`).
+
+---
+
 ## Open questions for Don
 
 1. **Anchor price:** Undercut Yext Essential ($449/yr ≈ $37/mo) on Premium at $39/mo, or go lower ($29/mo) for land-grab?

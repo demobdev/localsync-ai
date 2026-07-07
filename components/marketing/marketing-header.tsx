@@ -34,6 +34,14 @@ export function MarketingHeader({
           >
             Free scan
           </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/pricing" />}
+          >
+            Pricing
+          </Button>
         </nav>
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />

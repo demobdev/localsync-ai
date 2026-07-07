@@ -3,19 +3,23 @@
     "features": {
       "api_sync": {
         "name": "API listing sync",
-        "description": "Approve-first automated sync to Google, Apple, Bing, Facebook, Yelp and the map graph"
+        "description": "Approve-first automated sync to Google, Apple, Bing, Facebook, Yelp and the map graph",
+        "publicly_visible": true
       },
       "analytics": {
         "name": "Listing analytics",
-        "description": "Impressions and engagement by publisher, duplicate detection"
+        "description": "Impressions and engagement by publisher, duplicate detection",
+        "publicly_visible": true
       },
       "ai_citation": {
         "name": "AI Citation Network",
-        "description": "Public visibility pages, schema.org, llms.txt, IndexNow pings, crawler checks"
+        "description": "Public visibility pages, schema.org, llms.txt, IndexNow pings, crawler checks",
+        "publicly_visible": true
       },
       "reputation": {
         "name": "Reputation",
-        "description": "Review inbox with AI reply drafts — approve before publish"
+        "description": "Review inbox with AI reply drafts — approve before publish",
+        "publicly_visible": true
       }
     },
     "free_trial_requires_payment_method": true,
