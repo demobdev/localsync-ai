@@ -19,6 +19,7 @@ import {
 type BillingPayer = {
   user_id?: string;
   organization_id?: string;
+  organization_name?: string;
   email?: string;
 };
 
@@ -45,6 +46,13 @@ type BillingSubscriptionItemData = {
   past_due_at?: number;
 };
 
+function webhookSigningSecret(): string | undefined {
+  return (
+    process.env.CLERK_WEBHOOK_SIGNING_SECRET?.trim() ||
+    process.env.CLERK_WEBHOOK_SECRET?.trim()
+  );
+}
+
 async function syncSubscription(data: BillingSubscriptionData) {
   const organizationId = data.payer?.organization_id;
   const planSlug = data.items?.[0]?.plan?.slug;
@@ -54,6 +62,13 @@ async function syncSubscription(data: BillingSubscriptionData) {
     // LocalSync bills at the organization level.
     return;
   }
+
+  // Billing events can arrive before organization.* webhooks — ensure the
+  // org row exists so the subscription FK doesn't fail.
+  await upsertOrganization({
+    id: organizationId,
+    name: data.payer?.organization_name ?? "Workspace",
+  });
 
   const item = data.items?.[0];
 
@@ -71,10 +86,18 @@ async function syncSubscription(data: BillingSubscriptionData) {
 }
 
 export async function POST(req: NextRequest) {
+  const signingSecret = webhookSigningSecret();
+  if (!signingSecret) {
+    console.error(
+      "[clerk-webhook] missing CLERK_WEBHOOK_SIGNING_SECRET (or CLERK_WEBHOOK_SECRET)",
+    );
+    return new Response("Webhook signing secret not configured", { status: 500 });
+  }
+
   let event;
 
   try {
-    event = await verifyWebhook(req);
+    event = await verifyWebhook(req, { signingSecret });
   } catch (error) {
     console.error("[clerk-webhook] verification failed", error);
     return new Response("Webhook verification failed", { status: 400 });
