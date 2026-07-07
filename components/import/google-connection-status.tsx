@@ -111,6 +111,56 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
         </CardContent>
       ) : null}
 
+      {!state.fetchError && state.locations.length > 0 ? (
+        <CardContent className="space-y-2">
+          {state.locations.map((location) => (
+            <div
+              key={location.gbpName}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-background/60 px-3 py-2.5"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{location.title}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {[location.city, location.state].filter(Boolean).join(", ") ||
+                    "No address on listing"}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                {location.openStatus ? (
+                  <Badge
+                    variant={
+                      location.openStatus === "OPEN" ? "default" : "destructive"
+                    }
+                    className="text-[10px]"
+                  >
+                    {location.openStatus === "OPEN"
+                      ? "Open"
+                      : location.openStatus === "CLOSED_PERMANENTLY"
+                        ? "Closed permanently"
+                        : "Closed temporarily"}
+                  </Badge>
+                ) : null}
+                {location.hasDuplicate ? (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Duplicate flagged
+                  </Badge>
+                ) : null}
+                {location.mapsUri ? (
+                  <a
+                    href={location.mapsUri}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    View on Maps
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      ) : null}
+
       {!state.fetchError && state.locations.length === 0 ? (
         <CardContent>
           <div className="rounded-xl border border-dashed p-4 text-sm">

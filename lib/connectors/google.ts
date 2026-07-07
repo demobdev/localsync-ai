@@ -239,6 +239,14 @@ export type GbpLocation = {
   postalCode?: string;
   regularHours: RegularHours;
   categories: string[];
+  /** OPEN, CLOSED_PERMANENTLY, CLOSED_TEMPORARILY, or undefined when not returned */
+  openStatus?: string;
+  /** Link to the live listing on Google Maps */
+  mapsUri?: string;
+  /** Google flagged this listing as a duplicate of another */
+  hasDuplicate?: boolean;
+  /** Listing can't be updated via API (e.g. suspended) */
+  canUpdate?: boolean;
 };
 
 const DAY_MAP: Record<string, keyof RegularHours> = {
@@ -289,7 +297,7 @@ export async function fetchGbpLocationsSafe(
 
   for (const account of accounts) {
     const readMask =
-      "name,title,phoneNumbers,websiteUri,storefrontAddress,regularHours,categories";
+      "name,title,phoneNumbers,websiteUri,storefrontAddress,regularHours,categories,openInfo,metadata";
     const locationsResponse = await fetch(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=${encodeURIComponent(readMask)}&pageSize=100`,
       { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -321,6 +329,14 @@ export async function fetchGbpLocationsSafe(
         categories?: {
           primaryCategory?: { displayName?: string };
           additionalCategories?: Array<{ displayName?: string }>;
+        };
+        openInfo?: { status?: string };
+        metadata?: {
+          mapsUri?: string;
+          duplicateLocation?: string;
+          canOperateLocalPost?: boolean;
+          canModifyServiceList?: boolean;
+          hasPendingEdits?: boolean;
         };
       }>;
     };
@@ -358,6 +374,10 @@ export async function fetchGbpLocationsSafe(
         postalCode: location.storefrontAddress?.postalCode,
         regularHours,
         categories,
+        openStatus: location.openInfo?.status,
+        mapsUri: location.metadata?.mapsUri,
+        hasDuplicate: Boolean(location.metadata?.duplicateLocation),
+        canUpdate: location.metadata?.canModifyServiceList ?? undefined,
       });
     }
   }
