@@ -105,6 +105,17 @@ export const organizationTypeEnum = pgEnum("organization_type", [
   "agency",
 ]);
 
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "past_due",
+  "canceled",
+  "ended",
+  "abandoned",
+  "incomplete",
+  "expired",
+  "upcoming",
+]);
+
 export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -402,6 +413,39 @@ export const auditEvidence = pgTable(
   (table) => [
     index("audit_evidence_audit_run_id_idx").on(table.auditRunId),
     index("audit_evidence_publisher_id_idx").on(table.publisherId),
+  ],
+);
+
+/**
+ * Mirror of Clerk Billing subscriptions (source of truth stays in Clerk;
+ * has() gates access). This mirror powers lifecycle awareness: dunning,
+ * trial-ending emails, win-back, and revenue reporting.
+ */
+export const billingSubscriptions = pgTable(
+  "billing_subscriptions",
+  {
+    /** Clerk subscription id (sub_...) */
+    id: text("id").primaryKey(),
+    organizationId: text("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    planSlug: text("plan_slug").notNull(),
+    status: subscriptionStatusEnum("status").notNull(),
+    payerEmail: text("payer_email"),
+    periodStart: timestamp("period_start", { withTimezone: true }),
+    periodEnd: timestamp("period_end", { withTimezone: true }),
+    canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    pastDueAt: timestamp("past_due_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("billing_subscriptions_organization_id_idx").on(table.organizationId),
+    index("billing_subscriptions_status_idx").on(table.status),
   ],
 );
 

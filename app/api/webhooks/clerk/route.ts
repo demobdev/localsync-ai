@@ -5,6 +5,70 @@ import {
   deleteOrganization,
   upsertOrganization,
 } from "@/lib/auth/organizations";
+import {
+  sendCanceledEmail,
+  sendPaymentFailedEmail,
+  sendTrialEndingEmail,
+} from "@/lib/billing/lifecycle-emails";
+import {
+  updateBillingSubscriptionByOrgPlan,
+  upsertBillingSubscription,
+} from "@/lib/billing/subscriptions";
+
+/** Clerk billing payloads (typed loosely until billing APIs stabilize). */
+type BillingPayer = {
+  user_id?: string;
+  organization_id?: string;
+  email?: string;
+};
+
+type BillingSubscriptionData = {
+  id: string;
+  status?: string;
+  payer?: BillingPayer;
+  items?: Array<{
+    status?: string;
+    plan?: { slug?: string; name?: string };
+    period_start?: number;
+    period_end?: number | null;
+    canceled_at?: number;
+    past_due_at?: number;
+  }>;
+};
+
+type BillingSubscriptionItemData = {
+  id: string;
+  status?: string;
+  payer?: BillingPayer;
+  plan?: { slug?: string; name?: string };
+  canceled_at?: number;
+  past_due_at?: number;
+};
+
+async function syncSubscription(data: BillingSubscriptionData) {
+  const organizationId = data.payer?.organization_id;
+  const planSlug = data.items?.[0]?.plan?.slug;
+
+  if (!organizationId || !planSlug) {
+    // B2C (user) subscriptions and malformed payloads are out of scope —
+    // LocalSync bills at the organization level.
+    return;
+  }
+
+  const item = data.items?.[0];
+
+  await upsertBillingSubscription({
+    subscriptionId: data.id,
+    organizationId,
+    planSlug,
+    status: data.status ?? "incomplete",
+    payerEmail: data.payer?.email ?? null,
+    periodStart: item?.period_start ?? null,
+    periodEnd: item?.period_end ?? null,
+    canceledAt: item?.canceled_at ?? null,
+    pastDueAt: item?.past_due_at ?? null,
+  });
+}
 
 export async function POST(req: NextRequest) {
   let event;
@@ -31,6 +95,82 @@ export async function POST(req: NextRequest) {
       case "organization.deleted": {
         if (event.data.id) {
           await deleteOrganization(event.data.id);
+        }
+        break;
+      }
+      case "subscription.created":
+      case "subscription.updated":
+      case "subscription.active":
+      case "subscription.pastDue": {
+        await syncSubscription(event.data as unknown as BillingSubscriptionData);
+        break;
+      }
+      case "subscriptionItem.canceled": {
+        const item = event.data as unknown as BillingSubscriptionItemData;
+        const organizationId = item.payer?.organization_id;
+        const planSlug = item.plan?.slug;
+
+        if (organizationId && planSlug) {
+          await updateBillingSubscriptionByOrgPlan({
+            organizationId,
+            planSlug,
+            status: "canceled",
+            canceledAt: item.canceled_at ?? Date.now(),
+          });
+
+          if (item.payer?.email) {
+            await sendCanceledEmail({
+              to: item.payer.email,
+              planName: item.plan?.name ?? planSlug,
+            });
+          }
+        }
+        break;
+      }
+      case "subscriptionItem.pastDue": {
+        const item = event.data as unknown as BillingSubscriptionItemData;
+        const organizationId = item.payer?.organization_id;
+        const planSlug = item.plan?.slug;
+
+        if (organizationId && planSlug) {
+          await updateBillingSubscriptionByOrgPlan({
+            organizationId,
+            planSlug,
+            status: "past_due",
+            pastDueAt: item.past_due_at ?? Date.now(),
+          });
+
+          if (item.payer?.email) {
+            await sendPaymentFailedEmail({
+              to: item.payer.email,
+              planName: item.plan?.name ?? planSlug,
+            });
+          }
+        }
+        break;
+      }
+      case "subscriptionItem.ended": {
+        const item = event.data as unknown as BillingSubscriptionItemData;
+        const organizationId = item.payer?.organization_id;
+        const planSlug = item.plan?.slug;
+
+        if (organizationId && planSlug) {
+          await updateBillingSubscriptionByOrgPlan({
+            organizationId,
+            planSlug,
+            status: "ended",
+          });
+        }
+        break;
+      }
+      case "subscriptionItem.freeTrialEnding": {
+        const item = event.data as unknown as BillingSubscriptionItemData;
+
+        if (item.payer?.email && item.plan) {
+          await sendTrialEndingEmail({
+            to: item.payer.email,
+            planName: item.plan.name ?? item.plan.slug ?? "your plan",
+          });
         }
         break;
       }

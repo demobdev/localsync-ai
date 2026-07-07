@@ -1,6 +1,8 @@
-import { CheckIcon, CreditCardIcon } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import { AlertTriangleIcon, CheckIcon, CreditCardIcon } from "lucide-react";
 
 import { getWorkspacePlan, LISTING_PLANS } from "@/lib/billing/plans";
+import { getOrgSubscription } from "@/lib/billing/subscriptions";
 import { ClerkPricingTable } from "@/components/billing/clerk-pricing-table";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,8 +35,13 @@ const LAYER_ADDONS = [
 ];
 
 export default async function BillingPage() {
-  const workspace = await getWorkspacePlan();
+  const [workspace, session] = await Promise.all([getWorkspacePlan(), auth()]);
   const billingEnabled = process.env.NEXT_PUBLIC_CLERK_BILLING_ENABLED === "true";
+  const subscription = session.orgId
+    ? await getOrgSubscription(session.orgId)
+    : null;
+  const needsAttention =
+    subscription?.status === "past_due" || subscription?.status === "canceled";
 
   return (
     <div className="space-y-8">
@@ -54,6 +61,24 @@ export default async function BillingPage() {
           </div>
         </div>
       </div>
+
+      {needsAttention ? (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <div>
+            <p className="font-medium">
+              {subscription?.status === "past_due"
+                ? "Payment issue — automation pauses soon"
+                : "Subscription canceled"}
+            </p>
+            <p className="text-muted-foreground">
+              {subscription?.status === "past_due"
+                ? "Your last payment failed. Update your payment method below to keep automated sync and AI drafts running."
+                : "Automated features end at the close of this billing period. Resubscribe below to keep them — manual workflows stay free."}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-muted/30 px-4 py-3 text-sm">
         <span className="text-muted-foreground">Current workspace plan:</span>
