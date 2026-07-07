@@ -19,7 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LISTING_PLANS, type PlanTier } from "@/lib/billing/plans";
+import { LISTING_PLANS, type PlanTier } from "@/lib/billing/plan-catalog";
 import { cn } from "@/lib/utils";
 
 type BillingPlanCardsProps = {
