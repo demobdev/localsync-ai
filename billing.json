@@ -2,23 +2,68 @@
   "billing": {
     "features": {
       "api_sync": {
-        "name": "API listing sync",
-        "description": "Approve-first automated sync to Google, Apple, Bing, Facebook, Yelp and the map graph",
+        "name": "Approve-first API profile sync",
+        "description": "Automated sync to Google, Apple, Bing, Facebook, Yelp and the map graph",
         "publicly_visible": true
       },
       "analytics": {
-        "name": "Listing analytics",
-        "description": "Impressions and engagement by publisher, duplicate detection",
+        "name": "Analytics & duplicate detection",
+        "description": "Impressions and engagement by publisher, duplicate listing detection",
         "publicly_visible": true
       },
       "ai_citation": {
-        "name": "AI Citation Network",
+        "name": "AI visibility pages (/l/[id], llms.txt)",
         "description": "Public visibility pages, schema.org, llms.txt, IndexNow pings, crawler checks",
         "publicly_visible": true
       },
       "reputation": {
-        "name": "Reputation",
+        "name": "Review inbox + AI reply drafts",
         "description": "Review inbox with AI reply drafts — approve before publish",
+        "publicly_visible": true
+      },
+      "secondary_publishers": {
+        "name": "Secondary + audit-only publishers",
+        "description": "Track and audit secondary directories and citation sources",
+        "publicly_visible": true
+      },
+      "nap_tracking": {
+        "name": "NAP consistency tracking",
+        "description": "Monitor name, address, and phone consistency across publishers",
+        "publicly_visible": true
+      },
+      "manual_checklists": {
+        "name": "Manual & guided checklists",
+        "description": "Step-by-step publisher workflows you can run without automation",
+        "publicly_visible": true
+      },
+      "listing_audits": {
+        "name": "Listing audits with evidence",
+        "description": "Screenshot-backed audits showing exactly what customers see",
+        "publicly_visible": true
+      },
+      "major_publishers": {
+        "name": "Google, Apple, Bing, Facebook, Yelp + map graph",
+        "description": "Track and sync the major consumer discovery platforms",
+        "publicly_visible": true
+      },
+      "visibility_score": {
+        "name": "Visibility score & history",
+        "description": "Score your listing health over time with trend history",
+        "publicly_visible": true
+      },
+      "everything_basic": {
+        "name": "Everything in Basic",
+        "description": "All Basic Listings capabilities included",
+        "publicly_visible": true
+      },
+      "expanded_publishers": {
+        "name": "Expanded publisher set",
+        "description": "Additional directories beyond the Premium core graph",
+        "publicly_visible": true
+      },
+      "everything_premium": {
+        "name": "Everything in Premium",
+        "description": "All Premium Listings capabilities included",
         "publicly_visible": true
       }
     },
@@ -30,14 +75,14 @@
         "amount": 0,
         "annual_monthly_amount": 0,
         "currency": "",
-        "description": "",
+        "description": "Manual workflows for one location — upgrade when you want automation",
         "features": [],
         "free_trial_days": null,
         "free_trial_enabled": false,
         "is_recurring": true,
         "name": "Free",
         "payer_type": "org",
-        "publicly_visible": true
+        "publicly_visible": false
       },
       "free_user": {
         "amount": 0,
@@ -56,8 +101,13 @@
         "amount": 1900,
         "annual_monthly_amount": 1500,
         "currency": "usd",
-        "description": "Secondary + audit-only publishers, NAP tracking, manual & guided checklists",
-        "features": [],
+        "description": "Citation cleanup on your own steam",
+        "features": [
+          "secondary_publishers",
+          "nap_tracking",
+          "manual_checklists",
+          "listing_audits"
+        ],
         "free_trial_days": null,
         "free_trial_enabled": false,
         "is_recurring": true,
@@ -69,8 +119,13 @@
         "amount": 4900,
         "annual_monthly_amount": 4100,
         "currency": "usd",
-        "description": "Google, Apple, Bing, Facebook, Yelp + map graph with approve-first sync and visibility score",
-        "features": ["api_sync"],
+        "description": "The majors, synced and monitored",
+        "features": [
+          "major_publishers",
+          "api_sync",
+          "visibility_score",
+          "everything_basic"
+        ],
         "free_trial_days": 14,
         "free_trial_enabled": true,
         "is_recurring": true,
@@ -82,8 +137,15 @@
         "amount": 7900,
         "annual_monthly_amount": 6600,
         "currency": "usd",
-        "description": "Premium + analytics, duplicate detection, expanded publishers, AI visibility pages and reputation tools",
-        "features": ["api_sync", "analytics", "ai_citation", "reputation"],
+        "description": "Automation + AI discovery layer",
+        "features": [
+          "api_sync",
+          "analytics",
+          "expanded_publishers",
+          "ai_citation",
+          "reputation",
+          "everything_premium"
+        ],
         "free_trial_days": 14,
         "free_trial_enabled": true,
         "is_recurring": true,

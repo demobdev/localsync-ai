@@ -1,9 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
-import { AlertTriangleIcon, CheckIcon, CreditCardIcon } from "lucide-react";
+import { AlertTriangleIcon, CreditCardIcon } from "lucide-react";
 
-import { getWorkspacePlan, LISTING_PLANS } from "@/lib/billing/plans";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 import { getOrgSubscription } from "@/lib/billing/subscriptions";
-import { ClerkPricingTable } from "@/components/billing/clerk-pricing-table";
+import { BillingPlanCards } from "@/components/billing/billing-plan-cards";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -90,53 +90,10 @@ export default async function BillingPage() {
         ) : null}
       </div>
 
-      {billingEnabled ? (
-        <ClerkPricingTable />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-3">
-          {LISTING_PLANS.map((plan) => {
-            const isCurrent = plan.tier === workspace.tier;
-            return (
-              <Card
-                key={plan.slug}
-                className={
-                  plan.tier === "premium"
-                    ? "localmap-card-glow border-primary/40 bg-primary/5"
-                    : "localmap-card-glow"
-                }
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-lg">{plan.name}</CardTitle>
-                    {plan.tier === "premium" ? (
-                      <Badge>Most popular</Badge>
-                    ) : isCurrent ? (
-                      <Badge variant="secondary">Current</Badge>
-                    ) : null}
-                  </div>
-                  <CardDescription>{plan.tagline}</CardDescription>
-                  <p className="pt-1">
-                    <span className="text-3xl font-bold">${plan.priceMonthly}</span>
-                    <span className="text-sm text-muted-foreground">
-                      /location/mo
-                    </span>
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    {plan.highlights.map((highlight) => (
-                      <li key={highlight} className="flex items-start gap-2">
-                        <CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                        <span>{highlight}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <BillingPlanCards
+        currentTier={workspace.tier}
+        checkoutEnabled={billingEnabled}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="localmap-card-glow">
