@@ -2,6 +2,13 @@ import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { connectorCredentials } from "@/db/schema";
+import {
+  fetchVoiceOfMerchantStateSafe,
+  getGbpVerificationLabel,
+  resolveGbpVerificationStatus,
+  type GbpVerificationAction,
+  type GbpVerificationStatus,
+} from "@/lib/connectors/google-verifications";
 import type { LocationProfileSnapshot, RegularHours } from "@/lib/types/location-profile";
 
 const GBP_SCOPE = "https://www.googleapis.com/auth/business.manage";
@@ -247,6 +254,16 @@ export type GbpLocation = {
   hasDuplicate?: boolean;
   /** Listing can't be updated via API (e.g. suspended) */
   canUpdate?: boolean;
+  /** Google has pending edits on this listing */
+  hasPendingEdits?: boolean;
+  /** Voice of Merchant / verification state from Verifications API */
+  verification?: {
+    status: GbpVerificationStatus;
+    label: string;
+    hasVoiceOfMerchant: boolean;
+    hasBusinessAuthority: boolean;
+    action: GbpVerificationAction;
+  };
 };
 
 const DAY_MAP: Record<string, keyof RegularHours> = {
@@ -378,9 +395,33 @@ export async function fetchGbpLocationsSafe(
         mapsUri: location.metadata?.mapsUri,
         hasDuplicate: Boolean(location.metadata?.duplicateLocation),
         canUpdate: location.metadata?.canModifyServiceList ?? undefined,
+        hasPendingEdits: location.metadata?.hasPendingEdits ?? undefined,
       });
     }
   }
+
+  await Promise.all(
+    locations.map(async (location) => {
+      const verificationResult = await fetchVoiceOfMerchantStateSafe(
+        accessToken,
+        location.gbpName,
+      );
+
+      if (!verificationResult.ok) {
+        return;
+      }
+
+      const status = resolveGbpVerificationStatus(verificationResult.state);
+
+      location.verification = {
+        status,
+        label: getGbpVerificationLabel(status),
+        hasVoiceOfMerchant: verificationResult.state.hasVoiceOfMerchant,
+        hasBusinessAuthority: verificationResult.state.hasBusinessAuthority,
+        action: verificationResult.state.action,
+      };
+    }),
+  );
 
   return { ok: true, locations };
 }

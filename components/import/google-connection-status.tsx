@@ -145,6 +145,30 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
                     Duplicate flagged
                   </Badge>
                 ) : null}
+                {location.verification ? (
+                  <Badge
+                    variant={
+                      location.verification.status === "verified"
+                        ? "default"
+                        : location.verification.status === "pending_review"
+                          ? "secondary"
+                          : "destructive"
+                    }
+                    className="text-[10px]"
+                  >
+                    {location.verification.label}
+                  </Badge>
+                ) : null}
+                {location.hasPendingEdits ? (
+                  <Badge variant="secondary" className="text-[10px]">
+                    Pending Google edits
+                  </Badge>
+                ) : null}
+                {location.canUpdate === false ? (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Updates blocked
+                  </Badge>
+                ) : null}
                 {location.mapsUri ? (
                   <a
                     href={location.mapsUri}

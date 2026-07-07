@@ -6,9 +6,11 @@ import {
   listLocationReviewsAction,
 } from "@/app/actions/reviews";
 import { getLocationAction } from "@/app/actions/locations";
+import { UpgradeBanner } from "@/components/billing/upgrade-banner";
 import { ReviewsPanel } from "@/components/locations/reviews-panel";
 import { getDb } from "@/db";
 import { locationPublishers, publishers } from "@/db/schema";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 
 async function isGoogleLinked(locationId: string) {
   const db = getDb();
@@ -39,18 +41,29 @@ export default async function LocationReviewsPage({
     notFound();
   }
 
-  const [reviews, summary, googleLinked] = await Promise.all([
+  const [reviews, summary, googleLinked, workspace] = await Promise.all([
     listLocationReviewsAction(locationId),
     getLocationReviewSummaryAction(locationId),
     isGoogleLinked(locationId),
+    getWorkspacePlan(),
   ]);
 
   return (
-    <ReviewsPanel
-      locationId={locationId}
-      reviews={reviews}
-      summary={summary}
-      googleLinked={googleLinked}
-    />
+    <div className="space-y-6">
+      {!workspace.features.reputation ? (
+        <UpgradeBanner
+          badge="Reputation add-on"
+          title="Reply to every review in minutes, not hours"
+          description="Draft replies manually for free. The Reputation add-on writes on-brand AI drafts for every review — you approve, we publish."
+          ctaLabel="Add Reputation"
+        />
+      ) : null}
+      <ReviewsPanel
+        locationId={locationId}
+        reviews={reviews}
+        summary={summary}
+        googleLinked={googleLinked}
+      />
+    </div>
   );
 }

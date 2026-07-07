@@ -1,5 +1,6 @@
 import {
   ClipboardList,
+  CreditCard,
   Download,
   LayoutDashboard,
   MapPin,
@@ -55,6 +56,12 @@ const teamNavItem: DashboardNavItem = {
   icon: UserPlus,
 };
 
+const billingNavItem: DashboardNavItem = {
+  title: "Billing",
+  href: "/dashboard/billing",
+  icon: CreditCard,
+};
+
 export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
   const teamItem = teamNavItem;
 
@@ -63,6 +70,7 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
       baseDashboardNav[0]!,
       teamItem,
       ...baseDashboardNav.slice(1),
+      billingNavItem,
     ];
   }
 
@@ -71,6 +79,7 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
     clientsNavItem,
     teamItem,
     ...baseDashboardNav.slice(1),
+    billingNavItem,
   ];
 }
 

@@ -1,0 +1,92 @@
+{
+  "billing": {
+    "features": {
+      "api_sync": {
+        "name": "API listing sync",
+        "description": "Approve-first automated sync to Google, Apple, Bing, Facebook, Yelp and the map graph"
+      },
+      "analytics": {
+        "name": "Listing analytics",
+        "description": "Impressions and engagement by publisher, duplicate detection"
+      },
+      "ai_citation": {
+        "name": "AI Citation Network",
+        "description": "Public visibility pages, schema.org, llms.txt, IndexNow pings, crawler checks"
+      },
+      "reputation": {
+        "name": "Reputation",
+        "description": "Review inbox with AI reply drafts — approve before publish"
+      }
+    },
+    "free_trial_requires_payment_method": true,
+    "organization_enabled": true,
+    "user_enabled": true,
+    "plans": {
+      "free_org": {
+        "amount": 0,
+        "annual_monthly_amount": 0,
+        "currency": "",
+        "description": "",
+        "features": [],
+        "free_trial_days": null,
+        "free_trial_enabled": false,
+        "is_recurring": true,
+        "name": "Free",
+        "payer_type": "org",
+        "publicly_visible": true
+      },
+      "free_user": {
+        "amount": 0,
+        "annual_monthly_amount": 0,
+        "currency": "",
+        "description": "",
+        "features": [],
+        "free_trial_days": null,
+        "free_trial_enabled": false,
+        "is_recurring": true,
+        "name": "Free",
+        "payer_type": "user",
+        "publicly_visible": true
+      },
+      "basic_listings": {
+        "amount": 1900,
+        "annual_monthly_amount": 1500,
+        "currency": "usd",
+        "description": "Secondary + audit-only publishers, NAP tracking, manual & guided checklists",
+        "features": [],
+        "free_trial_days": null,
+        "free_trial_enabled": false,
+        "is_recurring": true,
+        "name": "Basic Listings",
+        "payer_type": "org",
+        "publicly_visible": true
+      },
+      "premium_listings": {
+        "amount": 4900,
+        "annual_monthly_amount": 4100,
+        "currency": "usd",
+        "description": "Google, Apple, Bing, Facebook, Yelp + map graph with approve-first sync and visibility score",
+        "features": ["api_sync"],
+        "free_trial_days": 14,
+        "free_trial_enabled": true,
+        "is_recurring": true,
+        "name": "Premium Listings",
+        "payer_type": "org",
+        "publicly_visible": true
+      },
+      "pro_listings": {
+        "amount": 7900,
+        "annual_monthly_amount": 6600,
+        "currency": "usd",
+        "description": "Premium + analytics, duplicate detection, expanded publishers, AI visibility pages and reputation tools",
+        "features": ["api_sync", "analytics", "ai_citation", "reputation"],
+        "free_trial_days": 14,
+        "free_trial_enabled": true,
+        "is_recurring": true,
+        "name": "Pro Listings",
+        "payer_type": "org",
+        "publicly_visible": true
+      }
+    }
+  }
+}

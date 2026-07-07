@@ -257,7 +257,7 @@ Example: **Home services contractor**, wants Google + Angi + AI pages + reviews.
 | Team invites | ✅ Shipped — `/dashboard/team` (Clerk) |
 | Direct API write to 200+ publishers | 🔲 Phase 2+ — GBP quota pending |
 | Vertical-specific publisher APIs | 🔲 Phase 2+ — add-on when rails live |
-| Billing / Stripe | 🔲 Not implemented |
+| Billing (Clerk) | 🟡 Dev instance live — org plans `basic_listings` / `premium_listings` / `pro_listings` + features seeded via `billing.json` (`clerk config patch`). `/dashboard/billing` renders PricingTable; upsell banners on listings/publishers/reviews. Production needs `clerk config patch --instance prod` + Stripe gateway. |
 
 ---
 

@@ -2,6 +2,8 @@ import { InfoIcon } from "lucide-react";
 
 import { listPublishersAction } from "@/app/actions/locations";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
+import { UpgradeBanner } from "@/components/billing/upgrade-banner";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -46,7 +48,10 @@ function checklistPreview(markdown: string | null): string[] {
 }
 
 export default async function PublishersPage() {
-  const publishers = await listPublishersAction();
+  const [publishers, workspace] = await Promise.all([
+    listPublishersAction(),
+    getWorkspacePlan(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -57,6 +62,15 @@ export default async function PublishersPage() {
           card for how each rail works.
         </p>
       </div>
+
+      {!workspace.features.apiSync ? (
+        <UpgradeBanner
+          badge="Listing packages"
+          title="Unlock more publishers with a listing package"
+          description="Basic covers manual checklists and audits everywhere. Premium and Pro add API sync, guided imports, and vertical networks for your industry."
+          ctaLabel="Compare packages"
+        />
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         {publishers.map((publisher) => {

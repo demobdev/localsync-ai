@@ -56,7 +56,7 @@
 | Step | Where | What to say |
 |------|--------|-------------|
 | 1 | `/dashboard/import/google` | OAuth works today. |
-| 2 | After connect | If **429 / quota**: API access form submitted for **localmap.co** (case `0-3698000041406`). Import lists locations once Google approves. |
+| 2 | After connect | If **429 / quota**: Basic API Access form submitted (Gift a Story dogfood, GCP project `684836511110`). Import lists locations once Google approves (check Quotas for 300 QPM). |
 
 ---
 
