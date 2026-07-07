@@ -55,6 +55,7 @@ export const LISTING_PLANS: PlanDefinition[] = [
       "Analytics & duplicate detection",
       "Expanded publisher set",
       "AI visibility pages (/l/[id], llms.txt)",
+      "Review inbox + AI reply drafts",
       "Everything in Premium",
     ],
   },

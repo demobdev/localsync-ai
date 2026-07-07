@@ -149,17 +149,17 @@ const COMPARISON_MATRIX: MatrixGroup[] = [
         premium: false,
         pro: true,
       },
+      {
+        feature: "Review inbox + AI reply drafts",
+        basic: false,
+        premium: false,
+        pro: true,
+      },
     ],
   },
   {
     group: "Add-ons",
     rows: [
-      {
-        feature: "Review inbox + AI reply drafts",
-        basic: "Add-on",
-        premium: "Add-on",
-        pro: "Add-on",
-      },
       {
         feature: "Vertical directory networks",
         basic: "+$15/mo",

@@ -351,7 +351,7 @@ export async function syncGoogleReviewsAction(locationId: string) {
   return { inserted, updated, total: result.reviews.length };
 }
 
-/** Free AI reply drafts before the Reputation add-on is required. */
+/** Free AI reply drafts before the Pro plan is required. */
 const FREE_REPLY_DRAFTS = 3;
 
 export async function generateReviewReplyDraftAction(reviewId: string) {
@@ -370,7 +370,7 @@ export async function generateReviewReplyDraftAction(reviewId: string) {
 
     if (draftsUsed >= FREE_REPLY_DRAFTS) {
       throw new Error(
-        `You've used your ${FREE_REPLY_DRAFTS} free AI reply drafts. Add Reputation from /dashboard/billing for unlimited drafts.`,
+        `You've used your ${FREE_REPLY_DRAFTS} free AI reply drafts. Upgrade to Pro from /dashboard/billing for unlimited drafts.`,
       );
     }
   }

@@ -171,8 +171,9 @@ Modular structure — customers assemble what they need instead of jumping Yext 
 |----------------|-------------:|-----------------|----------|
 | **Basic Listings** | $15 – $25/mo | Emerging | Secondary + audit-only publishers; NAP consistency tracking; manual/guided rails |
 | **Premium Listings** | $39 – $59/mo | Essential + partial Complete | Google, Apple, Bing, Facebook, Yelp + core map graph; visibility score; approve-first profile sync |
-| **Pro Listings** | $69 – $89/mo | Complete | Premium + analytics layer, duplicate detection, expanded publisher set, AI visibility pages (`/l/[id]`, llms.txt) |
-| **Reputation** | +$25 – $40/mo | Premium (reviews slice) | Review inbox, AI reply drafts (approve before publish), reply workflows |
+| **Pro Listings** | $69 – $89/mo | Complete + Premium (reviews slice) | Premium + analytics layer, duplicate detection, expanded publisher set, AI visibility pages (`/l/[id]`, llms.txt), Reputation (review inbox + AI reply drafts) |
+
+> **Decision (Jul 2026, Don):** Reputation is **folded into Pro**, not sold as a standalone add-on. Vertical networks remain à la carte at +$15/mo.
 
 *Annual billing discount TBD (Yext pushes annual; we can match or undercut monthly flexibility as a differentiator.)*
 
@@ -238,7 +239,7 @@ Example: **Home services contractor**, wants Google + Angi + AI pages + reviews.
 | “Just fix my citations cheaply” | Emerging ($199) | **Basic Listings** |
 | “I need Google, Yelp, Apple” | Essential ($449) | **Premium Listings** |
 | “I’m an agency tracking performance” | Complete ($499) | **Pro Listings** + agency workspace |
-| “Reviews are everything” | Premium ($999) | **Pro** + **Reputation** add-on |
+| “Reviews are everything” | Premium ($999) | **Pro** (Reputation included) |
 | “I’m a dentist / lawyer / contractor” | Enterprise or bundled vertical | **Premium** + relevant **vertical add-on** |
 | “AI search / ChatGPT visibility” | Premium + Pages (enterprise) | **AI Citation Network** (already in product) |
 
@@ -278,7 +279,7 @@ Per-location monthly COGS at normal usage. Rounded, worst-case leaning.
 **Gross margin by tier:** Basic $19 → ~88–92% · Premium $49 → ~93–95% · Pro $79 → ~95%+.
 Heaviest users are Pro (more audits + AI drafts) but Pro also carries the most price. Vertical add-ons (+$15) are nearly pure margin until vertical API rails exist.
 
-**Watch items:** public free scans are unmonetized COGS (~$0.05–0.10/scan) — acceptable CAC; cap per-IP if abused. AI reply drafts are the most variable token cost — hence the 3-free-then-Reputation gate.
+**Watch items:** public free scans are unmonetized COGS (~$0.05–0.10/scan) — acceptable CAC; cap per-IP if abused. AI reply drafts are the most variable token cost — hence the 3-free-then-Pro gate.
 
 ---
 
@@ -293,8 +294,8 @@ Principle: **manual is always free — pricing appears exactly where automation 
 | `/dashboard/billing` | Sidebar nav | Clerk PricingTable (live checkout) | Single conversion point; banners deep-link here |
 | Listings page banner | No `api_sync` feature | Premium | User is mid-manual-work — show the automated path |
 | Publishers registry banner | No `api_sync` feature | Premium/Pro | Rails visibly labeled manual/audit-only |
-| Reviews page banner | No `reputation` feature | Reputation add-on | Reply fatigue is the pain point |
-| AI draft limit (action error) | 4th draft attempt without Reputation | Reputation | Value already proven by 3 free drafts |
+| Reviews page banner | No `reputation` feature | Pro | Reply fatigue is the pain point |
+| AI draft limit (action error) | 4th draft attempt without Pro | Pro | Value already proven by 3 free drafts |
 | GBP push (action error) | Push without `api_sync` | Premium | Write-sync is the flagship automation |
 
 Feature slugs in Clerk: `api_sync`, `analytics`, `ai_citation`, `reputation` — attached to plans in `billing.json`, checked via `getWorkspacePlan()` (`lib/billing/plans.ts`).
@@ -307,7 +308,7 @@ Feature slugs in Clerk: `api_sync`, `analytics`, `ai_citation`, `reputation` —
 2. **Vertical add-ons:** Flat +$15/mo each, or bundle “pick any 2” for +$25/mo?
 3. **Agency wholesale:** Per-seat vs per-client-location — what matches LocalMap’s resale model?
 4. **Free tier:** Audit-only + 1 location for PLG, or trial-only?
-5. **Reputation standalone:** Sell review tools without full Premium Listings?
+5. ~~**Reputation standalone:** Sell review tools without full Premium Listings?~~ **Decided:** folded into Pro (Don, Jul 2026).
 
 ---
 

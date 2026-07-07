@@ -21,15 +21,13 @@ const VERTICAL_ADDONS = [
   { name: "Financial Services", price: 15, note: "Advisor & branch directories" },
 ];
 
-const LAYER_ADDONS = [
+const PRO_LAYERS = [
   {
     name: "Reputation",
-    price: 30,
     note: "Review inbox, AI reply drafts, approve-before-publish workflows",
   },
   {
     name: "AI Citation Network",
-    price: 20,
     note: "Public visibility pages, schema.org, llms.txt, IndexNow pings",
   },
 ];
@@ -171,25 +169,25 @@ export default async function BillingPage() {
 
         <Card className="localmap-card-glow">
           <CardHeader>
-            <CardTitle className="text-base">Automation layers</CardTitle>
+            <CardTitle className="text-base">Included with Pro</CardTitle>
             <CardDescription>
-              Bolt on reputation and AI discovery to any listing tier.
+              Reputation and AI discovery come built into the Pro tier.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            {LAYER_ADDONS.map((addon) => (
+            {PRO_LAYERS.map((layer) => (
               <div
-                key={addon.name}
+                key={layer.name}
                 className="flex items-center justify-between gap-3 rounded-xl border bg-background/60 px-3 py-2.5"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{addon.name}</p>
+                  <p className="text-sm font-medium">{layer.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {addon.note}
+                    {layer.note}
                   </p>
                 </div>
                 <Badge variant="outline" className="shrink-0">
-                  +${addon.price}/mo
+                  Pro
                 </Badge>
               </div>
             ))}

@@ -52,10 +52,10 @@ export default async function LocationReviewsPage({
     <div className="space-y-6">
       {!workspace.features.reputation ? (
         <UpgradeBanner
-          badge="Reputation add-on"
+          badge="Pro plan"
           title="Reply to every review in minutes, not hours"
-          description="Draft replies manually for free. The Reputation add-on writes on-brand AI drafts for every review — you approve, we publish."
-          ctaLabel="Add Reputation"
+          description="Draft replies manually for free. Pro writes on-brand AI drafts for every review — you approve, we publish."
+          ctaLabel="Upgrade to Pro"
         />
       ) : null}
       <ReviewsPanel
