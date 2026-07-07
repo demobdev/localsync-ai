@@ -8,6 +8,10 @@ import { MenuIcon } from "lucide-react";
 import { useState } from "react";
 
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
+import {
+  BusinessSwitcher,
+  type SwitcherBusiness,
+} from "@/components/dashboard/business-switcher";
 import { NavigationProgress } from "@/components/dashboard/navigation-progress";
 import { WorkspaceSwitcher } from "@/components/dashboard/workspace-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -60,10 +64,14 @@ function SidebarContent({
   onNavigate,
   isAgency,
   workspaceName,
+  workspaceImageUrl,
+  businesses,
 }: {
   onNavigate?: () => void;
   isAgency: boolean;
   workspaceName: string;
+  workspaceImageUrl?: string | null;
+  businesses: SwitcherBusiness[];
 }) {
   const navItems = getDashboardNav(isAgency);
 
@@ -71,9 +79,25 @@ function SidebarContent({
     <>
       <div className="mb-6">
         <LocalMapLogo />
-        <p className="mt-3 text-sm text-muted-foreground">
-          {isAgency ? `${workspaceName} · Agency` : workspaceName}
-        </p>
+        <div className="mt-3 flex items-center gap-2">
+          {workspaceImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={workspaceImageUrl}
+              alt=""
+              className="size-5 shrink-0 rounded-md object-cover"
+            />
+          ) : null}
+          <p className="min-w-0 truncate text-sm text-muted-foreground">
+            {workspaceName}
+          </p>
+          {isAgency ? (
+            <span className="shrink-0 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600 dark:text-violet-400">
+              Agency
+            </span>
+          ) : null}
+        </div>
+        <BusinessSwitcher businesses={businesses} />
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
@@ -100,10 +124,14 @@ export function DashboardShell({
   children,
   isAgency = false,
   workspaceName = "LocalSync workspace",
+  workspaceImageUrl = null,
+  businesses = [],
 }: {
   children: React.ReactNode;
   isAgency?: boolean;
   workspaceName?: string;
+  workspaceImageUrl?: string | null;
+  businesses?: SwitcherBusiness[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -131,6 +159,8 @@ export function DashboardShell({
                   onNavigate={() => setMobileOpen(false)}
                   isAgency={isAgency}
                   workspaceName={workspaceName}
+                  workspaceImageUrl={workspaceImageUrl}
+                  businesses={businesses}
                 />
               </div>
             </SheetContent>
@@ -141,7 +171,12 @@ export function DashboardShell({
       <div className="mx-auto flex min-h-[calc(100vh-57px)] max-w-7xl gap-0 md:min-h-screen md:gap-6 md:p-6">
         <aside className="hidden w-64 shrink-0 md:block">
           <div className="sticky top-6 flex h-[calc(100vh-3rem)] flex-col rounded-2xl border bg-card p-4 localmap-card-glow">
-            <SidebarContent isAgency={isAgency} workspaceName={workspaceName} />
+            <SidebarContent
+              isAgency={isAgency}
+              workspaceName={workspaceName}
+              workspaceImageUrl={workspaceImageUrl}
+              businesses={businesses}
+            />
           </div>
         </aside>
 

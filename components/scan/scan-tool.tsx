@@ -143,7 +143,7 @@ function ScanResults({
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <CardDescription>AI visibility score</CardDescription>
+              <CardDescription>Website AI readability score</CardDescription>
               <CardTitle className="text-lg">
                 {result.businessName ?? result.url}
               </CardTitle>
@@ -177,6 +177,11 @@ function ScanResults({
               </div>
             </div>
           ))}
+          <p className="pt-1 text-xs text-muted-foreground">
+            This scan reads your website only, so it maxes out at 70. Your full
+            Visibility Score in the dashboard also counts profile completeness
+            and listing audits across 20+ directories.
+          </p>
         </CardContent>
       </Card>
 

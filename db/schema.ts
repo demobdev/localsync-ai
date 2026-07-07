@@ -9,6 +9,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -569,6 +570,30 @@ export const connectorCredentials = pgTable(
 );
 
 export const enablePgVector = sql`CREATE EXTENSION IF NOT EXISTS vector`;
+
+/** Daily visibility score snapshots per location, for trend charts. */
+export const visibilityScoreSnapshots = pgTable(
+  "visibility_score_snapshots",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    day: text("day").notNull(), // YYYY-MM-DD (UTC)
+    score: integer("score").notNull(),
+    profileScore: integer("profile_score").notNull(),
+    auditScore: integer("audit_score").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("visibility_snapshots_location_day_idx").on(
+      table.locationId,
+      table.day,
+    ),
+  ],
+);
 
 /** Public "free AI visibility scan" leads — no auth, captured pre-signup. */
 export const scanLeads = pgTable(

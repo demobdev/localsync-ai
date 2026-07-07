@@ -13,6 +13,7 @@ import {
   locations,
   schemaOutputs,
   serviceTaxonomy,
+  visibilityScoreSnapshots,
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
 import { runCrawlerCheck } from "@/lib/visibility/crawler-check";
@@ -400,12 +401,96 @@ export async function getOrgVisibilitySummaryAction(): Promise<{
         )
       : 0;
 
+  // Record a daily snapshot per location so score trends accumulate over time.
+  if (scored.length > 0) {
+    const day = new Date().toISOString().slice(0, 10);
+    await db
+      .insert(visibilityScoreSnapshots)
+      .values(
+        scored.map((item) => ({
+          locationId: item.id,
+          day,
+          score: item.score.total,
+          profileScore: item.score.profileScore,
+          auditScore: item.score.auditScore,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: [
+          visibilityScoreSnapshots.locationId,
+          visibilityScoreSnapshots.day,
+        ],
+        set: {
+          score: sql`excluded.score`,
+          profileScore: sql`excluded.profile_score`,
+          auditScore: sql`excluded.audit_score`,
+        },
+      });
+  }
+
   return {
     averageScore,
     hasPublishedPage: scored.some((item) => item.pageStatus === "published"),
     hasGeneratedPage: scored.some((item) => item.pageStatus !== null),
     locations: scored,
   };
+}
+
+export type VisibilityHistoryPoint = {
+  day: string;
+  score: number;
+};
+
+export async function getOrgVisibilityHistoryAction(input?: {
+  locationId?: string;
+  days?: number;
+}): Promise<VisibilityHistoryPoint[]> {
+  const { orgId } = await requireOrgAuth();
+  const db = getDb();
+  const days = Math.min(input?.days ?? 90, 365);
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const cutoffDay = cutoff.toISOString().slice(0, 10);
+
+  if (input?.locationId) {
+    await assertLocationInOrg(input.locationId, orgId);
+
+    const rows = await db
+      .select({
+        day: visibilityScoreSnapshots.day,
+        score: visibilityScoreSnapshots.score,
+      })
+      .from(visibilityScoreSnapshots)
+      .where(
+        and(
+          eq(visibilityScoreSnapshots.locationId, input.locationId),
+          sql`${visibilityScoreSnapshots.day} >= ${cutoffDay}`,
+        ),
+      )
+      .orderBy(visibilityScoreSnapshots.day);
+
+    return rows;
+  }
+
+  // Org-wide: average across locations per day.
+  const rows = await db
+    .select({
+      day: visibilityScoreSnapshots.day,
+      score: sql<number>`round(avg(${visibilityScoreSnapshots.score}))::int`,
+    })
+    .from(visibilityScoreSnapshots)
+    .innerJoin(locations, eq(locations.id, visibilityScoreSnapshots.locationId))
+    .where(
+      and(
+        eq(locations.organizationId, orgId),
+        sql`${visibilityScoreSnapshots.day} >= ${cutoffDay}`,
+      ),
+    )
+    .groupBy(visibilityScoreSnapshots.day)
+    .orderBy(visibilityScoreSnapshots.day);
+
+  return rows;
 }
 
 export async function getPublishedPageAction(locationId: string) {

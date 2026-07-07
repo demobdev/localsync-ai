@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { RadarIcon, SearchIcon } from "lucide-react";
+import { ClipboardPasteIcon, RadarIcon, SearchIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -60,6 +60,51 @@ type AuditRunRow = {
 
 type FilterMode = "core" | "configured" | "all";
 
+const GENERIC_NAME_WORDS = new Set([
+  "business",
+  "profile",
+  "places",
+  "connect",
+  "pages",
+  "local",
+  "the",
+]);
+
+function publisherTokens(row: PublisherRow): string[] {
+  const fromName = row.publisherName
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((word) => word.length >= 3 && !GENERIC_NAME_WORDS.has(word));
+  const fromSlug = row.publisherSlug
+    .toLowerCase()
+    .split("-")
+    .filter((word) => word.length >= 3 && !GENERIC_NAME_WORDS.has(word));
+
+  return Array.from(new Set([...fromName, ...fromSlug]));
+}
+
+function detectPublisher(
+  url: string,
+  rows: PublisherRow[],
+): PublisherRow | null {
+  let hostname: string;
+  try {
+    hostname = new URL(
+      /^https?:\/\//i.test(url) ? url : `https://${url}`,
+    ).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+
+  for (const row of rows) {
+    if (publisherTokens(row).some((token) => hostname.includes(token))) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
 export function ListingsManager({
   locationId,
   publisherRows,
@@ -75,8 +120,65 @@ export function ListingsManager({
   );
   const [filter, setFilter] = useState<FilterMode>("core");
   const [search, setSearch] = useState("");
+  const [quickPaste, setQuickPaste] = useState("");
   const [isPending, startTransition] = useTransition();
   const [auditPending, startAuditTransition] = useTransition();
+
+  function quickAdd() {
+    const entries = quickPaste
+      .split(/[\s,]+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    if (entries.length === 0) {
+      toast.error("Paste at least one listing URL");
+      return;
+    }
+
+    startTransition(async () => {
+      let saved = 0;
+      const unmatched: string[] = [];
+
+      for (const entry of entries) {
+        const match = detectPublisher(entry, publisherRows);
+
+        if (!match) {
+          unmatched.push(entry);
+          continue;
+        }
+
+        const normalized = /^https?:\/\//i.test(entry)
+          ? entry
+          : `https://${entry}`;
+
+        try {
+          await updateListingUrlAction({
+            locationId,
+            locationPublisherId: match.id,
+            listingUrl: normalized,
+          });
+          setUrls((current) => ({ ...current, [match.id]: normalized }));
+          saved += 1;
+        } catch {
+          unmatched.push(entry);
+        }
+      }
+
+      if (saved > 0) {
+        toast.success(
+          `Matched and saved ${saved} listing URL${saved === 1 ? "" : "s"}`,
+        );
+        setQuickPaste(unmatched.join("\n"));
+        router.refresh();
+      }
+
+      if (unmatched.length > 0) {
+        toast.error(
+          `Couldn't match ${unmatched.length} URL${unmatched.length === 1 ? "" : "s"} — find the publisher below and paste it there`,
+        );
+      }
+    });
+  }
 
   const configuredCount = publisherRows.filter((row) =>
     (urls[row.id] ?? "").trim(),
@@ -171,6 +273,36 @@ export function ListingsManager({
             {auditPending
               ? "Auditing…"
               : `Run audit (${configuredCount} URL${configuredCount === 1 ? "" : "s"})`}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="localmap-card-glow border-primary/20">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ClipboardPasteIcon className="size-4 text-primary" />
+            <CardTitle className="text-base">Quick add — paste any listing links</CardTitle>
+          </div>
+          <CardDescription>
+            Paste one or more URLs (Yelp, BBB, Facebook, Google Maps…) — we
+            match each to the right publisher automatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            placeholder="https://www.yelp.com/biz/your-business  https://www.bbb.org/…"
+            value={quickPaste}
+            onChange={(event) => setQuickPaste(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                quickAdd();
+              }
+            }}
+            className="flex-1"
+          />
+          <Button onClick={quickAdd} disabled={isPending}>
+            {isPending ? "Matching…" : "Add listings"}
           </Button>
         </CardContent>
       </Card>

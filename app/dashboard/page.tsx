@@ -15,10 +15,14 @@ import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
 import {
   listLocationsAction,
 } from "@/app/actions/locations";
-import { getOrgVisibilitySummaryAction } from "@/app/actions/visibility";
+import {
+  getOrgVisibilityHistoryAction,
+  getOrgVisibilitySummaryAction,
+} from "@/app/actions/visibility";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sparkline } from "@/components/ui/sparkline";
 import {
   Card,
   CardContent,
@@ -47,6 +51,8 @@ export default async function DashboardPage() {
   if (locations.length === 0) {
     redirect("/dashboard/onboarding");
   }
+
+  const history = await getOrgVisibilityHistoryAction({ days: 90 });
 
   const hasData = locations.length > 0;
   const topLocation = visibility.locations[0];
@@ -105,13 +111,16 @@ export default async function DashboardPage() {
             label: "Visibility score",
             value: hasData ? `${visibility.averageScore}` : "—",
             hint: hasData
-              ? "How complete + consistent your business info is. Click to improve it."
+              ? history.length > 1
+                ? `${history[history.length - 1]!.score - history[0]!.score >= 0 ? "+" : ""}${history[history.length - 1]!.score - history[0]!.score} over ${history.length} days tracked.`
+                : "How complete + consistent your business info is. Click to improve it."
               : "Add a business to get your first score.",
             icon: GlobeIcon,
             tone: "text-primary",
             href: topLocation
               ? `/dashboard/locations/${topLocation.id}/visibility`
               : "/dashboard/locations",
+            trend: history.map((point) => point.score),
           },
           {
             label: "Listing audits",
@@ -149,7 +158,15 @@ export default async function DashboardPage() {
                 ? `/dashboard/locations/${topLocation.id}/reviews`
                 : "/dashboard/locations",
           },
-        ].map((stat) => (
+        ].map((stat: {
+          label: string;
+          value: string;
+          hint: string;
+          icon: typeof GlobeIcon;
+          tone: string;
+          href: string;
+          trend?: number[];
+        }) => (
           <Link key={stat.label} href={stat.href} className="group">
             <Card className="localmap-card-glow h-full overflow-hidden transition-all group-hover:-translate-y-0.5 group-hover:border-primary/40">
               <CardHeader className="pb-2">
@@ -159,7 +176,10 @@ export default async function DashboardPage() {
                 </div>
                 <CardTitle className="text-3xl tabular-nums">{stat.value}</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
+                {stat.trend && stat.trend.length > 0 ? (
+                  <Sparkline points={stat.trend} height={36} />
+                ) : null}
                 <p className="text-xs text-muted-foreground">{stat.hint}</p>
               </CardContent>
             </Card>
