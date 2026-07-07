@@ -314,7 +314,13 @@ export default async function PricingPage() {
           </div>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Premium and Pro include a 14-day free trial. Annual billing saves
-            ~2 months.
+            ~2 months.{" "}
+            <Link
+              href="/products/listings"
+              className="font-medium text-primary hover:underline"
+            >
+              See what&apos;s in the listings product →
+            </Link>
           </p>
         </section>
 
@@ -391,7 +397,13 @@ export default async function PricingPage() {
             </h2>
             <p className="mt-2 text-muted-foreground">
               Yext bundles these into $999/yr tiers. We sell them à la carte —
-              a dentist adds Healthcare, a plumber adds Home Services.
+              a dentist adds Healthcare, a plumber adds Home Services.{" "}
+              <Link
+                href="/products/verticals"
+                className="font-medium text-primary hover:underline"
+              >
+                Explore vertical networks →
+              </Link>
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -124,6 +124,13 @@ export default async function HomePage() {
                 profile becomes machine-readable — schema.org, hosted pages, and
                 llms.txt so assistants cite accurate facts.
               </p>
+              <Link
+                href="/products/ai-visibility"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+              >
+                Explore AI Visibility
+                <ArrowRightIcon className="size-3.5" />
+              </Link>
             </div>
             <AiVisibilityShowcase />
           </div>
@@ -139,6 +146,25 @@ export default async function HomePage() {
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
               Shopify for local businesses — not another listing tool
             </h2>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Packaged as four products:{" "}
+              <Link href="/products/listings" className="font-medium text-primary hover:underline">
+                Listings
+              </Link>
+              ,{" "}
+              <Link href="/products/reputation" className="font-medium text-primary hover:underline">
+                Reputation
+              </Link>
+              ,{" "}
+              <Link href="/products/ai-visibility" className="font-medium text-primary hover:underline">
+                AI Visibility
+              </Link>
+              , and{" "}
+              <Link href="/products/verticals" className="font-medium text-primary hover:underline">
+                Vertical Networks
+              </Link>
+              .
+            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {pillars.map((item) => (

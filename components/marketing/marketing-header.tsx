@@ -1,10 +1,36 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronDownIcon } from "lucide-react";
 
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const PRODUCT_LINKS = [
+  { href: "/products/listings", label: "Listings", note: "Sync & audits" },
+  {
+    href: "/products/reputation",
+    label: "Reputation",
+    note: "Reviews + AI drafts",
+  },
+  {
+    href: "/products/ai-visibility",
+    label: "AI Visibility",
+    note: "Citation network",
+  },
+  {
+    href: "/products/verticals",
+    label: "Vertical Networks",
+    note: "Industry add-ons",
+  },
+];
 
 export function MarketingHeader({
   signedIn,
@@ -18,6 +44,28 @@ export function MarketingHeader({
           <LocalMapLogo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="sm" />}
+            >
+              Products
+              <ChevronDownIcon className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {PRODUCT_LINKS.map((item) => (
+                <DropdownMenuItem
+                  key={item.href}
+                  render={<Link href={item.href} />}
+                  className="flex-col items-start gap-0 py-1.5"
+                >
+                  <span className="font-medium">{item.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {item.note}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button
             variant="ghost"
             size="sm"

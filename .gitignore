@@ -45,3 +45,6 @@ next-env.d.ts
 # drizzle
 /drizzle
 .env*
+
+# firecrawl scrape cache
+.firecrawl/
