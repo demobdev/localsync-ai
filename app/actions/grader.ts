@@ -67,6 +67,12 @@ const graderExtractionSchema = z.object({
   industry: z
     .enum(INDUSTRY_SLUGS as [string, ...string[]])
     .describe("Closest matching industry category for this business"),
+  nicheCategory: z
+    .string()
+    .nullable()
+    .describe(
+      "The most specific category a customer would type into Google to find this business, lowercase, 1-4 words (e.g. 'sports bar', 'vegan cafe', 'personal injury lawyer', 'emergency plumber'). null if unclear.",
+    ),
   phoneVisible: z
     .boolean()
     .describe("Whether a phone number is prominently visible in the content"),
@@ -329,6 +335,7 @@ async function runGraderPipeline(input: {
     let signals: Awaited<ReturnType<typeof analyzeSite>>;
     let pageSpeed: Awaited<ReturnType<typeof fetchPageSpeed>>;
     let websiteDomain: string;
+    let nicheCategory: string | null = null;
 
     if (url) {
       // ── Website path: crawl + extract, PSI in parallel ─────────────────
@@ -385,6 +392,7 @@ async function runGraderPipeline(input: {
         longitude: place?.longitude ?? null,
         placeId: place?.placeId ?? null,
       };
+      nicheCategory = object.nicheCategory;
 
       // Themes ran concurrently with the crawl; usually resolved by now.
       const themesResult = await themesPromise;
@@ -455,8 +463,10 @@ async function runGraderPipeline(input: {
       extracted.businessName ?? websiteDomain.split(".")[0] ?? websiteDomain;
 
     // Niche noun customers actually type ("sports bar", not "restaurant") —
-    // resolved from the Places type, business name, and extracted services.
+    // AI-extracted niche first (reads the site the way customers describe it),
+    // then Places type, business-name cues, and extracted services.
     const vertical = resolveSearchVertical({
+      nicheCategory,
       primaryType: place?.primaryType,
       businessName,
       services: extracted.services,

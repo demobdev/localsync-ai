@@ -4,10 +4,11 @@
  * "sports bar Greenville", not "restaurant Greenville".
  *
  * Signals, in priority order (all automatic — never user-entered):
- *   1. Google Places primaryTypeDisplayName ("Sports bar", "Italian restaurant")
- *   2. Business-name cues ("Owners Box Sports Grill" → sports bar)
- *   3. Services extracted from the website crawl
- *   4. Industry pack fallback (categoryNoun / serviceTerms)
+ *   1. AI-extracted niche from the website crawl ("sports bar", "vegan cafe")
+ *   2. Google Places primaryTypeDisplayName ("Sports Bar", "Italian Restaurant")
+ *   3. Business-name cues ("Owners Box Sports Grill" → sports bar)
+ *   4. Services extracted from the website crawl
+ *   5. Industry pack fallback (categoryNoun / serviceTerms)
  */
 
 import { getIndustryProfile } from "./industry";
@@ -97,10 +98,13 @@ const INDUSTRY_MODIFIERS: Record<string, string[]> = {
 const DEFAULT_MODIFIERS = ["top rated"];
 
 function normalizeNoun(raw: string): string {
-  return raw.trim().toLowerCase().replace(/\s+/g, " ");
+  // "&" → "and" matches how people actually type ("bar and grill greenville").
+  return raw.trim().toLowerCase().replace(/\s*&\s*/g, " and ").replace(/\s+/g, " ");
 }
 
 export function resolveSearchVertical(input: {
+  /** AI-extracted niche from the website crawl, e.g. "sports bar". */
+  nicheCategory?: string | null;
   /** Places primaryTypeDisplayName, when the audit started from a place. */
   primaryType: string | null | undefined;
   businessName: string | null | undefined;
@@ -109,12 +113,20 @@ export function resolveSearchVertical(input: {
   industry: string;
 }): SearchVertical {
   const profile = getIndustryProfile(input.industry);
+  const niche = input.nicheCategory ? normalizeNoun(input.nicheCategory) : null;
   const placeType = input.primaryType ? normalizeNoun(input.primaryType) : null;
   const nameCue = matchNameCue(input.businessName);
 
   let noun: string;
-  if (placeType && !GENERIC_TYPES.has(placeType) && !COARSE_TYPES.has(placeType)) {
-    // Specific place type ("sports bar", "italian restaurant") wins outright.
+  if (niche && niche.split(" ").length <= 4 && !GENERIC_TYPES.has(niche)) {
+    // AI niche from the website is how customers describe the business.
+    noun = niche;
+  } else if (
+    placeType &&
+    !GENERIC_TYPES.has(placeType) &&
+    !COARSE_TYPES.has(placeType)
+  ) {
+    // Specific place type ("sports bar", "italian restaurant") wins next.
     noun = placeType;
   } else if (nameCue) {
     // Coarse or missing type, but the business name reveals the niche.
