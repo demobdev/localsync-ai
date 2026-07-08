@@ -16,6 +16,40 @@ export type ScanPrefill = {
   score: number;
 };
 
+/**
+ * Links a free scan to the user/org/location created during onboarding.
+ * First claim wins; later attempts are no-ops.
+ */
+export async function claimScanLead(input: {
+  scanId: string;
+  userId: string;
+  organizationId: string;
+  locationId: string;
+}): Promise<boolean> {
+  if (!UUID_RE.test(input.scanId)) return false;
+
+  const db = getDb();
+  const [lead] = await db
+    .select({ id: scanLeads.id, claimedByUserId: scanLeads.claimedByUserId })
+    .from(scanLeads)
+    .where(eq(scanLeads.id, input.scanId))
+    .limit(1);
+
+  if (!lead || lead.claimedByUserId) return false;
+
+  await db
+    .update(scanLeads)
+    .set({
+      claimedByUserId: input.userId,
+      organizationId: input.organizationId,
+      locationId: input.locationId,
+      claimedAt: new Date(),
+    })
+    .where(eq(scanLeads.id, input.scanId));
+
+  return true;
+}
+
 export async function getScanPrefill(
   scanId: string,
 ): Promise<ScanPrefill | null> {

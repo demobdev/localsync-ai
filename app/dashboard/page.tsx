@@ -11,6 +11,7 @@ import { redirect } from "next/navigation";
 
 import { getOrgReviewSummaryAction } from "@/app/actions/reviews";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
+import { getRecentMarketingInsightAction } from "@/app/actions/marketing-insights";
 import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
 import {
   listLocationsAction,
@@ -20,6 +21,7 @@ import {
   getOrgVisibilitySummaryAction,
 } from "@/app/actions/visibility";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
+import { RecentMarketingInsightCard } from "@/components/dashboard/recent-marketing-insight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkline } from "@/components/ui/sparkline";
@@ -32,27 +34,88 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export default async function DashboardPage() {
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function safe<T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[dashboard] ${label} failed:`, error);
+    return fallback;
+  }
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ audit?: string; scan?: string }>;
+}) {
   const session = await auth();
+  const params = await searchParams;
 
   if (!session.orgId) {
     redirect("/dashboard/onboarding");
   }
 
-  const [locations, visibility, googleState, primarySetup, reviews] =
+  const highlightAuditId =
+    params.audit && UUID_RE.test(params.audit) ? params.audit : null;
+  const highlightScanId =
+    params.scan && UUID_RE.test(params.scan) ? params.scan : null;
+
+  const [locations, visibility, googleState, primarySetup, reviews, recentInsight] =
     await Promise.all([
-      listLocationsAction(),
-      getOrgVisibilitySummaryAction(),
-      getGoogleImportStateAction(),
-      getPrimaryLocationSetupAction(),
-      getOrgReviewSummaryAction(),
+      safe("listLocations", () => listLocationsAction(), []),
+      safe(
+        "visibilitySummary",
+        () => getOrgVisibilitySummaryAction(),
+        {
+          averageScore: 0,
+          hasPublishedPage: false,
+          hasGeneratedPage: false,
+          locations: [],
+        },
+      ),
+      safe(
+        "googleImport",
+        () => getGoogleImportStateAction(),
+        { status: "not_connected" as const },
+      ),
+      safe(
+        "setupProgress",
+        () => getPrimaryLocationSetupAction(),
+        { progress: null, locationId: null },
+      ),
+      safe(
+        "reviews",
+        () => getOrgReviewSummaryAction(),
+        {
+          totalReviews: 0,
+          unrepliedCount: 0,
+          averageScore: 0,
+          topLocation: null,
+        },
+      ),
+      safe(
+        "marketingInsight",
+        () =>
+          getRecentMarketingInsightAction({
+            highlightAuditId,
+            highlightScanId,
+          }),
+        null,
+      ),
     ]);
 
   if (locations.length === 0) {
     redirect("/dashboard/onboarding");
   }
 
-  const history = await getOrgVisibilityHistoryAction({ days: 90 });
+  const history = await safe(
+    "visibilityHistory",
+    () => getOrgVisibilityHistoryAction({ days: 90 }),
+    [],
+  );
 
   const hasData = locations.length > 0;
   const topLocation = visibility.locations[0];
@@ -97,6 +160,10 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {recentInsight ? (
+        <RecentMarketingInsightCard insight={recentInsight} />
+      ) : null}
 
       {primarySetup.progress && primarySetup.locationId ? (
         <SetupGuideCompact

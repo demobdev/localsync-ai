@@ -10,6 +10,7 @@ import {
   UsersIcon,
 } from "lucide-react";
 
+import { GoToDashboardButton } from "@/components/onboarding/go-to-dashboard-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -25,12 +26,18 @@ export function SetupCompleteCard({
   publishersTracked,
   accountType = "business",
   auditId = null,
+  scanId = null,
+  organizationId = null,
 }: {
   locationId: string;
   publishersTracked: number;
   accountType?: OrganizationType;
   /** Claimed grader audit — links back to the full report. */
   auditId?: string | null;
+  /** Claimed free scan — surfaced on the dashboard. */
+  scanId?: string | null;
+  /** Active workspace — passed to GoToDashboard for Clerk setActive. */
+  organizationId?: string | null;
 }) {
   const isAgency = accountType === "agency";
 
@@ -162,13 +169,11 @@ export function SetupCompleteCard({
               Connect listings & Google
             </Button>
           )}
-          <Button
-            variant="ghost"
-            nativeButton={false}
-            render={<Link href="/dashboard" />}
-          >
-            Go to dashboard
-          </Button>
+          <GoToDashboardButton
+            organizationId={organizationId}
+            auditId={auditId}
+            scanId={scanId}
+          />
         </div>
       </CardContent>
     </Card>

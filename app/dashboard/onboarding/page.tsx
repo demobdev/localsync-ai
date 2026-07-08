@@ -24,6 +24,7 @@ export default async function DashboardOnboardingPage({
     scan?: string;
     auditId?: string;
     audit?: string;
+    org?: string;
     intent?: string;
   }>;
 }) {
@@ -80,6 +81,8 @@ export default async function DashboardOnboardingPage({
                 params.accountType === "agency" ? "agency" : "business"
               }
               auditId={params.audit ?? null}
+              scanId={params.scan ?? null}
+              organizationId={params.org ?? session.orgId ?? null}
             />
           ) : (
             <OnboardingFlow

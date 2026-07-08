@@ -19,6 +19,7 @@ import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
 import { claimGraderAudit } from "@/lib/grader/claim";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
+import { claimScanLead } from "@/lib/scan/leads";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
 import {
@@ -60,6 +61,8 @@ export type QuickSetupResult = {
   publishersTracked: number;
   /** Set when a grader audit was linked to the new location. */
   claimedAuditId: string | null;
+  /** Set when a free scan was linked to the new location. */
+  claimedScanId: string | null;
 };
 
 export type CreateAgencyWorkspaceResult = {
@@ -120,6 +123,8 @@ export async function quickSetupBusinessAction(input: {
   workspaceType?: OrganizationType;
   /** Grader audit to claim + enrich the profile from (optional). */
   auditId?: string;
+  /** Free scan to claim + link to the new location (optional). */
+  scanId?: string;
 }): Promise<QuickSetupResult> {
   const session = await auth();
 
@@ -288,7 +293,7 @@ export async function quickSetupBusinessAction(input: {
     );
   }
 
-  // 5. Claim the grader audit that led here, linking it to this workspace.
+  // 5. Claim the grader audit or free scan that led here.
   let claimedAuditId: string | null = null;
   if (audit) {
     const claimed = await claimGraderAudit({
@@ -299,6 +304,19 @@ export async function quickSetupBusinessAction(input: {
     });
     if (claimed) {
       claimedAuditId = audit.id;
+    }
+  }
+
+  let claimedScanId: string | null = null;
+  if (input.scanId) {
+    const claimed = await claimScanLead({
+      scanId: input.scanId,
+      userId: session.userId,
+      organizationId,
+      locationId: location.id,
+    });
+    if (claimed) {
+      claimedScanId = input.scanId;
     }
   }
 
@@ -313,5 +331,6 @@ export async function quickSetupBusinessAction(input: {
     locationId: location.id,
     publishersTracked: allPublishers.length,
     claimedAuditId,
+    claimedScanId,
   };
 }

@@ -24,7 +24,13 @@ export function DashboardLayoutGate({
   const pathname = usePathname();
   const isOnboarding = pathname.startsWith("/dashboard/onboarding");
 
-  if (setupIncomplete && isOnboarding) {
+  // Onboarding stays full-page (logo + wizard) until the user explicitly opens
+  // the dashboard — avoids shell/layout races right after workspace creation.
+  if (isOnboarding) {
+    return <>{children}</>;
+  }
+
+  if (setupIncomplete) {
     return <>{children}</>;
   }
 

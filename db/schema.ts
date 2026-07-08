@@ -665,11 +665,21 @@ export const scanLeads = pgTable(
     >(),
     extracted: jsonb("extracted"),
     email: text("email"),
+    /** Set when a signed-in user claims this scan during onboarding. */
+    claimedByUserId: text("claimed_by_user_id"),
+    organizationId: text("organization_id"),
+    locationId: uuid("location_id").references(() => locations.id, {
+      onDelete: "set null",
+    }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("scan_leads_created_at_idx").on(table.createdAt)],
+  (table) => [
+    index("scan_leads_created_at_idx").on(table.createdAt),
+    index("scan_leads_organization_id_idx").on(table.organizationId),
+  ],
 );
 
 /**
@@ -718,7 +728,10 @@ export const graderAudits = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("grader_audits_created_at_idx").on(table.createdAt)],
+  (table) => [
+    index("grader_audits_created_at_idx").on(table.createdAt),
+    index("grader_audits_organization_id_idx").on(table.organizationId),
+  ],
 );
 
 /** Leads captured through the grader's 2-step unlock modal. */

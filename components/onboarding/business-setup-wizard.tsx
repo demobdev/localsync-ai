@@ -97,6 +97,7 @@ export function BusinessSetupWizard({
           website: String(formData.get("website") ?? "") || undefined,
           workspaceType: mode === "agency-client" ? "agency" : "business",
           auditId: prefill?.auditId,
+          scanId: prefill?.scanId,
         });
 
         if (setup.createdOrganization) {
@@ -113,6 +114,12 @@ export function BusinessSetupWizard({
         });
         if (setup.claimedAuditId) {
           doneParams.set("audit", setup.claimedAuditId);
+        }
+        if (setup.claimedScanId) {
+          doneParams.set("scan", setup.claimedScanId);
+        }
+        if (setup.organizationId) {
+          doneParams.set("org", setup.organizationId);
         }
         router.replace(`/dashboard/onboarding?${doneParams.toString()}`);
         router.refresh();

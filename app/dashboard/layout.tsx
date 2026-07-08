@@ -25,7 +25,11 @@ export default async function DashboardLayout({
     return <>{children}</>;
   }
 
-  await ensureOrganizationAction();
+  try {
+    await ensureOrganizationAction();
+  } catch (error) {
+    console.error("[dashboard layout] ensureOrganization failed:", error);
+  }
 
   const locationCount = await countOrgLocations(session.orgId);
   const setupIncomplete = locationCount === 0;
