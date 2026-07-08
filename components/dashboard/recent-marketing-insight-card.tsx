@@ -114,9 +114,9 @@ export function RecentMarketingInsightCard({
             <Button
               size="sm"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
-              Run another scan
+              Run another audit
               <ArrowRightIcon className="size-4" />
             </Button>
           )}

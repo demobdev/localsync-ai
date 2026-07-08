@@ -1,0 +1,87 @@
+import Link from "next/link";
+import { ExternalLinkIcon, MapPinIcon, RefreshCwIcon } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
+const GBP_CREATE_URL = "https://business.google.com/create";
+
+export function GbpMissingCard({
+  businessLabel,
+  searchedAs,
+  compact = false,
+  onRetry,
+  retryPending = false,
+}: {
+  businessLabel?: string | null;
+  searchedAs?: string | null;
+  compact?: boolean;
+  onRetry?: () => void;
+  retryPending?: boolean;
+}) {
+  return (
+    <div
+      className={
+        compact
+          ? "rounded-2xl border border-amber-200 bg-amber-50 p-4"
+          : "rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:p-6"
+      }
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+          <MapPinIcon className="size-5 text-amber-700" />
+        </div>
+        <div className="min-w-0 space-y-2">
+          <p className="font-semibold text-amber-950">
+            No Google Business Profile matched
+            {businessLabel ? ` for ${businessLabel}` : ""}
+          </p>
+          <p className="text-sm text-amber-900/80">
+            {searchedAs
+              ? `We searched Google for “${searchedAs}” and couldn’t link a listing to this website.`
+              : "We couldn’t link a Google listing to this website."}{" "}
+            Without a profile, you won’t show in Google Maps or the local map pack —
+            that’s often the #1 visibility leak.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button
+              size="sm"
+              nativeButton={false}
+              render={
+                <Link
+                  href={GBP_CREATE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
+            >
+              Create your Google profile
+              <ExternalLinkIcon className="size-3.5" />
+            </Button>
+            {onRetry ? (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={retryPending}
+                onClick={onRetry}
+              >
+                <RefreshCwIcon
+                  className={`size-3.5 ${retryPending ? "animate-spin" : ""}`}
+                />
+                {retryPending ? "Retrying…" : "Search again"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/grader" />}
+              >
+                Search by business name
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

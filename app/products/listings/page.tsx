@@ -153,7 +153,7 @@ export default async function ListingsProductPage() {
                     size="lg"
                     variant="outline"
                     nativeButton={false}
-                    render={<Link href="/scan" />}
+                    render={<Link href="/grader" />}
                   >
                     Scan your listings free
                   </Button>
@@ -348,7 +348,7 @@ export default async function ListingsProductPage() {
               size="lg"
               className="mt-5"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
               Get your free scan
               <ArrowRightIcon className="size-4" />

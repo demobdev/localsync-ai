@@ -37,11 +37,18 @@ export default async function LocationsPage() {
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
+            nativeButton={false}
+            render={<Link href="/grader" />}
+          >
+            Run visibility audit
+          </Button>
+          <Button
+            size="sm"
             variant="outline"
             nativeButton={false}
             render={<Link href="/dashboard/onboarding?add=1" />}
           >
-            Add another business
+            Add manually
           </Button>
           <CreateLocationDialog
           clients={clients.map((client) => ({

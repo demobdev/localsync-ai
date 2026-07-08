@@ -28,12 +28,27 @@ function ProblemSummaryCard({
   report: AuditReport;
   problems: string[];
 }) {
+  const thumb =
+    report.scanSnapshot?.place?.photoUrls?.[0] ??
+    report.scanSnapshot?.screenshotUrl ??
+    null;
+  const gbpMissing = report.gbpProfile.gbpLinked === false;
+
   return (
     <ReportCard className="flex flex-col p-5 sm:p-6">
       <div className="mb-4 flex items-start gap-3">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
-          <StoreIcon className="size-6" />
-        </div>
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element -- scan evidence URL
+          <img
+            src={thumb}
+            alt={report.businessName}
+            className="size-12 shrink-0 rounded-2xl border border-black/5 object-cover"
+          />
+        ) : (
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400">
+            <StoreIcon className="size-6" />
+          </div>
+        )}
         <div className="min-w-0">
           <p className="truncate font-semibold text-zinc-900">
             {report.businessName}
@@ -45,6 +60,11 @@ function ProblemSummaryCard({
               <span className="font-medium text-red-600">No website found</span>
             )}
           </p>
+          {gbpMissing ? (
+            <p className="mt-1 text-xs font-medium text-amber-700">
+              No Google Business Profile matched — audit built from your website
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -76,6 +96,21 @@ function ProblemSummaryCard({
 
 function CompetitorSummaryCard({ report }: { report: AuditReport }) {
   const competitors = report.competitors;
+  const source = competitors[0]?.source ?? "sample";
+  const sourceNote =
+    source === "serp"
+      ? "Rankings from live Google search in your area."
+      : source === "places"
+        ? "Real local businesses from Google — map positions are estimated until live SERP is connected."
+        : report.city
+          ? "We couldn't load local competitors for your area — search by business name for better matches."
+          : "Add your city on your website so we can find real local competitors.";
+
+  const youMissing =
+    !report.gbpProfile.gbpLinked ||
+    report.keywords.every(
+      (keyword) => keyword.yourMapRank === null && keyword.yourOrganicRank === null,
+    );
 
   return (
     <ReportCard className="flex flex-col p-5 sm:p-6">
@@ -85,13 +120,25 @@ function CompetitorSummaryCard({ report }: { report: AuditReport }) {
           Local competition
         </p>
         <h3 className="mt-1 text-xl font-bold text-zinc-900">
-          You&apos;re ranking below{" "}
-          <span className="text-red-600">{competitors.length} competitors</span>
+          {competitors.length > 0 ? (
+            <>
+              You&apos;re ranking below{" "}
+              <span className="text-red-600">{competitors.length} competitors</span>
+            </>
+          ) : (
+            "We couldn't verify local competitors yet"
+          )}
         </h3>
         <p className="mt-1 text-sm text-zinc-500">
-          These businesses show up first when customers search for what you do
-          {report.city ? ` in ${report.city}` : ""}.
+          {competitors.length > 0
+            ? `These businesses show up first when customers search for what you do${
+                report.city ? ` in ${report.city}` : ""
+              }.`
+            : sourceNote}
         </p>
+        {competitors.length > 0 ? (
+          <p className="mt-2 text-xs text-zinc-400">{sourceNote}</p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -108,28 +155,45 @@ function CompetitorSummaryCard({ report }: { report: AuditReport }) {
                 {competitor.name}
               </p>
               <p className="flex items-center gap-1.5 text-xs text-zinc-500">
-                <Stars rating={competitor.rating} />
-                {competitor.rating.toFixed(1)} ({competitor.reviewCount} reviews)
+                {competitor.rating > 0 ? (
+                  <>
+                    <Stars rating={competitor.rating} />
+                    {competitor.rating.toFixed(1)}
+                    {competitor.reviewCount > 0
+                      ? ` (${competitor.reviewCount} reviews)`
+                      : null}
+                  </>
+                ) : (
+                  "Listed on Google Maps"
+                )}
               </p>
             </div>
-            <Pill tone="neutral">#{competitor.rank} locally</Pill>
+            {source === "sample" ? (
+              <Pill tone="neutral">Local</Pill>
+            ) : (
+              <Pill tone="neutral">#{competitor.rank} locally</Pill>
+            )}
           </div>
         ))}
 
-        <div className="flex items-center gap-3 rounded-2xl border border-dashed border-red-300 bg-red-50/50 p-3">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-red-400 text-sm font-bold text-red-500">
-            ?
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-zinc-800">
-              {report.businessName}
-            </p>
-            <p className="text-xs text-red-600">
-              Often missing from the results above
-            </p>
+        {youMissing ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-dashed border-red-300 bg-red-50/50 p-3">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-red-400 text-sm font-bold text-red-500">
+              ?
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-zinc-800">
+                {report.businessName}
+              </p>
+              <p className="text-xs text-red-600">
+                {report.gbpProfile.gbpLinked === false
+                  ? "Not on Google Maps — create a Business Profile to show up here"
+                  : "Often missing from the results above"}
+              </p>
+            </div>
+            <Pill tone="red">You</Pill>
           </div>
-          <Pill tone="red">You</Pill>
-        </div>
+        ) : null}
       </div>
     </ReportCard>
   );

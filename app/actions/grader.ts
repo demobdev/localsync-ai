@@ -33,10 +33,19 @@ import {
   generateReviewThemes,
   photoBenchmarkNarration,
 } from "@/lib/grader/reasoning";
+import { fetchLocalCompetitors } from "@/lib/grader/local-competitors";
+import {
+  domainToSearchQuery,
+  lookupPlaceByText,
+  lookupPlaceByWebsite,
+  normalizeHost,
+} from "@/lib/grader/place-lookup";
 import { estimateMonthlyLoss, scoreAudit } from "@/lib/grader/scoring";
 import { analyzeSite } from "@/lib/grader/site-analysis";
 import type {
   ExtractedBusiness,
+  GraderAuditTier,
+  GraderOperatingModel,
   GraderPlaceEvidence,
   GraderProgress,
   GraderProgressStage,
@@ -154,6 +163,25 @@ function buildPlaceEvidence(place: GraderPlaceInput): GraderPlaceEvidence {
   };
 }
 
+/** Website-only identity when Google has no matching listing. */
+function buildWebIdentityEvidence(
+  extracted: ExtractedBusiness,
+  nicheCategory: string | null,
+  domain: string,
+): GraderPlaceEvidence {
+  return {
+    name: extracted.businessName ?? domain,
+    rating: null,
+    reviewCount: null,
+    address: extracted.address,
+    category: nicheCategory ?? extracted.industry,
+    lat: extracted.latitude ?? null,
+    lng: extracted.longitude ?? null,
+    photoUrls: [],
+    reviews: [],
+  };
+}
+
 /** 2-4 punchy early findings shown during the scan (curiosity before the gate). */
 function deriveEarlyWarnings(input: {
   extracted: ExtractedBusiness;
@@ -259,23 +287,65 @@ export async function startGraderAuditAction(input: {
   url?: string;
   /** Google Places selection from the landing autocomplete. */
   place?: GraderPlaceInput;
+  /** Drives GBP requirement and report scope labeling. */
+  operatingModel?: GraderOperatingModel;
   scanLeadId?: string;
 }): Promise<{ auditId: string }> {
-  const rawUrl = input.url?.trim() || input.place?.websiteUri?.trim() || null;
-  const url = rawUrl ? normalizeUrl(rawUrl) : null;
+  const model: GraderOperatingModel = input.operatingModel ?? "storefront";
   const place = input.place ?? null;
+  const rawUrl = input.url?.trim() || place?.websiteUri?.trim() || null;
+  const url = rawUrl ? normalizeUrl(rawUrl) : null;
 
-  if (!url && !place) {
-    throw new Error("Enter your business website URL");
+  if (model === "storefront" && !place?.placeId) {
+    throw new Error(
+      "Select your business from Google search. Storefront audits need a verified Google Business Profile.",
+    );
   }
 
-  // Place evidence exists the moment the user selects — persist it with the
-  // row so the scan experience has something real on its very first poll.
+  if (!place?.placeId && !url) {
+    throw new Error(
+      "Find your Google listing or enter your website URL to continue.",
+    );
+  }
+
+  const auditTier: GraderAuditTier = place?.placeId ? "full_local" : "website_local";
+
   const initialProgress: GraderProgress = {
-    stage: url ? "crawl" : "keywords",
-    stagesDone: url ? ["place"] : ["place", "crawl", "extract"],
+    stage: url ? "place" : "keywords",
+    stagesDone: url ? [] : ["place", "crawl", "extract"],
     startedAt: new Date().toISOString(),
-    evidence: place ? { place: buildPlaceEvidence(place) } : {},
+    operatingModel: model,
+    auditTier,
+    evidence: {
+      ...(place ? { place: buildPlaceEvidence(place) } : {}),
+      narration: place
+        ? [`Found ${place.name} on Google — starting your audit…`]
+        : url
+          ? [
+              `Auditing ${new URL(url).hostname.replace(/^www\./, "")}…`,
+              auditTier === "website_local"
+                ? "No Google listing yet — scoring your website and local search footprint."
+                : "Looking up your Google Business Profile…",
+            ]
+          : [],
+      ...(place
+        ? {
+            gbpLookup: {
+              status: "found" as const,
+              matchedBy: "autocomplete" as const,
+            },
+          }
+        : auditTier === "website_local"
+          ? {
+              gbpLookup: {
+                status: "not_found" as const,
+                searchedAs: url
+                  ? new URL(url).hostname.replace(/^www\./, "")
+                  : "your business",
+              },
+            }
+          : {}),
+    },
   };
 
   const db = getDb();
@@ -312,13 +382,61 @@ async function runGraderPipeline(input: {
   place: GraderPlaceInput | null;
   initialProgress: GraderProgress;
 }): Promise<void> {
-  const { auditId, url, place } = input;
+  const { auditId, url } = input;
+  let place = input.place;
   const db = getDb();
   const writer = createProgressWriter(auditId, input.initialProgress);
 
-  // Reviews exist at insert (place selection), so theme grouping runs
-  // concurrently with the crawl — near-zero added wall-clock latency.
-  // Failure-safe: any AI error resolves to null and the field is skipped.
+  // URL-only audits: match a Google listing before the slow crawl starts.
+  if (url && !place) {
+    const lookup = await lookupPlaceByWebsite(url);
+    writer.write((p) => {
+      if (lookup.status === "found") {
+        p.evidence.place = buildPlaceEvidence(lookup.place);
+        p.evidence.gbpLookup = {
+          status: "found",
+          matchedBy: lookup.matchedBy,
+          searchedAs: lookup.place.name,
+        };
+        appendNarration(p, [
+          `Matched Google listing: ${lookup.place.name}.`,
+          lookup.matchedBy === "website"
+            ? "Website on the profile matches what you entered."
+            : "Best name match from your domain — confirm on the report if this isn’t you.",
+        ]);
+        markStageDone(p, "place", "crawl");
+      } else if (lookup.status === "not_found") {
+        p.evidence.gbpLookup = {
+          status: "not_found",
+          searchedAs: lookup.searchedAs,
+        };
+        appendNarration(p, [
+          `No Google Business Profile matched “${lookup.searchedAs}”.`,
+          "We’ll still audit your website — but Maps visibility needs a profile.",
+        ]);
+        markStageDone(p, "place", "crawl");
+      } else {
+        p.evidence.gbpLookup = {
+          status: "error",
+          message: lookup.message,
+        };
+        appendNarration(p, [
+          "Couldn’t reach Google Places — try searching your business name instead of the URL.",
+        ]);
+        markStageDone(p, "place", "crawl");
+      }
+    });
+    if (lookup.status === "found") {
+      place = lookup.place;
+    }
+    await writer.flush();
+  } else if (place) {
+    writer.write((p) => {
+      markStageDone(p, "place", url ? "crawl" : "keywords");
+    });
+    await writer.flush();
+  }
+
   const themesPromise =
     place && (place.reviews?.length ?? 0) >= 2
       ? generateReviewThemes({
@@ -338,6 +456,11 @@ async function runGraderPipeline(input: {
     let nicheCategory: string | null = null;
 
     if (url) {
+      writer.write((p) => {
+        appendNarration(p, ["Crawling your website…"]);
+      });
+      await writer.flush();
+
       // ── Website path: crawl + extract, PSI in parallel ─────────────────
       // Each writes progress evidence the moment it resolves.
       const psiPromise = fetchPageSpeed(url).then((psi) => {
@@ -459,6 +582,71 @@ async function runGraderPipeline(input: {
       });
     }
 
+    // Post-crawl GBP retry — domain-only lookup misses trucks, new brands, etc.
+    if (url && !place) {
+      const host = normalizeHost(url);
+      const domainLabel = host.replace(/^www\./, "");
+      const retryQueries = [
+        extracted.businessName && extracted.city
+          ? `${extracted.businessName} ${extracted.city}${extracted.state ? ` ${extracted.state}` : ""}`
+          : null,
+        extracted.businessName,
+        domainToSearchQuery(domainLabel),
+      ].filter((q): q is string => Boolean(q?.trim()));
+
+      for (const textQuery of retryQueries) {
+        const retry = await lookupPlaceByText(textQuery, {
+          websiteHost: host,
+          preferName: extracted.businessName ?? undefined,
+        });
+        if (retry.status !== "found") continue;
+
+        place = retry.place;
+        extracted = {
+          ...extracted,
+          businessName: place.name ?? extracted.businessName,
+          phone: extracted.phone ?? place.phone ?? null,
+          address: extracted.address ?? place.formattedAddress ?? null,
+          latitude: place.latitude ?? extracted.latitude,
+          longitude: place.longitude ?? extracted.longitude,
+          placeId: place.placeId,
+        };
+        writer.write((p) => {
+          p.evidence.place = buildPlaceEvidence(place!);
+          p.evidence.gbpLookup = {
+            status: "found",
+            matchedBy: retry.matchedBy,
+            searchedAs: textQuery,
+          };
+          appendNarration(p, [
+            `Matched Google listing after reading your site: ${place!.name}.`,
+          ]);
+        });
+        break;
+      }
+
+      if (!place) {
+        writer.write((p) => {
+          p.evidence.place = buildWebIdentityEvidence(
+            extracted,
+            nicheCategory,
+            domainLabel,
+          );
+          if (!p.evidence.warnings?.includes("No Google Business Profile linked")) {
+            p.evidence.warnings = [
+              ...(p.evidence.warnings ?? []),
+              "No Google Business Profile linked",
+            ].slice(0, 4);
+          }
+          appendNarration(p, [
+            `Building your audit from ${extracted.businessName ?? domainLabel} — your website, not Google Maps.`,
+            "Without a Google Business Profile, you won't appear in the local map pack.",
+          ]);
+        });
+      }
+      await writer.flush();
+    }
+
     const businessName =
       extracted.businessName ?? websiteDomain.split(".")[0] ?? websiteDomain;
 
@@ -473,6 +661,14 @@ async function runGraderPipeline(input: {
       industry: extracted.industry,
     });
 
+    const localCompetitors = await fetchLocalCompetitors({
+      verticalNoun: vertical.noun,
+      city: extracted.city,
+      state: extracted.state,
+      businessName,
+      websiteDomain,
+    });
+
     const rawKeywords = await getRankProvider().fetchKeywordResults({
       businessName,
       websiteDomain,
@@ -481,6 +677,8 @@ async function runGraderPipeline(input: {
       industry: extracted.industry,
       latitude: extracted.latitude,
       longitude: extracted.longitude,
+      realCompetitors:
+        localCompetitors.length >= 2 ? localCompetitors : undefined,
       keywords: generateKeywords({
         industry: extracted.industry,
         city: extracted.city,
@@ -491,7 +689,14 @@ async function runGraderPipeline(input: {
       ...keyword,
       intent: classifyKeywordIntent(keyword),
     }));
-    const competitors = deriveCompetitors(keywords);
+    const competitorSource: "serp" | "places" | "sample" = rawKeywords.some(
+      (keyword) => keyword.source === "provider",
+    )
+      ? "serp"
+      : localCompetitors.length >= 2
+        ? "places"
+        : "sample";
+    const competitors = deriveCompetitors(keywords, competitorSource);
 
     // Competitor pins for the scan map: prefer coords from the map results.
     writer.write((p) => {
@@ -532,6 +737,7 @@ async function runGraderPipeline(input: {
       websiteDomain,
       extracted,
       hasWebsite: Boolean(url),
+      gbpLinked: Boolean(place),
       realRating: place?.rating ?? null,
       realReviewCount: place?.reviewCount ?? null,
       photoUrls: place?.photoUrls?.slice(0, 6),
@@ -593,20 +799,95 @@ async function runGraderPipeline(input: {
       })
       .where(eq(graderAudits.id, auditId));
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Audit pipeline failed";
     console.error("Grader pipeline failed", {
       auditId,
-      error: error instanceof Error ? error.message : "unknown",
+      error: message,
     });
     try {
       await db
         .update(graderAudits)
-        .set({ status: "failed" })
+        .set({
+          status: "failed",
+          progress: {
+            ...writer.current(),
+            evidence: {
+              ...writer.current().evidence,
+              failureReason: message,
+            },
+          },
+        })
         .where(eq(graderAudits.id, auditId));
     } catch {
       // Row update failed too — the status endpoint will keep reporting
       // "scanning"; the client's countdown degrades gracefully.
     }
   }
+}
+
+/** Re-run a failed or stuck audit from the last saved URL / place marker. */
+export async function retryGraderAuditAction(
+  auditId: string,
+): Promise<{ ok: boolean }> {
+  const db = getDb();
+  const audit = await db.query.graderAudits.findFirst({
+    where: eq(graderAudits.id, auditId),
+    columns: {
+      id: true,
+      websiteUrl: true,
+      url: true,
+      extracted: true,
+      progress: true,
+    },
+  });
+
+  if (!audit) throw new Error("Audit not found");
+
+  const url = audit.websiteUrl;
+  const placeId = audit.extracted?.placeId;
+  const placeEvidence = audit.progress?.evidence?.place;
+
+  const initialProgress: GraderProgress = {
+    stage: url ? "place" : "keywords",
+    stagesDone: [],
+    startedAt: new Date().toISOString(),
+    evidence: {
+      narration: ["Retrying your audit…"],
+      ...(placeEvidence ? { place: placeEvidence } : {}),
+    },
+  };
+
+  await db
+    .update(graderAudits)
+    .set({ status: "scanning", progress: initialProgress })
+    .where(eq(graderAudits.id, auditId));
+
+  after(() =>
+    runGraderPipeline({
+      auditId,
+      url,
+      place: placeId
+        ? {
+            placeId,
+            name: placeEvidence?.name ?? audit.extracted?.businessName ?? "Your business",
+            formattedAddress: placeEvidence?.address ?? audit.extracted?.address ?? null,
+            phone: audit.extracted?.phone ?? null,
+            websiteUri: url,
+            rating: placeEvidence?.rating ?? null,
+            reviewCount: placeEvidence?.reviewCount ?? null,
+            latitude: placeEvidence?.lat ?? audit.extracted?.latitude ?? null,
+            longitude: placeEvidence?.lng ?? audit.extracted?.longitude ?? null,
+            primaryType: placeEvidence?.category ?? null,
+            photoUrls: placeEvidence?.photoUrls ?? [],
+            reviews: placeEvidence?.reviews ?? [],
+          }
+        : null,
+      initialProgress,
+    }),
+  );
+
+  return { ok: true };
 }
 
 export async function captureGraderLeadAction(input: {

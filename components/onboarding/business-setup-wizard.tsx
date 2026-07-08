@@ -2,7 +2,6 @@
 
 import { useClerk } from "@clerk/nextjs";
 import { ArrowRightIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -71,7 +70,6 @@ export function BusinessSetupWizard({
   agencyName?: string;
   prefill?: SetupPrefill | null;
 }) {
-  const router = useRouter();
   const { setActive } = useClerk();
   const [categorySlug, setCategorySlug] = useState(
     // Audit prefill carries a detected industry — preselect it when valid.
@@ -101,8 +99,6 @@ export function BusinessSetupWizard({
         });
 
         if (setup.createdOrganization) {
-          // Activating the new workspace remounts the layout, so success
-          // state must live in the URL — not in component memory.
           await setActive({ organization: setup.organizationId });
         }
 
@@ -121,8 +117,9 @@ export function BusinessSetupWizard({
         if (setup.organizationId) {
           doneParams.set("org", setup.organizationId);
         }
-        router.replace(`/dashboard/onboarding?${doneParams.toString()}`);
-        router.refresh();
+        window.location.assign(
+          `/dashboard/onboarding?${doneParams.toString()}`,
+        );
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Setup failed — try again",

@@ -31,6 +31,15 @@ export type RankLookupInput = {
   /** Business coordinates when known (Places) — enables real map rendering. */
   latitude?: number | null;
   longitude?: number | null;
+  /** Real businesses from Places — replaces fake "Harvest Table" style names. */
+  realCompetitors?: Array<{
+    name: string;
+    rating: number;
+    reviewCount: number;
+    domain?: string;
+    lat?: number | null;
+    lng?: number | null;
+  }>;
 };
 
 export interface RankProvider {
@@ -163,23 +172,39 @@ export const sampleRankProvider: RankProvider = {
     const rng = createRng(input.websiteDomain);
     const profile = getIndustryProfile(input.industry);
     const city = input.city?.trim() || "your area";
-    const competitorNames = buildCompetitorNames({
-      rng,
-      industry: input.industry,
-      city: input.city,
-    });
-
     const hasCoords = input.latitude != null && input.longitude != null;
-    const competitorMeta = competitorNames.map((name) => ({
-      name,
-      rating: Math.round((3.9 + rng() * 1.0) * 10) / 10,
-      reviewCount: 40 + Math.floor(rng() * 380),
-      domain: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`,
-      // Plausible spots near the real business so the static map renders a
-      // believable local cluster. Real coords arrive with a SERP provider.
-      lat: hasCoords ? input.latitude! + (rng() - 0.5) * 0.028 : null,
-      lng: hasCoords ? input.longitude! + (rng() - 0.5) * 0.036 : null,
-    }));
+    const realSeeds =
+      input.realCompetitors && input.realCompetitors.length >= 2
+        ? input.realCompetitors.slice(0, 3)
+        : null;
+
+    const competitorMeta = realSeeds
+      ? realSeeds.map((competitor) => ({
+          name: competitor.name,
+          rating: competitor.rating || Math.round((3.9 + rng() * 1.0) * 10) / 10,
+          reviewCount: competitor.reviewCount || 40 + Math.floor(rng() * 380),
+          domain:
+            competitor.domain ??
+            `${competitor.name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`,
+          lat:
+            competitor.lat ??
+            (hasCoords ? input.latitude! + (rng() - 0.5) * 0.028 : null),
+          lng:
+            competitor.lng ??
+            (hasCoords ? input.longitude! + (rng() - 0.5) * 0.036 : null),
+        }))
+      : buildCompetitorNames({
+          rng,
+          industry: input.industry,
+          city: input.city,
+        }).map((name) => ({
+          name,
+          rating: Math.round((3.9 + rng() * 1.0) * 10) / 10,
+          reviewCount: 40 + Math.floor(rng() * 380),
+          domain: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`,
+          lat: hasCoords ? input.latitude! + (rng() - 0.5) * 0.028 : null,
+          lng: hasCoords ? input.longitude! + (rng() - 0.5) * 0.036 : null,
+        }));
 
     return input.keywords.map((keyword, keywordIndex) => {
       // The business ranks in the map pack for ~1/3 of keywords, never #1.
@@ -269,7 +294,10 @@ export const sampleRankProvider: RankProvider = {
 };
 
 /** Aggregate competitor rows for the summary card from keyword results. */
-export function deriveCompetitors(keywords: KeywordResult[]): Competitor[] {
+export function deriveCompetitors(
+  keywords: KeywordResult[],
+  source?: Competitor["source"],
+): Competitor[] {
   const byName = new Map<
     string,
     { rating: number; reviewCount: number; ranks: number[] }
@@ -303,7 +331,11 @@ export function deriveCompetitors(keywords: KeywordResult[]): Competitor[] {
     }))
     .sort((a, b) => a.rank - b.rank)
     .slice(0, 5)
-    .map((competitor, index) => ({ ...competitor, rank: index + 1 }));
+    .map((competitor, index) => ({
+      ...competitor,
+      rank: index + 1,
+      source: source ?? (keywords.some((k) => k.source === "provider") ? "serp" : "sample"),
+    }));
 }
 
 /**

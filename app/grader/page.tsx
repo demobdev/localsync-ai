@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import {
+  ArrowLeftIcon,
   BarChart3Icon,
   MapPinIcon,
   SearchCheckIcon,
@@ -42,6 +44,22 @@ export default async function GraderPage() {
       <MarketingHeader signedIn={Boolean(session.userId)} />
 
       <main className="flex-1">
+        {session.userId ? (
+          <div className="border-b border-black/5 bg-white/70">
+            <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900"
+              >
+                <ArrowLeftIcon className="size-4" />
+                Back to dashboard
+              </Link>
+              <span className="text-xs text-zinc-500">
+                Audits you claim link to your workspace automatically
+              </span>
+            </div>
+          </div>
+        ) : null}
         <section className="relative z-30">
           <div className="mx-auto max-w-3xl px-4 pt-14 pb-10 sm:px-6 sm:pt-20">
             <div className="mb-8 space-y-4 text-center">
@@ -55,9 +73,8 @@ export default async function GraderPage() {
                 you.
               </h1>
               <p className="mx-auto max-w-xl text-lg text-zinc-600">
-                Enter your website and get a full audit of your Google rankings,
-                website experience, and local listings — with a dollar estimate
-                of what you&apos;re leaving on the table.
+                Search your business on Google — or tell us if you&apos;re mobile
+                or online-first. We match the audit to how you actually operate.
               </p>
             </div>
 

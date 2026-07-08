@@ -78,6 +78,8 @@ export type Competitor = {
   reviewCount: number;
   /** Average local rank across audited keywords (1 = best). */
   rank: number;
+  /** Where this row came from — drives honest labeling in the report UI. */
+  source?: "serp" | "places" | "sample";
 };
 
 export type PageSpeedMetricId = "LCP" | "FCP" | "INP" | "TTFB" | "CLS";
@@ -115,6 +117,8 @@ export type GbpProfile = {
   reviewFields: GbpField[];
   /** True while GBP data comes from sample generation (no Places API connected). */
   isSample: boolean;
+  /** False when we could not match a real Google Business Profile. */
+  gbpLinked?: boolean;
   /** True when rating/reviewCount came from the real Places record. */
   ratingIsReal?: boolean;
   /** Real GBP photo media URLs (stored for future report use; UI not wired yet). */
@@ -182,6 +186,19 @@ export type GraderProgressStage =
   | "scoring"
   | "done";
 
+/** How the business operates — drives search UX and whether GBP is required. */
+export type GraderOperatingModel =
+  | "storefront"
+  | "mobile"
+  | "service_area"
+  | "online";
+
+/**
+ * full_local — Google listing verified; map pack, reviews, listings scored.
+ * website_local — no GBP match; website + inferred local signals only.
+ */
+export type GraderAuditTier = "full_local" | "website_local";
+
 export type GraderPlaceEvidence = {
   name: string;
   rating: number | null;
@@ -216,6 +233,15 @@ export type GraderProgressEvidence = {
   narration?: string[];
   /** v2 reasoning layer — photo count vs. local competitors. */
   photoBenchmark?: { yours: number; competitorAvg: number };
+  /** Google Business Profile match when the audit started from a URL. */
+  gbpLookup?: {
+    status: "found" | "not_found" | "error";
+    searchedAs?: string;
+    message?: string;
+    matchedBy?: "website" | "name" | "autocomplete";
+  };
+  /** Set when the pipeline throws — surfaced on the failed scan screen. */
+  failureReason?: string;
 };
 
 /** Persisted on grader_audits.progress; polled via /api/grader/status/[id]. */
@@ -225,11 +251,25 @@ export type GraderProgress = {
   /** ISO timestamp — drives the client countdown (~45s heuristic). */
   startedAt: string;
   evidence: GraderProgressEvidence;
+  operatingModel?: GraderOperatingModel;
+  auditTier?: GraderAuditTier;
+};
+
+/** Score summary returned when an audit finishes (drives the brief reveal). */
+export type GraderReportPreview = {
+  businessName: string;
+  totalScore: number;
+  grade: AuditGrade;
+  failedChecks: number;
+  totalChecks: number;
+  estimatedMonthlyLoss: number;
 };
 
 /** Payload of GET /api/grader/status/[auditId]. */
 export type GraderStatusResponse = GraderProgress & {
   status: "scanning" | "complete" | "failed";
+  /** Present when status is "complete" — powers the pre-report brief reveal. */
+  preview?: GraderReportPreview;
 };
 
 /** Fully materialized report passed from the server page to the report view. */
@@ -259,4 +299,8 @@ export type AuditReport = {
   gbpProfile: GbpProfile;
   leadCaptured: boolean;
   createdAt: string;
+  /** Scan-time evidence (photos, screenshot, narration) — persisted on progress. */
+  scanSnapshot?: GraderProgressEvidence;
+  operatingModel?: GraderOperatingModel;
+  auditTier?: GraderAuditTier;
 };

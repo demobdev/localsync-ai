@@ -14,10 +14,12 @@ export function GoToDashboardButton({
   organizationId,
   auditId = null,
   scanId = null,
+  variant = "default" as const,
 }: {
   organizationId?: string | null;
   auditId?: string | null;
   scanId?: string | null;
+  variant?: "default" | "ghost" | "outline";
 }) {
   const { setActive } = useClerk();
   const [pending, setPending] = useState(false);
@@ -41,7 +43,11 @@ export function GoToDashboardButton({
   }
 
   return (
-    <Button variant="ghost" disabled={pending} onClick={() => void handleClick()}>
+    <Button
+      variant={variant}
+      disabled={pending}
+      onClick={() => void handleClick()}
+    >
       {pending ? "Opening dashboard…" : "Go to dashboard"}
       <ArrowRightIcon className="size-4" />
     </Button>

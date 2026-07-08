@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   ArrowRightIcon,
   BuildingIcon,
@@ -11,14 +10,7 @@ import {
 } from "lucide-react";
 
 import { GoToDashboardButton } from "@/components/onboarding/go-to-dashboard-button";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { OrgAwareNavButton } from "@/components/navigation/org-aware-nav-button";
 import type { OrganizationType } from "@/lib/auth/organizations";
 
 export function SetupCompleteCard({
@@ -32,18 +24,15 @@ export function SetupCompleteCard({
   locationId: string;
   publishersTracked: number;
   accountType?: OrganizationType;
-  /** Claimed grader audit — links back to the full report. */
   auditId?: string | null;
-  /** Claimed free scan — surfaced on the dashboard. */
   scanId?: string | null;
-  /** Active workspace — passed to GoToDashboard for Clerk setActive. */
   organizationId?: string | null;
 }) {
   const isAgency = accountType === "agency";
 
   return (
-    <Card className="localmap-card-glow">
-      <CardHeader>
+    <div className="localmap-card-glow rounded-2xl border bg-card">
+      <div className="space-y-1.5 p-6 pb-4">
         <div
           className={`mb-2 flex size-12 items-center justify-center rounded-2xl ${
             isAgency
@@ -53,16 +42,16 @@ export function SetupCompleteCard({
         >
           <CheckCircle2Icon className="size-6" />
         </div>
-        <CardTitle>
+        <h2 className="text-xl font-semibold">
           {isAgency ? "Your agency workspace is ready" : "You're set up!"}
-        </CardTitle>
-        <CardDescription>
+        </h2>
+        <p className="text-sm text-muted-foreground">
           {isAgency
             ? "Your first client is live. Here's what we set up:"
             : "Here's what we just did behind the scenes:"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </p>
+      </div>
+      <div className="space-y-4 px-6 pb-6">
         <ul className="space-y-3 text-sm">
           {isAgency ? (
             <>
@@ -123,59 +112,58 @@ export function SetupCompleteCard({
           </li>
         </ul>
         <div className="flex flex-col gap-2">
-          <Button
-            nativeButton={false}
-            render={
-              <Link href={`/dashboard/locations/${locationId}?tab=nap`} />
-            }
-          >
-            {isAgency ? "Complete client profile" : "Complete your profile"}
-            <ArrowRightIcon className="size-4" />
-          </Button>
-          {auditId ? (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/grader/${auditId}`} />}
-            >
-              <FileBarChart2Icon className="size-4" />
-              View your full audit report
-            </Button>
-          ) : null}
-          {isAgency ? (
-            <>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/dashboard/team" />}
-              >
-                <UserPlusIcon className="size-4" />
-                Invite your team
-              </Button>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/dashboard/clients" />}
-              >
-                Manage clients
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href="/dashboard/connect" />}
-            >
-              Connect listings & Google
-            </Button>
-          )}
           <GoToDashboardButton
             organizationId={organizationId}
             auditId={auditId}
             scanId={scanId}
           />
+          <OrgAwareNavButton
+            href={`/dashboard/locations/${locationId}?tab=nap`}
+            organizationId={organizationId}
+            variant="outline"
+          >
+            {isAgency ? "Complete client profile" : "Complete your profile"}
+            <ArrowRightIcon className="size-4" />
+          </OrgAwareNavButton>
+          {auditId ? (
+            <OrgAwareNavButton
+              href={`/grader/${auditId}`}
+              organizationId={organizationId}
+              variant="outline"
+            >
+              <FileBarChart2Icon className="size-4" />
+              View your full audit report
+            </OrgAwareNavButton>
+          ) : null}
+          {isAgency ? (
+            <>
+              <OrgAwareNavButton
+                href="/dashboard/team"
+                organizationId={organizationId}
+                variant="outline"
+              >
+                <UserPlusIcon className="size-4" />
+                Invite your team
+              </OrgAwareNavButton>
+              <OrgAwareNavButton
+                href="/dashboard/clients"
+                organizationId={organizationId}
+                variant="outline"
+              >
+                Manage clients
+              </OrgAwareNavButton>
+            </>
+          ) : (
+            <OrgAwareNavButton
+              href="/dashboard/connect"
+              organizationId={organizationId}
+              variant="outline"
+            >
+              Connect listings & Google
+            </OrgAwareNavButton>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

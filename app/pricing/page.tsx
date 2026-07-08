@@ -575,7 +575,7 @@ export default async function PricingPage() {
               size="lg"
               className="mt-5"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
               Get your free score
               <ArrowRightIcon className="size-4" />

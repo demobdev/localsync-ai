@@ -32,6 +32,8 @@ export function buildSampleGbpProfile(input: {
   extracted: ExtractedBusiness;
   /** False when the business has no website — the website field must fail. */
   hasWebsite?: boolean;
+  /** True when a real Google listing was matched. */
+  gbpLinked?: boolean;
   /** Real values from the Places record, when the audit started from autocomplete. */
   realRating?: number | null;
   realReviewCount?: number | null;
@@ -42,17 +44,29 @@ export function buildSampleGbpProfile(input: {
   const rng = createRng(input.websiteDomain);
   const { extracted } = input;
   const hasWebsite = input.hasWebsite ?? true;
+  const gbpLinked = input.gbpLinked ?? false;
 
   const sampleRating = Math.round((3.6 + rng() * 1.1) * 10) / 10;
   const sampleReviewCount = 12 + Math.floor(rng() * 140);
-  const ratingIsReal = input.realRating != null;
-  const rating = input.realRating ?? sampleRating;
-  const reviewCount = input.realReviewCount ?? sampleReviewCount;
+  const ratingIsReal = gbpLinked && input.realRating != null;
+  const rating = ratingIsReal ? input.realRating! : sampleRating;
+  const reviewCount =
+    gbpLinked && input.realReviewCount != null
+      ? input.realReviewCount
+      : sampleReviewCount;
   const hasDescription = Boolean(extracted.description) && rng() > 0.35;
   const respondsToReviews = rng() > 0.6;
   const recentReviews = rng() > 0.45;
 
   const profileFields: GbpField[] = [
+    {
+      id: "gbp-exists",
+      label: "Google Business Profile found",
+      status: gbpLinked ? "pass" : "fail",
+      detail: gbpLinked
+        ? "We matched a live Google listing to this business."
+        : "No Google listing matched this website. Create a profile to appear in Maps and the local map pack.",
+    },
     {
       id: "website",
       label: "First-party website linked",
@@ -155,11 +169,12 @@ export function buildSampleGbpProfile(input: {
   ];
 
   return {
-    rating,
-    reviewCount,
+    rating: gbpLinked ? rating : null,
+    reviewCount: gbpLinked ? reviewCount : null,
     profileFields,
     reviewFields,
-    isSample: true,
+    isSample: !gbpLinked || !ratingIsReal,
+    gbpLinked,
     ratingIsReal,
     photoUrls: input.photoUrls?.length ? input.photoUrls : undefined,
     realReviews: input.realReviews?.length ? input.realReviews : undefined,

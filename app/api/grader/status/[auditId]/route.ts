@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
-import type { GraderStatusResponse } from "@/lib/grader/types";
+import type { AuditGrade, GraderStatusResponse } from "@/lib/grader/types";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -23,7 +23,17 @@ export async function GET(
   const db = getDb();
   const audit = await db.query.graderAudits.findFirst({
     where: eq(graderAudits.id, auditId),
-    columns: { status: true, progress: true, createdAt: true },
+    columns: {
+      status: true,
+      progress: true,
+      createdAt: true,
+      businessName: true,
+      totalScore: true,
+      grade: true,
+      failedChecks: true,
+      totalChecks: true,
+      estimatedMonthlyLoss: true,
+    },
   });
 
   if (!audit) {
@@ -42,6 +52,18 @@ export async function GET(
     stagesDone: progress?.stagesDone ?? [],
     startedAt: progress?.startedAt ?? audit.createdAt.toISOString(),
     evidence: progress?.evidence ?? {},
+    ...(audit.status === "complete"
+      ? {
+          preview: {
+            businessName: audit.businessName ?? "Your business",
+            totalScore: audit.totalScore,
+            grade: (audit.grade as AuditGrade | null) ?? "Fair",
+            failedChecks: audit.failedChecks,
+            totalChecks: audit.totalChecks,
+            estimatedMonthlyLoss: audit.estimatedMonthlyLoss,
+          },
+        }
+      : {}),
   };
 
   return NextResponse.json(payload, { headers: NO_STORE });

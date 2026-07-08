@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, MenuIcon } from "lucide-react";
+import { useState } from "react";
 
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -12,6 +13,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const PRODUCT_LINKS = [
   { href: "/products/listings", label: "Listings", note: "Sync & audits" },
@@ -32,11 +40,19 @@ const PRODUCT_LINKS = [
   },
 ];
 
+const MOBILE_NAV = [
+  { href: "/grader", label: "Free visibility audit" },
+  { href: "/platform/beacon", label: "Beacon agent" },
+  { href: "/pricing", label: "Pricing" },
+];
+
 export function MarketingHeader({
   signedIn,
 }: {
   signedIn: boolean;
 }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -75,20 +91,12 @@ export function MarketingHeader({
             Beacon
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/scan" />}
-          >
-            Free scan
-          </Button>
-          <Button
-            variant="ghost"
+            variant="default"
             size="sm"
             nativeButton={false}
             render={<Link href="/grader" />}
           >
-            Grader
+            Free audit
           </Button>
           <Button
             variant="ghost"
@@ -101,6 +109,44 @@ export function MarketingHeader({
         </nav>
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger
+              className="md:hidden"
+              render={
+                <Button variant="outline" size="icon-sm" aria-label="Open menu">
+                  <MenuIcon className="size-4" />
+                </Button>
+              }
+            />
+            <SheetContent side="right" className="w-[min(100vw-2rem,320px)]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+              </SheetHeader>
+              <nav className="mt-4 flex flex-col gap-1">
+                {MOBILE_NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-muted"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <div className="my-2 border-t" />
+                {PRODUCT_LINKS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="rounded-xl px-3 py-2 text-sm hover:bg-muted"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
           {signedIn ? (
             <Button nativeButton={false} render={<Link href="/dashboard" />}>
               Dashboard

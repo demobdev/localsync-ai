@@ -155,7 +155,7 @@ export default async function BeaconPage() {
                   <Button
                     size="lg"
                     nativeButton={false}
-                    render={<Link href="/scan" />}
+                    render={<Link href="/grader" />}
                   >
                     Get your free visibility score
                     <ArrowRightIcon className="size-4" />
@@ -372,7 +372,7 @@ export default async function BeaconPage() {
               variant="secondary"
               className="mt-6"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
               <SparklesIcon className="size-4" />
               Run your free scan

@@ -2,6 +2,7 @@
 
 import { LoaderIcon, MapPinIcon } from "lucide-react";
 
+import { GbpMissingCard } from "@/components/grader/gbp-missing-card";
 import {
   CATEGORY_MAX,
   type AuditReport,
@@ -22,6 +23,11 @@ export function LocalListingsSection({ report }: { report: AuditReport }) {
       />
 
       <div className="px-4 pb-5 sm:px-5">
+        {report.gbpProfile.gbpLinked === false ? (
+          <div className="mb-4">
+            <GbpMissingCard businessLabel={report.businessName} />
+          </div>
+        ) : null}
         <GbpProfileCard report={report} />
       </div>
     </ReportCard>

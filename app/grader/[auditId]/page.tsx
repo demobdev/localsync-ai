@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
-import { GraderReport } from "@/components/grader/report/report-view";
+import { GraderReportGate } from "@/components/grader/report/report-gate";
 import { ScanExperience } from "@/components/grader/scan-experience";
 import { emptyPageSpeed } from "@/lib/grader/pagespeed";
 import { gradeForScore } from "@/lib/grader/scoring";
@@ -39,22 +38,18 @@ export default async function GraderReportPage({
   if (!audit) notFound();
 
   if (audit.status === "failed") {
+    const initial: GraderStatusResponse = {
+      status: "failed",
+      stage: audit.progress?.stage ?? "crawl",
+      stagesDone: audit.progress?.stagesDone ?? [],
+      startedAt: audit.progress?.startedAt ?? audit.createdAt.toISOString(),
+      evidence: audit.progress?.evidence ?? {},
+    };
+    const domain = audit.websiteUrl
+      ? new URL(audit.websiteUrl).hostname.replace(/^www\./, "")
+      : null;
     return (
-      <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-[#faf7ef] px-4 py-24 text-center">
-        <h1 className="text-2xl font-bold text-zinc-900">
-          This audit didn&apos;t finish
-        </h1>
-        <p className="max-w-md text-sm text-zinc-600">
-          We couldn&apos;t crawl that website. Double-check the URL and run a
-          fresh audit.
-        </p>
-        <Link
-          href="/grader"
-          className="inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-        >
-          Run a new audit
-        </Link>
-      </div>
+      <ScanExperience auditId={audit.id} initial={initial} domain={domain} />
     );
   }
 
@@ -107,10 +102,14 @@ export default async function GraderReportPage({
       profileFields: [],
       reviewFields: [],
       isSample: true,
+      gbpLinked: false,
     },
     leadCaptured: audit.leadCaptured,
     createdAt: audit.createdAt.toISOString(),
+    scanSnapshot: audit.progress?.evidence,
+    operatingModel: audit.progress?.operatingModel,
+    auditTier: audit.progress?.auditTier,
   };
 
-  return <GraderReport report={report} signedIn={Boolean(session.userId)} />;
+  return <GraderReportGate report={report} signedIn={Boolean(session.userId)} />;
 }

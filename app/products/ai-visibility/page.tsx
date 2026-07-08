@@ -140,7 +140,7 @@ export default async function AiVisibilityProductPage() {
                 <Button
                   size="lg"
                   nativeButton={false}
-                  render={<Link href="/scan" />}
+                  render={<Link href="/grader" />}
                 >
                   Run a free AI visibility scan
                   <ArrowRightIcon className="size-4" />
@@ -317,7 +317,7 @@ export default async function AiVisibilityProductPage() {
               size="lg"
               className="mt-5"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
               Run the free scan
               <ArrowRightIcon className="size-4" />

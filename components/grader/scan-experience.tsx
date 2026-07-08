@@ -21,11 +21,16 @@ import {
   SparklesIcon,
   StoreIcon,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
+import { toast } from "sonner";
 
+import { retryGraderAuditAction } from "@/app/actions/grader";
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
+import { BriefReveal } from "@/components/grader/brief-reveal";
+import { GbpMissingCard } from "@/components/grader/gbp-missing-card";
 import type {
   GraderProgressEvidence,
+  GraderProgressStage,
   GraderStatusResponse,
 } from "@/lib/grader/types";
 import { cn } from "@/lib/utils";
@@ -35,6 +40,17 @@ import { Stars } from "./report/primitives";
 const POLL_MS = 1500;
 const SCENE_MS = 4500;
 const ESTIMATE_SECONDS = 45;
+const STUCK_SECONDS = 90;
+const REVEAL_STORAGE_PREFIX = "grader-revealed:";
+
+const STAGE_MESSAGES: Record<GraderProgressStage, string> = {
+  place: "Looking up your Google Business Profile…",
+  crawl: "Crawling your website — this can take up to a minute…",
+  extract: "Reading your homepage for phone, hours, and services…",
+  keywords: "Checking who outranks you in the local map pack…",
+  scoring: "Calculating visibility score and revenue impact…",
+  done: "Preparing your report…",
+};
 
 function checklistLabels(input: {
   businessName: string | null;
@@ -63,8 +79,46 @@ export function ScanExperience({
 }) {
   const router = useRouter();
   const [data, setData] = useState<GraderStatusResponse>(initial);
+  const [phase, setPhase] = useState<"scanning" | "reveal">(
+    initial.status === "complete" && initial.preview ? "reveal" : "scanning",
+  );
   const [elapsed, setElapsed] = useState<number | null>(null);
+  const [retryPending, startRetry] = useTransition();
   const refreshed = useRef(false);
+
+  const finishReveal = useMemo(
+    () => () => {
+      if (refreshed.current) return;
+      refreshed.current = true;
+      try {
+        sessionStorage.setItem(`${REVEAL_STORAGE_PREFIX}${auditId}`, "1");
+      } catch {
+        // Private browsing — skip persistence.
+      }
+      router.refresh();
+    },
+    [auditId, router],
+  );
+
+  function handleRetry() {
+    startRetry(async () => {
+      try {
+        await retryGraderAuditAction(auditId);
+        setData((current) => ({
+          ...current,
+          status: "scanning",
+          stage: "place",
+          stagesDone: [],
+          evidence: { narration: ["Retrying your audit…"] },
+        }));
+        router.refresh();
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Retry failed — try again",
+        );
+      }
+    });
+  }
 
   // ── Poll the status endpoint; all state derives from it (refresh-safe) ──
   useEffect(() => {
@@ -78,6 +132,9 @@ export function ScanExperience({
         if (!response.ok) return;
         const next = (await response.json()) as GraderStatusResponse;
         setData(next);
+        if (next.status === "complete" && next.preview) {
+          setPhase("reveal");
+        }
       } catch {
         // Transient poll failures are fine — next tick retries.
       }
@@ -86,13 +143,13 @@ export function ScanExperience({
     return () => clearInterval(timer);
   }, [auditId, data.status]);
 
-  // ── Complete → re-render the server page as the report ──────────────────
+  // ── Complete without preview (legacy audits) → jump to report ─────────────
   useEffect(() => {
-    if (data.status === "complete" && !refreshed.current) {
+    if (data.status === "complete" && !data.preview && !refreshed.current) {
       refreshed.current = true;
       router.refresh();
     }
-  }, [data.status, router]);
+  }, [data.status, data.preview, router]);
 
   // ── Countdown tick (client-only to avoid hydration drift) ───────────────
   useEffect(() => {
@@ -104,8 +161,31 @@ export function ScanExperience({
   }, [data.startedAt]);
 
   if (data.status === "failed") {
-    return <ScanFailed />;
+    return (
+      <ScanFailed
+        reason={data.evidence.failureReason}
+        onRetry={handleRetry}
+        retryPending={retryPending}
+      />
+    );
   }
+
+  if (phase === "reveal" && data.preview) {
+    return (
+      <BriefReveal
+        evidence={data.evidence}
+        preview={data.preview}
+        domain={domain}
+        onComplete={finishReveal}
+      />
+    );
+  }
+
+  const isStuck =
+    elapsed !== null &&
+    elapsed > STUCK_SECONDS &&
+    data.status === "scanning" &&
+    data.stagesDone.length < 3;
 
   const doneCount =
     data.status === "complete" ? 6 : Math.min(data.stagesDone.length, 5);
@@ -211,10 +291,63 @@ export function ScanExperience({
 
         {/* Center stage: evidence scenes + streamed AI narration */}
         <div className="flex min-w-0 flex-1 flex-col gap-4">
-          <EvidenceStage evidence={data.evidence} domain={domain} />
+          <ScanStageHint
+            stage={data.stage}
+            domain={domain}
+            isStuck={isStuck}
+            onRetry={handleRetry}
+            retryPending={retryPending}
+          />
+          <EvidenceStage
+            evidence={data.evidence}
+            domain={domain}
+            onRetry={handleRetry}
+            retryPending={retryPending}
+          />
           <NarrationPanel lines={data.evidence.narration ?? []} />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Always-visible stage line so the evidence stage never feels "blank". */
+function ScanStageHint({
+  stage,
+  domain,
+  isStuck,
+  onRetry,
+  retryPending,
+}: {
+  stage: GraderProgressStage;
+  domain: string | null;
+  isStuck: boolean;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-black/5 bg-white/90 px-4 py-3 shadow-sm">
+      <p className="flex items-center gap-2 text-sm font-medium text-zinc-800">
+        <LoaderIcon className="size-4 shrink-0 animate-spin text-emerald-600" />
+        {STAGE_MESSAGES[stage]}
+        {domain ? (
+          <span className="truncate font-normal text-zinc-500">· {domain}</span>
+        ) : null}
+      </p>
+      {isStuck ? (
+        <p className="mt-2 text-xs text-amber-800">
+          This is taking longer than usual — the site may be slow to respond or
+          blocking our crawler.{" "}
+          <button
+            type="button"
+            className="font-semibold underline underline-offset-2"
+            disabled={retryPending}
+            onClick={onRetry}
+          >
+            {retryPending ? "Retrying…" : "Retry the scan"}
+          </button>
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -261,9 +394,13 @@ function availableScenes(
 function EvidenceStage({
   evidence,
   domain,
+  onRetry,
+  retryPending,
 }: {
   evidence: GraderProgressEvidence;
   domain: string | null;
+  onRetry: () => void;
+  retryPending: boolean;
 }) {
   const scenes = availableScenes(evidence);
   const [tick, setTick] = useState(0);
@@ -286,10 +423,17 @@ function EvidenceStage({
       case "speed":
         return <SpeedScene evidence={evidence} />;
       default:
-        return <IdentityScene evidence={evidence} domain={domain} />;
+        return (
+          <IdentityScene
+            evidence={evidence}
+            domain={domain}
+            onRetry={onRetry}
+            retryPending={retryPending}
+          />
+        );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- scene identity drives re-render
-  }, [scene, evidence, domain]);
+  }, [scene, evidence, domain, onRetry, retryPending]);
 
   return (
     <div className="relative min-h-[26rem] flex-1 overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-4 shadow-sm sm:p-6">
@@ -307,14 +451,39 @@ function EvidenceStage({
 function IdentityScene({
   evidence,
   domain,
+  onRetry,
+  retryPending,
 }: {
   evidence: GraderProgressEvidence;
   domain: string | null;
+  onRetry: () => void;
+  retryPending: boolean;
 }) {
   const place = evidence.place;
+  const gbpMissing = evidence.gbpLookup?.status === "not_found";
+  const gbpError = evidence.gbpLookup?.status === "error";
 
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-lg space-y-3">
+      {gbpMissing ? (
+        <GbpMissingCard
+          compact
+          businessLabel={domain}
+          searchedAs={evidence.gbpLookup?.searchedAs}
+          onRetry={onRetry}
+          retryPending={retryPending}
+        />
+      ) : null}
+      {gbpError ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {evidence.gbpLookup?.message ??
+            "Google Places lookup failed."}{" "}
+          <Link href="/grader" className="font-semibold underline">
+            Search by business name
+          </Link>{" "}
+          instead of pasting a URL.
+        </div>
+      ) : null}
       <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-start gap-4">
           {place?.photoUrls[0] ? (
@@ -405,18 +574,25 @@ function IdentityScene({
 function ReviewsScene({ evidence }: { evidence: GraderProgressEvidence }) {
   const reviews = evidence.place?.reviews ?? [];
   const themes = evidence.reviewThemes ?? [];
+  const reviewOffsets = [
+    { x: "-8px", rot: "-1.2deg" },
+    { x: "12px", rot: "0.8deg" },
+    { x: "-4px", rot: "0.4deg" },
+    { x: "16px", rot: "-0.6deg" },
+  ];
 
   return (
-    <div className="w-full max-w-lg space-y-3">
-      <p className="text-center text-sm font-medium text-zinc-500">
+    <div className="relative w-full max-w-lg">
+      <p className="mb-4 text-center text-sm font-medium text-zinc-500">
         Reading what customers say about you
       </p>
       {themes.length > 0 && (
-        <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-          {themes.map((theme) => (
+        <div className="mb-4 rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+          {themes.map((theme, index) => (
             <div
               key={theme.theme}
-              className="flex items-center justify-between border-b border-black/5 py-1.5 last:border-b-0"
+              className="grader-theme-enter flex items-center justify-between border-b border-black/5 py-1.5 last:border-b-0"
+              style={{ animationDelay: `${index * 90}ms` }}
             >
               <span className="text-sm font-medium text-zinc-800">
                 {theme.theme}
@@ -429,36 +605,56 @@ function ReviewsScene({ evidence }: { evidence: GraderProgressEvidence }) {
           ))}
         </div>
       )}
-      {reviews.slice(0, themes.length > 0 ? 2 : 4).map((review) => (
-        <div
-          key={`${review.author}-${review.when}`}
-          className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm"
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
-              {review.author.charAt(0).toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-zinc-800">
-                {review.author}
-              </p>
-              <p className="flex items-center gap-1.5 text-xs text-zinc-400">
-                <Stars rating={review.rating} />
-                {review.when}
+      <div className="relative space-y-3 pb-2">
+        {reviews.slice(0, themes.length > 0 ? 3 : 4).map((review, index) => {
+          const offset = reviewOffsets[index % reviewOffsets.length]!;
+          return (
+            <div
+              key={`${review.author}-${review.when}-${index}`}
+              className="grader-review-enter rounded-2xl border border-black/5 bg-white p-4 shadow-md"
+              style={
+                {
+                  animationDelay: `${180 + index * 130}ms`,
+                  "--review-x": offset.x,
+                  "--review-rot": offset.rot,
+                } as CSSProperties
+              }
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                  {review.author.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-zinc-800">
+                    {review.author}
+                  </p>
+                  <p className="flex items-center gap-1.5 text-xs text-zinc-400">
+                    <Stars rating={review.rating} />
+                    {review.when}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-zinc-600">
+                {review.text}
               </p>
             </div>
-          </div>
-          <p className="mt-2 line-clamp-2 text-sm text-zinc-600">
-            {review.text}
-          </p>
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function PhotosScene({ evidence }: { evidence: GraderProgressEvidence }) {
   const photos = evidence.place?.photoUrls ?? [];
+  const flyOrigins = [
+    { x: "-32px", y: "20px" },
+    { x: "28px", y: "24px" },
+    { x: "-20px", y: "-16px" },
+    { x: "36px", y: "-12px" },
+    { x: "0px", y: "32px" },
+    { x: "-28px", y: "-20px" },
+  ];
 
   return (
     <div className="w-full max-w-2xl">
@@ -471,15 +667,25 @@ function PhotosScene({ evidence }: { evidence: GraderProgressEvidence }) {
           photos.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3",
         )}
       >
-        {photos.slice(0, 6).map((url) => (
-          // eslint-disable-next-line @next/next/no-img-element -- Places media URL
-          <img
-            key={url}
-            src={url}
-            alt="Business photo"
-            className="aspect-square w-full rounded-2xl border border-black/5 object-cover shadow-sm"
-          />
-        ))}
+        {photos.slice(0, 6).map((url, index) => {
+          const origin = flyOrigins[index % flyOrigins.length]!;
+          return (
+            // eslint-disable-next-line @next/next/no-img-element -- Places media URL
+            <img
+              key={url}
+              src={url}
+              alt="Business photo"
+              className="grader-photo-enter aspect-square w-full rounded-2xl border border-black/5 object-cover shadow-md"
+              style={
+                {
+                  animationDelay: `${index * 95}ms`,
+                  "--photo-x": origin.x,
+                  "--photo-y": origin.y,
+                } as CSSProperties
+              }
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -561,7 +767,15 @@ function SpeedScene({ evidence }: { evidence: GraderProgressEvidence }) {
   );
 }
 
-function ScanFailed() {
+function ScanFailed({
+  reason,
+  onRetry,
+  retryPending,
+}: {
+  reason?: string;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
       <div className="flex size-14 items-center justify-center rounded-2xl bg-red-50">
@@ -571,15 +785,25 @@ function ScanFailed() {
         This audit didn&apos;t finish
       </h1>
       <p className="max-w-md text-sm text-zinc-600">
-        We couldn&apos;t complete the scan — the website may have blocked our
-        crawler. Double-check the URL and run a fresh audit.
+        {reason ??
+          "We couldn't complete the scan — the website may have blocked our crawler or the request timed out. PageSpeed quota limits only affect the speed section, not the whole audit."}
       </p>
-      <Link
-        href="/grader"
-        className="inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
-      >
-        Run a new audit
-      </Link>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button
+          type="button"
+          disabled={retryPending}
+          onClick={onRetry}
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60"
+        >
+          {retryPending ? "Retrying…" : "Retry this audit"}
+        </button>
+        <Link
+          href="/grader"
+          className="inline-flex h-11 items-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-800 transition-colors hover:bg-zinc-50"
+        >
+          Start over
+        </Link>
+      </div>
     </div>
   );
 }

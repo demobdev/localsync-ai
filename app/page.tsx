@@ -96,9 +96,9 @@ export default async function HomePage() {
                     size="lg"
                     variant="outline"
                     nativeButton={false}
-                    render={<Link href="/scan" />}
+                    render={<Link href="/grader" />}
                   >
-                    Free AI visibility scan
+                    Free visibility audit
                   </Button>
                 </div>
               </div>

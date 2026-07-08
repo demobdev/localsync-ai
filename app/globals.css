@@ -155,4 +155,53 @@
       0 0 0 1px oklch(0.72 0.14 175 / 0.12),
       0 8px 32px oklch(0 0 0 / 0.35);
   }
+
+  /* Grader scan — staggered review cards + flying photos */
+  @keyframes grader-review-in {
+    from {
+      opacity: 0;
+      transform: translateY(28px) translateX(var(--review-x, 0)) rotate(var(--review-rot, 0deg));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) translateX(0) rotate(0deg);
+    }
+  }
+
+  @keyframes grader-photo-fly-in {
+    from {
+      opacity: 0;
+      transform: translate(var(--photo-x, 0), var(--photo-y, 24px)) scale(0.88);
+    }
+    to {
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+    }
+  }
+
+  @keyframes grader-theme-in {
+    from {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .grader-review-enter {
+    opacity: 0;
+    animation: grader-review-in 0.55s ease-out forwards;
+  }
+
+  .grader-photo-enter {
+    opacity: 0;
+    animation: grader-photo-fly-in 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .grader-theme-enter {
+    opacity: 0;
+    animation: grader-theme-in 0.45s ease-out forwards;
+  }
 }

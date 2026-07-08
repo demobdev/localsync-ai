@@ -2,6 +2,7 @@ import {
   ClipboardList,
   CreditCard,
   Download,
+  FileBarChart2,
   LayoutDashboard,
   MapPin,
   Share2,
@@ -62,12 +63,19 @@ const billingNavItem: DashboardNavItem = {
   icon: CreditCard,
 };
 
+const visibilityAuditNavItem: DashboardNavItem = {
+  title: "Visibility audit",
+  href: "/grader",
+  icon: FileBarChart2,
+};
+
 export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
   const teamItem = teamNavItem;
 
   if (!isAgency) {
     return [
       baseDashboardNav[0]!,
+      visibilityAuditNavItem,
       teamItem,
       ...baseDashboardNav.slice(1),
       billingNavItem,
@@ -76,6 +84,7 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
 
   return [
     baseDashboardNav[0]!,
+    visibilityAuditNavItem,
     clientsNavItem,
     teamItem,
     ...baseDashboardNav.slice(1),

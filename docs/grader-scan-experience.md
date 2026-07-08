@@ -231,4 +231,21 @@ Notes for the creative agent (from the shipped backend):
 3. The report self-assembly reveal (assemble → 1.5s beauty pause → blur roll → modal rise → score count-up)
 4. Reduced-motion variant
 5. Mobile layout
-6. Narration text-streaming treatment (typewriter cadence, cursor, variable length)
+---
+
+## 10. Operating models (multi-niche vs Owner)
+
+Owner assumes **brick-and-mortar + GBP**. LocalSync supports multiple paths:
+
+| Model | GBP required? | Audit tier | What we score |
+|---|---|---|---|
+| **Storefront / office** | Yes | `full_local` | Map pack, listings, reviews, website — Owner-equivalent |
+| **Truck / pop-up / mobile** | No (preferred) | `full_local` or `website_local` | Website + local keywords + real competitors; listings section = gap analysis |
+| **Home-based / service area** | No (preferred) | same | Same; encourage service-area GBP |
+| **Mostly online, local buyers** | No | `website_local` | Website, SEO, social/directory footprint |
+
+**UI:** user picks model first → search gate adapts → report shows `AuditScopeBanner` when tier is `website_local`.
+
+**Rule:** never fake GBP data. If no listing, label the report honestly and weight guest/search sections; listings checks become “create/claim profile” recommendations.
+
+**Stored on** `grader_audits.progress`: `operatingModel`, `auditTier`.

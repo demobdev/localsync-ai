@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import {
   ArrowRightIcon,
+  FileBarChart2Icon,
   GlobeIcon,
   MapPinIcon,
   MessageSquareIcon,
@@ -21,6 +22,7 @@ import {
   getOrgVisibilitySummaryAction,
 } from "@/app/actions/visibility";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
+import { AuditNewBusinessCard } from "@/components/dashboard/audit-new-business-card";
 import { RecentMarketingInsightCard } from "@/components/dashboard/recent-marketing-insight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getOrganization } from "@/lib/auth/organizations";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -62,6 +65,9 @@ export default async function DashboardPage({
     params.audit && UUID_RE.test(params.audit) ? params.audit : null;
   const highlightScanId =
     params.scan && UUID_RE.test(params.scan) ? params.scan : null;
+
+  const organization = await getOrganization(session.orgId);
+  const isAgency = organization?.type === "agency";
 
   const [locations, visibility, googleState, primarySetup, reviews, recentInsight] =
     await Promise.all([
@@ -144,6 +150,15 @@ export default async function DashboardPage({
             <Button
               size="sm"
               nativeButton={false}
+              render={<Link href="/grader" />}
+            >
+              <FileBarChart2Icon className="size-4" />
+              New visibility audit
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
               render={<Link href="/dashboard/locations" />}
             >
               <MapPinIcon className="size-4" />
@@ -160,6 +175,8 @@ export default async function DashboardPage({
           </div>
         </div>
       </div>
+
+      <AuditNewBusinessCard isAgency={isAgency} />
 
       {recentInsight ? (
         <RecentMarketingInsightCard insight={recentInsight} />

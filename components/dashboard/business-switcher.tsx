@@ -85,11 +85,18 @@ export function BusinessSwitcher({
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onClick={() => router.push("/dashboard/onboarding?add=1")}
+          onClick={() => router.push("/grader")}
           className="gap-2 text-primary"
         >
           <PlusIcon className="size-4" />
-          Add a business
+          Run visibility audit
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => router.push("/dashboard/onboarding?add=1")}
+          className="gap-2"
+        >
+          <PlusIcon className="size-4" />
+          Add manually
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

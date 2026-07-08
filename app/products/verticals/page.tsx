@@ -311,7 +311,7 @@ export default async function VerticalsProductPage() {
               size="lg"
               className="mt-5"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
               Run the free scan
               <ArrowRightIcon className="size-4" />

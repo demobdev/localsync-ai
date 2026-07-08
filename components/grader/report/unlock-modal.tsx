@@ -9,6 +9,8 @@ import { captureGraderLeadAction } from "@/app/actions/grader";
 import type { AuditReport } from "@/lib/grader/types";
 import { cn } from "@/lib/utils";
 
+import { UnlockBackdrop } from "./unlock-backdrop";
+
 const RELATIONSHIPS = [
   { value: "owner" as const, label: "I'm the owner or manager" },
   { value: "provider" as const, label: "I provide services to this business" },
@@ -68,7 +70,7 @@ export function UnlockModal({ report }: { report: AuditReport }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-[2px]" />
+      <UnlockBackdrop report={report} />
       <div className="relative w-full max-w-md rounded-3xl border border-black/5 bg-white p-6 shadow-2xl sm:p-8">
         <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase">
           Step {step} of 2

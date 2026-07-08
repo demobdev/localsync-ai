@@ -7,6 +7,7 @@ import { deriveFixPlan, deriveTopProblems } from "@/lib/grader/scoring";
 import type { AuditReport } from "@/lib/grader/types";
 import { cn } from "@/lib/utils";
 
+import { AuditScopeBanner } from "@/components/grader/audit-scope-banner";
 import { ImproveWithAICTA, StickyFixCTA } from "./ctas";
 import { FixPlanSection } from "./fix-plan";
 import { GuestExperienceSection } from "./guest-experience";
@@ -85,6 +86,12 @@ export function GraderReport({
         )}
         aria-hidden={locked}
       >
+        <AuditScopeBanner
+          operatingModel={report.operatingModel}
+          auditTier={report.auditTier}
+          gbpLinked={report.gbpProfile.gbpLinked !== false}
+          className="mb-1"
+        />
         <ScoreHero report={report} />
         <TopSummaryGrid report={report} problems={problems} />
         <SearchVisibilitySection report={report} />
