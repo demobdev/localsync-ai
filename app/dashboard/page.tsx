@@ -38,6 +38,7 @@ import {
 import { cn } from "@/lib/utils";
 import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 import { getOrganization } from "@/lib/auth/organizations";
+import { countOrgLocations } from "@/lib/org/locations";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -60,6 +61,11 @@ export default async function DashboardPage({
   const params = await searchParams;
 
   if (!session.orgId) {
+    redirect("/dashboard/onboarding");
+  }
+
+  const locationCount = await countOrgLocations(session.orgId);
+  if (locationCount === 0) {
     redirect("/dashboard/onboarding");
   }
 
@@ -131,10 +137,6 @@ export default async function DashboardPage({
         {},
       ),
     ]);
-
-  if (locations.length === 0) {
-    redirect("/dashboard/onboarding");
-  }
 
   const history = await safe(
     "visibilityHistory",
@@ -370,7 +372,7 @@ export default async function DashboardPage({
                   <div className="min-w-0">
                     <p className="truncate font-medium">{location.name}</p>
                     <p className="truncate text-sm text-muted-foreground">
-                      {location.clientName}
+                      {location.clientName ?? location.name}
                       {location.profile.city ? ` · ${location.profile.city}` : ""}
                     </p>
                   </div>

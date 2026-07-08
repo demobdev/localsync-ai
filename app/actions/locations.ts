@@ -186,7 +186,7 @@ export async function listLocationsAction(clientId?: string) {
       clientName: clients.name,
     })
     .from(locations)
-    .innerJoin(clients, eq(clients.id, locations.clientId))
+    .leftJoin(clients, eq(clients.id, locations.clientId))
     .where(and(...conditions))
     .orderBy(desc(locations.updatedAt));
 }

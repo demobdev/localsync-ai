@@ -1,6 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, desc } from "drizzle-orm";
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { ensureOrganizationAction } from "@/app/actions/org";
@@ -33,12 +32,6 @@ export default async function DashboardLayout({
 
   const locationCount = await countOrgLocations(session.orgId);
   const setupIncomplete = locationCount === 0;
-  const pathname = (await headers()).get("x-pathname") ?? "";
-  const isOnboarding = pathname.startsWith("/dashboard/onboarding");
-
-  if (setupIncomplete && !isOnboarding) {
-    redirect("/dashboard/onboarding");
-  }
 
   const organization = await getOrganization(session.orgId);
 

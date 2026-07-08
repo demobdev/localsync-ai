@@ -28,7 +28,13 @@ function formatAuditDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-function ReportHeader({ signedIn }: { signedIn: boolean }) {
+function ReportHeader({
+  signedIn,
+  dashboardHref,
+}: {
+  signedIn: boolean;
+  dashboardHref: string;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-black/5 bg-[#faf7ef]/85 backdrop-blur-lg">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
@@ -48,7 +54,7 @@ function ReportHeader({ signedIn }: { signedIn: boolean }) {
             Grade another business
           </Link>
           <Link
-            href={signedIn ? "/dashboard" : "/sign-up"}
+            href={dashboardHref}
             className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
           >
             {signedIn ? "Dashboard" : "Get LocalSync"}
@@ -63,9 +69,13 @@ function ReportHeader({ signedIn }: { signedIn: boolean }) {
 export function GraderReport({
   report,
   signedIn,
+  dashboardHref,
+  fixHref,
 }: {
   report: AuditReport;
   signedIn: boolean;
+  dashboardHref: string;
+  fixHref: string;
 }) {
   const locked = !report.leadCaptured;
   const problems = deriveTopProblems({
@@ -77,7 +87,7 @@ export function GraderReport({
 
   return (
     <div className="min-h-full bg-[#faf7ef]">
-      <ReportHeader signedIn={signedIn} />
+      <ReportHeader signedIn={signedIn} dashboardHref={dashboardHref} />
 
       <main
         className={cn(
@@ -100,7 +110,7 @@ export function GraderReport({
         <GuestExperienceSection report={report} />
         <LocalListingsSection report={report} />
         <FixPlanSection fixPlan={fixPlan} />
-        <ImproveWithAICTA report={report} signedIn={signedIn} />
+        <ImproveWithAICTA fixHref={fixHref} report={report} />
 
         <footer className="pt-4 pb-16 text-center text-xs text-zinc-400">
           <p>
@@ -114,7 +124,7 @@ export function GraderReport({
       {locked ? (
         <UnlockModal report={report} />
       ) : (
-        <StickyFixCTA report={report} signedIn={signedIn} />
+        <StickyFixCTA fixHref={fixHref} report={report} />
       )}
     </div>
   );

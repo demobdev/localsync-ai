@@ -1,7 +1,7 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { getDb } from "@/db";
@@ -19,12 +19,14 @@ import { upsertOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
 import { claimGraderAudit } from "@/lib/grader/claim";
+import { syncGraderAuditIdToLocation } from "@/lib/grader/sync-location-audit";
 import {
   enrichProfileFromGraderExtracted,
   matchExtractedServicesToSlugs,
 } from "@/lib/grader/claim-enrichment";
 import { seedGraderFixTasksForLocation } from "@/lib/grader/seed-tasks-from-audit";
 import type { GraderAuditTier, GraderOperatingModel } from "@/lib/grader/types";
+import { requireOrgAuth } from "@/lib/auth/org";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import {
   withLocationOperatingContext,
@@ -402,5 +404,96 @@ export async function quickSetupBusinessAction(input: {
     publishersTracked: allPublishers.length,
     claimedAuditId,
     claimedScanId,
+  };
+}
+
+export type LinkGraderAuditResult = {
+  locationId: string;
+  claimedAuditId: string;
+  tasksSeeded: number;
+};
+
+/** Link an unclaimed grader audit to an existing workspace location. */
+export async function linkGraderAuditToLocationAction(input: {
+  auditId: string;
+  locationId: string;
+  onboardingIntent?: "fix" | "organic";
+}): Promise<LinkGraderAuditResult> {
+  const session = await auth();
+
+  if (!session.userId) {
+    throw new Error("Not authenticated");
+  }
+
+  const { orgId, userId } = await requireOrgAuth();
+  const db = getDb();
+
+  const audit = await db.query.graderAudits.findFirst({
+    where: eq(graderAudits.id, input.auditId),
+    columns: {
+      id: true,
+      claimedByUserId: true,
+      progress: true,
+      gbpProfile: true,
+    },
+  });
+
+  if (!audit) {
+    throw new Error("Audit not found");
+  }
+
+  if (audit.claimedByUserId) {
+    throw new Error("This audit is already linked to a workspace");
+  }
+
+  const [location] = await db
+    .select({ id: locations.id, profile: locations.profile })
+    .from(locations)
+    .where(
+      and(eq(locations.id, input.locationId), eq(locations.organizationId, orgId)),
+    )
+    .limit(1);
+
+  if (!location) {
+    throw new Error("Location not found in this workspace");
+  }
+
+  const claimed = await claimGraderAudit({
+    auditId: audit.id,
+    userId,
+    organizationId: orgId,
+    locationId: location.id,
+  });
+
+  if (!claimed) {
+    throw new Error("Could not link audit — it may have been claimed elsewhere");
+  }
+
+  const profileWithMeta = withLocationOperatingContext(location.profile, {
+    operatingModel: audit.progress?.operatingModel,
+    auditTier: audit.progress?.auditTier,
+    gbpLinkedAtAudit: audit.gbpProfile?.gbpLinked !== false,
+    onboardingIntent: input.onboardingIntent ?? "fix",
+    graderAuditId: audit.id,
+  });
+
+  await db
+    .update(locations)
+    .set({ profile: profileWithMeta, updatedAt: new Date() })
+    .where(eq(locations.id, location.id));
+
+  const { tasksSeeded } = await syncGraderAuditIdToLocation({
+    locationId: location.id,
+    auditId: audit.id,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/locations");
+  revalidatePath("/dashboard/tasks");
+
+  return {
+    locationId: location.id,
+    claimedAuditId: audit.id,
+    tasksSeeded,
   };
 }

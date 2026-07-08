@@ -11,18 +11,13 @@ import {
 import { useEffect, useState } from "react";
 
 import type { AuditReport } from "@/lib/grader/types";
-import { buildGraderFixHref } from "@/lib/onboarding/routing";
-
-export function fixHref(report: AuditReport, signedIn: boolean): string {
-  return buildGraderFixHref({ auditId: report.id, signedIn });
-}
 
 export function ImproveWithAICTA({
   report,
-  signedIn,
+  fixHref,
 }: {
   report: AuditReport;
-  signedIn: boolean;
+  fixHref: string;
 }) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 shadow-sm">
@@ -63,7 +58,7 @@ export function ImproveWithAICTA({
             ))}
           </ul>
           <Link
-            href={fixHref(report, signedIn)}
+            href={fixHref}
             className="mt-6 inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-base font-semibold text-emerald-900 transition-colors hover:bg-emerald-50"
           >
             Start fixing my visibility
@@ -114,10 +109,10 @@ export function ImproveWithAICTA({
 
 export function StickyFixCTA({
   report,
-  signedIn,
+  fixHref,
 }: {
   report: AuditReport;
-  signedIn: boolean;
+  fixHref: string;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -145,7 +140,7 @@ export function StickyFixCTA({
           </p>
         </div>
         <Link
-          href={fixHref(report, signedIn)}
+          href={fixHref}
           className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
         >
           Fix my visibility

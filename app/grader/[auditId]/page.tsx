@@ -9,6 +9,7 @@ import { GraderReportGate } from "@/components/grader/report/report-gate";
 import { ScanExperience } from "@/components/grader/scan-experience";
 import { emptyPageSpeed } from "@/lib/grader/pagespeed";
 import { gradeForScore } from "@/lib/grader/scoring";
+import { resolveGraderDashboardHref } from "@/lib/onboarding/grader-entry";
 import type { AuditReport, GraderStatusResponse } from "@/lib/grader/types";
 
 export const metadata: Metadata = {
@@ -111,5 +112,20 @@ export default async function GraderReportPage({
     auditTier: audit.progress?.auditTier,
   };
 
-  return <GraderReportGate report={report} signedIn={Boolean(session.userId)} />;
+  const [dashboardHref, fixHref] = await Promise.all([
+    resolveGraderDashboardHref({
+      auditId: audit.id,
+      userId: session.userId,
+      orgId: session.orgId ?? null,
+      intent: "organic",
+    }),
+    resolveGraderDashboardHref({
+      auditId: audit.id,
+      userId: session.userId,
+      orgId: session.orgId ?? null,
+      intent: "fix",
+    }),
+  ]);
+
+  return <GraderReportGate report={report} signedIn={Boolean(session.userId)} dashboardHref={dashboardHref} fixHref={fixHref} />;
 }

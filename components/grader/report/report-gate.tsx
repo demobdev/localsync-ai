@@ -17,9 +17,13 @@ const REVEAL_STORAGE_PREFIX = "grader-revealed:";
 export function GraderReportGate({
   report,
   signedIn,
+  dashboardHref,
+  fixHref,
 }: {
   report: AuditReport;
   signedIn: boolean;
+  dashboardHref: string;
+  fixHref: string;
 }) {
   const [showBrief, setShowBrief] = useState(false);
   const locked = !report.leadCaptured;
@@ -71,5 +75,12 @@ export function GraderReportGate({
     );
   }
 
-  return <GraderReport report={report} signedIn={signedIn} />;
+  return (
+    <GraderReport
+      report={report}
+      signedIn={signedIn}
+      dashboardHref={dashboardHref}
+      fixHref={fixHref}
+    />
+  );
 }
