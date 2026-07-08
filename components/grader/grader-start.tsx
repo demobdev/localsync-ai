@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
-  CheckCircle2Icon,
   GlobeIcon,
   LoaderIcon,
   MapPinIcon,
@@ -21,65 +20,21 @@ import { cn } from "@/lib/utils";
 // Absent → the input silently behaves as URL-only.
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
-const SCAN_STEPS = [
-  "Crawling your website…",
-  "Checking Google results for your services…",
-  "Analyzing competitors in your area…",
-  "Testing page speed with Google…",
-  "Reviewing your Google Business Profile…",
-  "Scoring 44 visibility factors…",
-];
-
-function ScanAnimation() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setStep((current) => Math.min(current + 1, SCAN_STEPS.length - 1));
-    }, 5200);
-    return () => clearInterval(timer);
-  }, []);
-
+/**
+ * Brief holding state while the start action creates the audit row (<1s).
+ * The real progressive scan experience lives on /grader/[auditId].
+ */
+function StartingAudit() {
   return (
     <div className="rounded-3xl border border-black/5 bg-white/90 p-6 shadow-sm sm:p-8">
-      <div className="mb-5 flex items-center gap-3">
+      <div className="flex items-center gap-3">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-100">
           <RadarIcon className="size-5 animate-pulse text-emerald-700" />
         </div>
         <div>
-          <p className="font-semibold text-zinc-900">
-            Auditing your local visibility
-          </p>
-          <p className="text-sm text-zinc-500">
-            Usually takes 30–60 seconds — don&apos;t close this tab
-          </p>
+          <p className="font-semibold text-zinc-900">Starting your audit…</p>
+          <p className="text-sm text-zinc-500">Taking you to the live scan</p>
         </div>
-      </div>
-      <ul className="space-y-2.5">
-        {SCAN_STEPS.map((label, index) => (
-          <li
-            key={label}
-            className={cn(
-              "flex items-center gap-2.5 text-sm text-zinc-700 transition-opacity duration-500",
-              index > step && "opacity-30",
-            )}
-          >
-            {index < step ? (
-              <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" />
-            ) : index === step ? (
-              <LoaderIcon className="size-4 shrink-0 animate-spin text-emerald-600" />
-            ) : (
-              <span className="size-4 shrink-0 rounded-full border border-zinc-300" />
-            )}
-            <span>{label}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6 h-1.5 overflow-hidden rounded-full bg-zinc-100">
-        <div
-          className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
-          style={{ width: `${Math.min(95, ((step + 1) / SCAN_STEPS.length) * 100)}%` }}
-        />
       </div>
     </div>
   );
@@ -149,6 +104,8 @@ async function fetchPlaceDetails(
     "userRatingCount",
     "location",
     "primaryTypeDisplayName",
+    "photos",
+    "reviews",
   ].join(",");
 
   const response = await fetch(
@@ -171,7 +128,35 @@ async function fetchPlaceDetails(
     userRatingCount?: number;
     location?: { latitude?: number; longitude?: number };
     primaryTypeDisplayName?: { text?: string };
+    photos?: Array<{ name?: string }>;
+    reviews?: Array<{
+      rating?: number;
+      text?: { text?: string };
+      authorAttribution?: { displayName?: string };
+      relativePublishTimeDescription?: string;
+    }>;
   };
+
+  // Photo media URLs are built here (browser context) because the key is
+  // HTTP-referrer-restricted — server-side fetches with it would 403.
+  const photoUrls = (place.photos ?? [])
+    .slice(0, 6)
+    .map((photo) => photo.name)
+    .filter((name): name is string => Boolean(name))
+    .map(
+      (name) =>
+        `https://places.googleapis.com/v1/${name}/media?maxWidthPx=800&key=${MAPS_KEY}`,
+    );
+
+  const reviews = (place.reviews ?? [])
+    .slice(0, 5)
+    .map((review) => ({
+      author: review.authorAttribution?.displayName ?? "A customer",
+      rating: review.rating ?? 5,
+      text: (review.text?.text ?? "").slice(0, 200),
+      when: review.relativePublishTimeDescription ?? "",
+    }))
+    .filter((review) => review.text.length > 0);
 
   return {
     placeId,
@@ -184,6 +169,8 @@ async function fetchPlaceDetails(
     latitude: place.location?.latitude ?? null,
     longitude: place.location?.longitude ?? null,
     primaryType: place.primaryTypeDisplayName?.text ?? null,
+    photoUrls,
+    reviews,
   };
 }
 
@@ -298,7 +285,7 @@ export function GraderStart() {
   }
 
   if (isPending) {
-    return <ScanAnimation />;
+    return <StartingAudit />;
   }
 
   return (

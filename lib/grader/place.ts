@@ -16,6 +16,12 @@ export type GraderPlaceInput = {
   longitude?: number | null;
   /** Places primaryTypeDisplayName, e.g. "Plumber", "Italian Restaurant". */
   primaryType?: string | null;
+  /**
+   * Photo media URLs + review snippets, fetched CLIENT-side at selection time
+   * (the only key is referrer-restricted; server-side calls would 403).
+   */
+  photoUrls?: string[];
+  reviews?: Array<{ author: string; rating: number; text: string; when: string }>;
 };
 
 /**

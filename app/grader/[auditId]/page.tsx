@@ -7,9 +7,10 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
 import { GraderReport } from "@/components/grader/report/report-view";
+import { ScanExperience } from "@/components/grader/scan-experience";
 import { emptyPageSpeed } from "@/lib/grader/pagespeed";
 import { gradeForScore } from "@/lib/grader/scoring";
-import type { AuditReport } from "@/lib/grader/types";
+import type { AuditReport, GraderStatusResponse } from "@/lib/grader/types";
 
 export const metadata: Metadata = {
   title: "Your Local Visibility Report — LocalSync Grader",
@@ -37,18 +38,15 @@ export default async function GraderReportPage({
 
   if (!audit) notFound();
 
-  if (audit.status !== "complete") {
+  if (audit.status === "failed") {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 bg-[#faf7ef] px-4 py-24 text-center">
         <h1 className="text-2xl font-bold text-zinc-900">
-          {audit.status === "failed"
-            ? "This audit didn't finish"
-            : "This audit is still running"}
+          This audit didn&apos;t finish
         </h1>
         <p className="max-w-md text-sm text-zinc-600">
-          {audit.status === "failed"
-            ? "We couldn't crawl that website. Double-check the URL and run a fresh audit."
-            : "Give it a few more seconds, then refresh this page."}
+          We couldn&apos;t crawl that website. Double-check the URL and run a
+          fresh audit.
         </p>
         <Link
           href="/grader"
@@ -56,6 +54,27 @@ export default async function GraderReportPage({
         >
           Run a new audit
         </Link>
+      </div>
+    );
+  }
+
+  if (audit.status !== "complete") {
+    // Progressive scan experience — the same URL becomes the report when the
+    // background pipeline finishes (shareable, refresh-safe).
+    const initial: GraderStatusResponse = {
+      status: "scanning",
+      stage: audit.progress?.stage ?? "place",
+      stagesDone: audit.progress?.stagesDone ?? [],
+      startedAt: audit.progress?.startedAt ?? audit.createdAt.toISOString(),
+      evidence: audit.progress?.evidence ?? {},
+    };
+    const domain = audit.websiteUrl
+      ? new URL(audit.websiteUrl).hostname.replace(/^www\./, "")
+      : null;
+
+    return (
+      <div className="min-h-full bg-[#faf7ef]">
+        <ScanExperience auditId={audit.id} initial={initial} domain={domain} />
       </div>
     );
   }

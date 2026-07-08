@@ -2,6 +2,7 @@
 
 import { generateObject } from "ai";
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { z } from "zod";
 
 import { getDb } from "@/db";
@@ -26,7 +27,13 @@ import {
 } from "@/lib/grader/rank-provider";
 import { estimateMonthlyLoss, scoreAudit } from "@/lib/grader/scoring";
 import { analyzeSite } from "@/lib/grader/site-analysis";
-import type { ExtractedBusiness } from "@/lib/grader/types";
+import type {
+  ExtractedBusiness,
+  GraderPlaceEvidence,
+  GraderProgress,
+  GraderProgressStage,
+  PageSpeedData,
+} from "@/lib/grader/types";
 
 const GRADER_MODEL =
   process.env.AUDIT_EXTRACTION_MODEL ?? "google/gemini-2.5-flash";
@@ -107,6 +114,119 @@ function noWebsiteSignals(): Awaited<ReturnType<typeof analyzeSite>> {
   };
 }
 
+/* ── Progressive scan plumbing ─────────────────────────────────────────── */
+
+/** Place evidence for the scan experience, capped per the contract. */
+function buildPlaceEvidence(place: GraderPlaceInput): GraderPlaceEvidence {
+  return {
+    name: place.name,
+    rating: place.rating ?? null,
+    reviewCount: place.reviewCount ?? null,
+    address: place.formattedAddress ?? null,
+    category: place.primaryType ?? null,
+    lat: place.latitude ?? null,
+    lng: place.longitude ?? null,
+    photoUrls: (place.photoUrls ?? []).slice(0, 6),
+    reviews: (place.reviews ?? []).slice(0, 5).map((review) => ({
+      author: review.author,
+      rating: review.rating,
+      text: review.text.slice(0, 200),
+      when: review.when,
+    })),
+  };
+}
+
+/** 2-4 punchy early findings shown during the scan (curiosity before the gate). */
+function deriveEarlyWarnings(input: {
+  extracted: ExtractedBusiness;
+  hasWebsite: boolean;
+}): string[] {
+  const { extracted, hasWebsite } = input;
+  const warnings: string[] = [];
+
+  if (!hasWebsite) {
+    warnings.push("No website linked");
+  }
+  if (!extracted.description) {
+    warnings.push("No description found");
+  }
+  if (hasWebsite && !extracted.hoursVisible && !extracted.hoursSummary) {
+    warnings.push("Hours not visible on your website");
+  }
+  if (hasWebsite && !extracted.hasTestimonials) {
+    warnings.push("No reviews shown on your website");
+  }
+  if (!extracted.phone) {
+    warnings.push(
+      hasWebsite
+        ? "No phone number found on your homepage"
+        : "No phone number on your profile",
+    );
+  }
+  if (hasWebsite && !extracted.hasCallToAction) {
+    warnings.push("No clear call-to-action above the fold");
+  }
+
+  return warnings.slice(0, 4);
+}
+
+function pageSpeedSummary(pageSpeed: PageSpeedData): {
+  lcp?: string;
+  cls?: string;
+  status: "pass" | "fail" | "unknown";
+} {
+  const lcp = pageSpeed.metrics.find((m) => m.id === "LCP");
+  const cls = pageSpeed.metrics.find((m) => m.id === "CLS");
+  return {
+    lcp: lcp && lcp.rating !== "unknown" ? lcp.displayValue : undefined,
+    cls: cls && cls.rating !== "unknown" ? cls.displayValue : undefined,
+    status: pageSpeed.overall,
+  };
+}
+
+/**
+ * Serialized, failure-safe writer for grader_audits.progress. A single audit
+ * has a single pipeline writer, so full-object writes are safe; the queue
+ * keeps parallel-resolving stages (crawl vs PSI) from interleaving UPDATEs.
+ */
+function createProgressWriter(auditId: string, initial: GraderProgress) {
+  const db = getDb();
+  const progress = initial;
+  let queue: Promise<void> = Promise.resolve();
+
+  function write(mutate: (progress: GraderProgress) => void): void {
+    mutate(progress);
+    const snapshot = structuredClone(progress);
+    queue = queue.then(async () => {
+      try {
+        await db
+          .update(graderAudits)
+          .set({ progress: snapshot })
+          .where(eq(graderAudits.id, auditId));
+      } catch {
+        // Progress persistence is best-effort — never kill the pipeline.
+      }
+    });
+  }
+
+  return {
+    write,
+    flush: () => queue,
+    current: () => progress,
+  };
+}
+
+function markStageDone(
+  progress: GraderProgress,
+  done: GraderProgressStage,
+  next: GraderProgressStage,
+): void {
+  if (!progress.stagesDone.includes(done)) {
+    progress.stagesDone.push(done);
+  }
+  progress.stage = next;
+}
+
 export async function startGraderAuditAction(input: {
   /** Website URL; may be omitted when a place without a website is selected. */
   url?: string;
@@ -122,6 +242,15 @@ export async function startGraderAuditAction(input: {
     throw new Error("Enter your business website URL");
   }
 
+  // Place evidence exists the moment the user selects — persist it with the
+  // row so the scan experience has something real on its very first poll.
+  const initialProgress: GraderProgress = {
+    stage: url ? "crawl" : "keywords",
+    stagesDone: url ? ["place"] : ["place", "crawl", "extract"],
+    startedAt: new Date().toISOString(),
+    evidence: place ? { place: buildPlaceEvidence(place) } : {},
+  };
+
   const db = getDb();
   const [pending] = await db
     .insert(graderAudits)
@@ -131,10 +260,34 @@ export async function startGraderAuditAction(input: {
       websiteUrl: url,
       status: "scanning",
       scanLeadId: input.scanLeadId ?? null,
+      progress: initialProgress,
     })
     .returning({ id: graderAudits.id });
 
   if (!pending) throw new Error("Could not start the audit");
+
+  // Respond immediately; the pipeline continues after the response is sent.
+  after(() =>
+    runGraderPipeline({
+      auditId: pending.id,
+      url,
+      place,
+      initialProgress,
+    }),
+  );
+
+  return { auditId: pending.id };
+}
+
+async function runGraderPipeline(input: {
+  auditId: string;
+  url: string | null;
+  place: GraderPlaceInput | null;
+  initialProgress: GraderProgress;
+}): Promise<void> {
+  const { auditId, url, place } = input;
+  const db = getDb();
+  const writer = createProgressWriter(auditId, input.initialProgress);
 
   try {
     const placeCityState = parseCityState(place?.formattedAddress);
@@ -146,11 +299,22 @@ export async function startGraderAuditAction(input: {
 
     if (url) {
       // ── Website path: crawl + extract, PSI in parallel ─────────────────
-      const [scrape, psi] = await Promise.all([
-        scrapeUrlFull(url),
-        fetchPageSpeed(url),
-      ]);
-      pageSpeed = psi;
+      // Each writes progress evidence the moment it resolves.
+      const psiPromise = fetchPageSpeed(url).then((psi) => {
+        writer.write((p) => {
+          p.evidence.pageSpeed = pageSpeedSummary(psi);
+        });
+        return psi;
+      });
+
+      const scrape = await scrapeUrlFull(url);
+      writer.write((p) => {
+        if (scrape.screenshotUrl) {
+          p.evidence.screenshotUrl = scrape.screenshotUrl;
+        }
+        markStageDone(p, "crawl", "extract");
+      });
+
       const markdown = scrape.markdown.slice(0, 25000);
 
       const { object } = await generateObject({
@@ -189,6 +353,12 @@ export async function startGraderAuditAction(input: {
         placeId: place?.placeId ?? null,
       };
 
+      writer.write((p) => {
+        p.evidence.services = extracted.services.slice(0, 8);
+        p.evidence.warnings = deriveEarlyWarnings({ extracted, hasWebsite: true });
+        markStageDone(p, "extract", "keywords");
+      });
+
       signals = await analyzeSite({
         url: scrape.finalUrl ?? url,
         rawHtml: scrape.rawHtml,
@@ -197,6 +367,7 @@ export async function startGraderAuditAction(input: {
         businessName: extracted.businessName,
       });
       websiteDomain = new URL(url).hostname.replace(/^www\./, "");
+      pageSpeed = await psiPromise;
     } else {
       // ── No-website path: the place record is all we have ───────────────
       extracted = {
@@ -221,6 +392,13 @@ export async function startGraderAuditAction(input: {
       signals = noWebsiteSignals();
       pageSpeed = emptyPageSpeed();
       websiteDomain = place!.placeId; // deterministic sample seed
+
+      writer.write((p) => {
+        p.evidence.warnings = deriveEarlyWarnings({
+          extracted,
+          hasWebsite: false,
+        });
+      });
     }
 
     const businessName =
@@ -240,12 +418,42 @@ export async function startGraderAuditAction(input: {
       }),
     });
     const competitors = deriveCompetitors(keywords);
+
+    // Competitor pins for the scan map: prefer coords from the map results.
+    writer.write((p) => {
+      const coordsByName = new Map<string, { lat: number | null; lng: number | null }>();
+      for (const keyword of keywords) {
+        for (const result of keyword.mapResults) {
+          if (!result.isYou && !coordsByName.has(result.name)) {
+            coordsByName.set(result.name, {
+              lat: result.lat ?? null,
+              lng: result.lng ?? null,
+            });
+          }
+        }
+      }
+      p.evidence.competitors = competitors.slice(0, 4).map((competitor) => ({
+        name: competitor.name,
+        rating: competitor.rating,
+        lat: coordsByName.get(competitor.name)?.lat ?? null,
+        lng: coordsByName.get(competitor.name)?.lng ?? null,
+      }));
+      markStageDone(p, "keywords", "scoring");
+    });
+
     const gbpProfile = buildSampleGbpProfile({
       websiteDomain,
       extracted,
       hasWebsite: Boolean(url),
       realRating: place?.rating ?? null,
       realReviewCount: place?.reviewCount ?? null,
+      photoUrls: place?.photoUrls?.slice(0, 6),
+      realReviews: place?.reviews?.slice(0, 5).map((review) => ({
+        author: review.author,
+        rating: review.rating,
+        text: review.text.slice(0, 200),
+        when: review.when,
+      })),
     });
 
     let checks = buildAuditChecks({
@@ -264,10 +472,20 @@ export async function startGraderAuditAction(input: {
       searchScore: scores.categoryScores.search,
     });
 
+    // Let queued evidence writes land, then finalize status + progress
+    // atomically in the same UPDATE as the report payload.
+    await writer.flush();
+    const finalProgress = structuredClone(writer.current());
+    markStageDone(finalProgress, "scoring", "done");
+    if (!finalProgress.stagesDone.includes("done")) {
+      finalProgress.stagesDone.push("done");
+    }
+
     await db
       .update(graderAudits)
       .set({
         status: "complete",
+        progress: finalProgress,
         businessName,
         city: extracted.city,
         state: extracted.state,
@@ -286,17 +504,21 @@ export async function startGraderAuditAction(input: {
         gbpProfile,
         extracted,
       })
-      .where(eq(graderAudits.id, pending.id));
-
-    return { auditId: pending.id };
+      .where(eq(graderAudits.id, auditId));
   } catch (error) {
-    await db
-      .update(graderAudits)
-      .set({ status: "failed" })
-      .where(eq(graderAudits.id, pending.id));
-    throw error instanceof Error
-      ? error
-      : new Error("Audit failed — check the URL and try again");
+    console.error("Grader pipeline failed", {
+      auditId,
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    try {
+      await db
+        .update(graderAudits)
+        .set({ status: "failed" })
+        .where(eq(graderAudits.id, auditId));
+    } catch {
+      // Row update failed too — the status endpoint will keep reporting
+      // "scanning"; the client's countdown degrades gracefully.
+    }
   }
 }
 

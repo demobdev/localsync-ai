@@ -107,6 +107,15 @@ export type GbpProfile = {
   isSample: boolean;
   /** True when rating/reviewCount came from the real Places record. */
   ratingIsReal?: boolean;
+  /** Real GBP photo media URLs (stored for future report use; UI not wired yet). */
+  photoUrls?: string[];
+  /** Real review snippets from Places (stored for future report use). */
+  realReviews?: Array<{
+    author: string;
+    rating: number;
+    text: string;
+    when: string;
+  }>;
 };
 
 export type ExtractedBusiness = {
@@ -151,6 +160,60 @@ export type FixPlan = {
   quickWins: AuditCheck[];
   medium: AuditCheck[];
   highImpact: AuditCheck[];
+};
+
+/* ── Progressive scan experience (docs/grader-scan-experience.md §7) ───── */
+
+export type GraderProgressStage =
+  | "place"
+  | "crawl"
+  | "extract"
+  | "keywords"
+  | "scoring"
+  | "done";
+
+export type GraderPlaceEvidence = {
+  name: string;
+  rating: number | null;
+  reviewCount: number | null;
+  address: string | null;
+  category: string | null;
+  lat: number | null;
+  lng: number | null;
+  /** Places photo media URLs (0-6). */
+  photoUrls: string[];
+  reviews: Array<{ author: string; rating: number; text: string; when: string }>;
+};
+
+export type GraderProgressEvidence = {
+  place?: GraderPlaceEvidence;
+  /** Firecrawl homepage screenshot (absent when unsupported). */
+  screenshotUrl?: string;
+  services?: string[];
+  /** Early punchy findings, e.g. "No description found". */
+  warnings?: string[];
+  /** Coords are null for URL-only audits (no Places location to anchor to). */
+  competitors?: Array<{
+    name: string;
+    rating: number;
+    lat: number | null;
+    lng: number | null;
+  }>;
+  pageSpeed?: { lcp?: string; cls?: string; status: "pass" | "fail" | "unknown" };
+};
+
+/** Persisted on grader_audits.progress; polled via /api/grader/status/[id]. */
+export type GraderProgress = {
+  stage: GraderProgressStage;
+  stagesDone: GraderProgressStage[];
+  /** ISO timestamp — drives the client countdown (~45s heuristic). */
+  startedAt: string;
+  evidence: GraderProgressEvidence;
+};
+
+/** Payload of GET /api/grader/status/[auditId]. */
+export type GraderStatusResponse = GraderProgress & {
+  status: "scanning" | "complete" | "failed";
 };
 
 /** Fully materialized report passed from the server page to the report view. */

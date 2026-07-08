@@ -35,6 +35,9 @@ export function buildSampleGbpProfile(input: {
   /** Real values from the Places record, when the audit started from autocomplete. */
   realRating?: number | null;
   realReviewCount?: number | null;
+  /** Real GBP media/reviews fetched client-side at selection (stored for later UI). */
+  photoUrls?: string[];
+  realReviews?: GbpProfile["realReviews"];
 }): GbpProfile {
   const rng = createRng(input.websiteDomain);
   const { extracted } = input;
@@ -158,5 +161,7 @@ export function buildSampleGbpProfile(input: {
     reviewFields,
     isSample: true,
     ratingIsReal,
+    photoUrls: input.photoUrls?.length ? input.photoUrls : undefined,
+    realReviews: input.realReviews?.length ? input.realReviews : undefined,
   };
 }

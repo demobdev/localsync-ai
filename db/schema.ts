@@ -19,6 +19,7 @@ import type {
   Competitor,
   ExtractedBusiness,
   GbpProfile,
+  GraderProgress,
   KeywordResult,
   PageSpeedData,
 } from "@/lib/grader/types";
@@ -700,6 +701,8 @@ export const graderAudits = pgTable(
     pageSpeed: jsonb("page_speed").$type<PageSpeedData>(),
     gbpProfile: jsonb("gbp_profile").$type<GbpProfile>(),
     extracted: jsonb("extracted").$type<ExtractedBusiness>(),
+    /** Progressive scan-experience state — stage, stagesDone, evidence. */
+    progress: jsonb("progress").$type<GraderProgress>(),
     scanLeadId: uuid("scan_lead_id").references(() => scanLeads.id, {
       onDelete: "set null",
     }),

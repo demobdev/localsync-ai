@@ -9,6 +9,8 @@ export type FullScrapeResult = ScrapeResult & {
   rawHtml: string;
   description?: string;
   finalUrl?: string;
+  /** Hosted homepage screenshot URL (absent if the plan doesn't support it). */
+  screenshotUrl?: string;
 };
 
 /** Scrape with raw HTML included — used by the grader for meta/schema checks. */
@@ -27,7 +29,7 @@ export async function scrapeUrlFull(url: string): Promise<FullScrapeResult> {
     },
     body: JSON.stringify({
       url,
-      formats: ["markdown", "rawHtml"],
+      formats: ["markdown", "rawHtml", "screenshot"],
       onlyMainContent: false,
       timeout: 60000,
     }),
@@ -45,6 +47,7 @@ export async function scrapeUrlFull(url: string): Promise<FullScrapeResult> {
     data?: {
       markdown?: string;
       rawHtml?: string;
+      screenshot?: string;
       metadata?: { title?: string; description?: string; sourceURL?: string; url?: string };
     };
     error?: string;
@@ -60,6 +63,7 @@ export async function scrapeUrlFull(url: string): Promise<FullScrapeResult> {
     title: payload.data.metadata?.title,
     description: payload.data.metadata?.description,
     finalUrl: payload.data.metadata?.url ?? payload.data.metadata?.sourceURL,
+    screenshotUrl: payload.data.screenshot || undefined,
     sourceUrl: url,
   };
 }
