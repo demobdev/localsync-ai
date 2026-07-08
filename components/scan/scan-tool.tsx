@@ -227,9 +227,9 @@ function ScanResults({
               size="lg"
               variant="outline"
               nativeButton={false}
-              render={<Link href="/scan" />}
+              render={<Link href="/grader" />}
             >
-              Scan another site
+              Get the full audit
             </Button>
           </div>
           <p className="text-center text-xs text-muted-foreground">

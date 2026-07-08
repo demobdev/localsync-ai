@@ -13,6 +13,15 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import type {
+  AuditCheck,
+  CategoryScores,
+  Competitor,
+  ExtractedBusiness,
+  GbpProfile,
+  KeywordResult,
+  PageSpeedData,
+} from "@/lib/grader/types";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -660,4 +669,65 @@ export const scanLeads = pgTable(
       .notNull(),
   },
   (table) => [index("scan_leads_created_at_idx").on(table.createdAt)],
+);
+
+/**
+ * LocalSync Grader — full local visibility & revenue leak audits (public, no auth).
+ * jsonb-heavy so the entire report renders from one row.
+ */
+export const graderAudits = pgTable(
+  "grader_audits",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    url: text("url").notNull(),
+    businessName: text("business_name"),
+    city: text("city"),
+    state: text("state"),
+    phone: text("phone"),
+    websiteUrl: text("website_url"),
+    industry: text("industry"),
+    /** pending | scanning | complete | failed */
+    status: text("status").notNull().default("pending"),
+    totalScore: integer("total_score").notNull().default(0),
+    grade: text("grade"),
+    totalChecks: integer("total_checks").notNull().default(0),
+    failedChecks: integer("failed_checks").notNull().default(0),
+    estimatedMonthlyLoss: integer("estimated_monthly_loss").notNull().default(0),
+    categoryScores: jsonb("category_scores").$type<CategoryScores>(),
+    checks: jsonb("checks").$type<AuditCheck[]>(),
+    keywords: jsonb("keywords").$type<KeywordResult[]>(),
+    competitors: jsonb("competitors").$type<Competitor[]>(),
+    pageSpeed: jsonb("page_speed").$type<PageSpeedData>(),
+    gbpProfile: jsonb("gbp_profile").$type<GbpProfile>(),
+    extracted: jsonb("extracted").$type<ExtractedBusiness>(),
+    scanLeadId: uuid("scan_lead_id").references(() => scanLeads.id, {
+      onDelete: "set null",
+    }),
+    leadCaptured: boolean("lead_captured").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("grader_audits_created_at_idx").on(table.createdAt)],
+);
+
+/** Leads captured through the grader's 2-step unlock modal. */
+export const graderLeads = pgTable(
+  "grader_leads",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    auditId: uuid("audit_id")
+      .references(() => graderAudits.id, { onDelete: "cascade" })
+      .notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    /** owner | provider | other */
+    relationship: text("relationship").notNull(),
+    smsOptIn: boolean("sms_opt_in").notNull().default(false),
+    phone: text("phone"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("grader_leads_audit_idx").on(table.auditId)],
 );

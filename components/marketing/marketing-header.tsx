@@ -86,6 +86,14 @@ export function MarketingHeader({
             variant="ghost"
             size="sm"
             nativeButton={false}
+            render={<Link href="/grader" />}
+          >
+            Grader
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
             render={<Link href="/pricing" />}
           >
             Pricing
