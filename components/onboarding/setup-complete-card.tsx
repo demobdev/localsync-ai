@@ -43,6 +43,7 @@ export function SetupCompleteCard({
       gbpLinkedAtAudit: true,
       serviceAreaCities: null,
       onboardingIntent: null,
+      graderAuditId: null,
     } satisfies LocationOperatingContext);
 
   const route = resolvePostSetupRoute({

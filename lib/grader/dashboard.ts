@@ -2,17 +2,20 @@ import { desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { graderAudits, scanLeads } from "@/db/schema";
-import type { KeywordResult } from "@/lib/grader/types";
+import { topFailedCheckLabels } from "@/lib/grader/location-audit-bridge";
+import type { AuditCheck, KeywordResult } from "@/lib/grader/types";
 
 export type RecentGraderInsight = {
   kind: "grader";
   auditId: string;
+  locationId: string | null;
   businessName: string | null;
   city: string | null;
   totalScore: number;
   grade: string | null;
   failedChecks: number;
   topKeywords: KeywordResult[];
+  topFailedChecks: string[];
   claimedAt: Date | null;
   createdAt: Date;
 };
@@ -35,6 +38,35 @@ function topKeywords(keywords: KeywordResult[] | null | undefined, limit = 3) {
   return keywords.slice(0, limit);
 }
 
+function graderInsightFromRow(audit: {
+  id: string;
+  locationId: string | null;
+  businessName: string | null;
+  city: string | null;
+  totalScore: number;
+  grade: string | null;
+  failedChecks: number;
+  keywords: KeywordResult[] | null;
+  checks: AuditCheck[] | null;
+  claimedAt: Date | null;
+  createdAt: Date;
+}): RecentGraderInsight {
+  return {
+    kind: "grader",
+    auditId: audit.id,
+    locationId: audit.locationId,
+    businessName: audit.businessName,
+    city: audit.city,
+    totalScore: audit.totalScore,
+    grade: audit.grade,
+    failedChecks: audit.failedChecks,
+    topKeywords: topKeywords(audit.keywords),
+    topFailedChecks: topFailedCheckLabels(audit.checks ?? []),
+    claimedAt: audit.claimedAt,
+    createdAt: audit.createdAt,
+  };
+}
+
 /** Most recently claimed grader audit for this workspace. */
 export async function getRecentGraderAuditForOrg(
   organizationId: string,
@@ -45,12 +77,14 @@ export async function getRecentGraderAuditForOrg(
     orderBy: [desc(graderAudits.claimedAt), desc(graderAudits.createdAt)],
     columns: {
       id: true,
+      locationId: true,
       businessName: true,
       city: true,
       totalScore: true,
       grade: true,
       failedChecks: true,
       keywords: true,
+      checks: true,
       claimedAt: true,
       createdAt: true,
     },
@@ -58,18 +92,7 @@ export async function getRecentGraderAuditForOrg(
 
   if (!audit) return null;
 
-  return {
-    kind: "grader",
-    auditId: audit.id,
-    businessName: audit.businessName,
-    city: audit.city,
-    totalScore: audit.totalScore,
-    grade: audit.grade,
-    failedChecks: audit.failedChecks,
-    topKeywords: topKeywords(audit.keywords),
-    claimedAt: audit.claimedAt,
-    createdAt: audit.createdAt,
-  };
+  return graderInsightFromRow(audit);
 }
 
 /** Most recently claimed free scan for this workspace. */
@@ -116,12 +139,14 @@ export async function getGraderAuditByIdForOrg(
     columns: {
       id: true,
       organizationId: true,
+      locationId: true,
       businessName: true,
       city: true,
       totalScore: true,
       grade: true,
       failedChecks: true,
       keywords: true,
+      checks: true,
       claimedAt: true,
       createdAt: true,
     },
@@ -129,18 +154,7 @@ export async function getGraderAuditByIdForOrg(
 
   if (!audit || audit.organizationId !== organizationId) return null;
 
-  return {
-    kind: "grader",
-    auditId: audit.id,
-    businessName: audit.businessName,
-    city: audit.city,
-    totalScore: audit.totalScore,
-    grade: audit.grade,
-    failedChecks: audit.failedChecks,
-    topKeywords: topKeywords(audit.keywords),
-    claimedAt: audit.claimedAt,
-    createdAt: audit.createdAt,
-  };
+  return graderInsightFromRow(audit);
 }
 
 export async function getScanByIdForOrg(

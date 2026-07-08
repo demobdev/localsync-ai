@@ -103,7 +103,7 @@ export function ProfileSetupGuide({
   const router = useRouter();
   const [expanded, setExpanded] = useState(defaultExpanded);
 
-  const phases: SetupPhase[] = ["profile", "connect", "visibility"];
+  const phases: SetupPhase[] = ["audit", "profile", "connect", "visibility"];
 
   if (compact && progress.percent >= 100) {
     return null;

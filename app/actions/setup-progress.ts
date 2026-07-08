@@ -17,6 +17,7 @@ import {
   buildLocationSetupProgress,
   type SetupProgress,
 } from "@/lib/profile/setup-workflow";
+import { getGraderAuditForLocation } from "@/lib/grader/location-audit-bridge";
 
 async function assertLocationInOrg(locationId: string, orgId: string) {
   const db = getDb();
@@ -92,10 +93,13 @@ export async function getLocationSetupProgressAction(
     row.listingUrl?.trim(),
   ).length;
 
+  const linkedAudit = await getGraderAuditForLocation(locationId);
+
   return buildLocationSetupProgress({
     locationId,
     profile: location.profile,
     operatingContext: getLocationOperatingContext(location.profile),
+    graderChecks: linkedAudit?.checks ?? null,
     googleConnected,
     googleCanImport,
     listingUrlsConfigured,

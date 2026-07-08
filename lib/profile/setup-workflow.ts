@@ -1,9 +1,11 @@
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { buildOperatingModelSetupSteps } from "@/lib/profile/model-setup-steps";
+import { buildGraderFixSteps } from "@/lib/grader/location-audit-bridge";
+import type { AuditCheck } from "@/lib/grader/types";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { computeProfileScore } from "@/lib/visibility/score";
 
-export type SetupPhase = "profile" | "connect" | "visibility" | "reviews";
+export type SetupPhase = "audit" | "profile" | "connect" | "visibility" | "reviews";
 
 export type SetupStep = {
   id: string;
@@ -226,6 +228,7 @@ export function buildLocationSetupProgress(input: {
   locationId: string;
   profile: LocationProfileSnapshot;
   operatingContext?: LocationOperatingContext | null;
+  graderChecks?: AuditCheck[] | null;
   googleConnected: boolean;
   googleCanImport: boolean;
   listingUrlsConfigured: number;
@@ -248,7 +251,16 @@ export function buildLocationSetupProgress(input: {
       })
     : [];
 
+  const graderFixSteps =
+    input.graderChecks && input.graderChecks.length > 0
+      ? buildGraderFixSteps({
+          locationId: input.locationId,
+          checks: input.graderChecks,
+        })
+      : [];
+
   const steps = [
+    ...graderFixSteps,
     ...buildProfileFieldSteps({
       locationId: input.locationId,
       profile: input.profile,
@@ -278,6 +290,7 @@ export function buildLocationSetupProgress(input: {
 }
 
 export const PHASE_LABELS: Record<SetupPhase, string> = {
+  audit: "From your visibility audit",
   profile: "Master profile",
   connect: "Connections & audits",
   visibility: "AI visibility",

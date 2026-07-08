@@ -271,6 +271,7 @@ export async function quickSetupBusinessAction(input: {
     gbpLinkedAtAudit: audit ? gbpLinkedAtAudit : undefined,
     serviceAreaCities: input.serviceAreaCities?.trim() || null,
     onboardingIntent: input.onboardingIntent ?? (audit ? "fix" : "organic"),
+    graderAuditId: audit?.id ?? null,
   });
 
   const [location] = await db

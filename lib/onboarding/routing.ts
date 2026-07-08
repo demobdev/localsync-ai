@@ -6,6 +6,7 @@ import type {
   GraderAuditTier,
   GraderOperatingModel,
 } from "@/lib/grader/types";
+import { locationFixQueueHref } from "@/lib/grader/location-audit-bridge";
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 
@@ -73,6 +74,7 @@ export function prefillToRouteContext(
     gbpLinkedAtAudit: prefill.gbpLinked !== false,
     serviceAreaCities: null,
     onboardingIntent: intent,
+    graderAuditId: prefill.auditId ?? null,
   };
 }
 
@@ -123,14 +125,17 @@ export function resolvePostSetupRoute(input: {
   const visibilityHref = `/dashboard/locations/${locationId}/visibility`;
   const auditHref = auditId ? `/grader/${auditId}` : null;
 
+  const fixQueueHref = locationFixQueueHref(locationId);
+  const fromGraderFix = context.onboardingIntent === "fix" && auditId;
+
   if (isAgency) {
     return {
       headline: "Agency workspace ready",
-      subline: "Your first client is set up — continue with their profile.",
+      subline: "Your first client is set up — work through their audit fix queue.",
       primary: {
-        id: "dashboard",
-        label: "Go to dashboard",
-        href: auditHref ? `/dashboard?audit=${auditId}` : "/dashboard",
+        id: "fix-queue",
+        label: "Open client fix queue",
+        href: fixQueueHref,
         primary: true,
       },
       secondary: [
@@ -142,6 +147,30 @@ export function resolvePostSetupRoute(input: {
         ...(auditHref
           ? [{ id: "audit", label: "View audit report", href: auditHref }]
           : []),
+      ],
+    };
+  }
+
+  if (fromGraderFix) {
+    return {
+      headline: "Next: fix your audit leaks",
+      subline:
+        "Your visibility audit is linked to this workspace — work through the fix queue on your profile.",
+      primary: {
+        id: "fix-queue",
+        label: "Open fix queue",
+        href: fixQueueHref,
+        primary: true,
+      },
+      secondary: [
+        ...(auditHref
+          ? [{ id: "audit", label: "View full audit report", href: auditHref }]
+          : []),
+        {
+          id: "connect",
+          label: "Connect Google & listings",
+          href: connectHref,
+        },
       ],
     };
   }
@@ -166,9 +195,9 @@ export function resolvePostSetupRoute(input: {
           href: LOCALSYNC_PREMIUM_SETUP_URL,
         },
         {
-          id: "profile",
-          label: "Complete profile while you wait",
-          href: profileHref,
+          id: "fix-queue",
+          label: "Work through audit fixes",
+          href: fixQueueHref,
         },
         ...(auditHref
           ? [{ id: "audit", label: "Back to audit report", href: auditHref }]

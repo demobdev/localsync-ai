@@ -5,6 +5,7 @@ import type {
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 
 /** Stored in `location.profile.attributes` after grader claim. */
+export const ATTR_GRADER_AUDIT_ID = "graderAuditId";
 export const ATTR_OPERATING_MODEL = "operatingModel";
 export const ATTR_AUDIT_TIER = "auditTier";
 export const ATTR_GBP_AT_AUDIT = "gbpLinkedAtAudit";
@@ -18,6 +19,7 @@ export type LocationOperatingContext = {
   gbpLinkedAtAudit: boolean;
   serviceAreaCities: string | null;
   onboardingIntent: "fix" | "organic" | null;
+  graderAuditId: string | null;
 };
 
 const DEFAULT_CONTEXT: LocationOperatingContext = {
@@ -26,6 +28,7 @@ const DEFAULT_CONTEXT: LocationOperatingContext = {
   gbpLinkedAtAudit: true,
   serviceAreaCities: null,
   onboardingIntent: null,
+  graderAuditId: null,
 };
 
 function readStringAttr(
@@ -69,6 +72,7 @@ export function getLocationOperatingContext(
       readStringAttr(profile.attributes, ATTR_SERVICE_AREA_CITIES) ?? null,
     onboardingIntent:
       intentRaw === "fix" || intentRaw === "organic" ? intentRaw : null,
+    graderAuditId: readStringAttr(profile.attributes, ATTR_GRADER_AUDIT_ID) ?? null,
   };
 }
 
@@ -100,6 +104,13 @@ export function withLocationOperatingContext(
       next[ATTR_ONBOARDING_INTENT] = input.onboardingIntent;
     } else {
       delete next[ATTR_ONBOARDING_INTENT];
+    }
+  }
+  if (input.graderAuditId !== undefined) {
+    if (input.graderAuditId) {
+      next[ATTR_GRADER_AUDIT_ID] = input.graderAuditId;
+    } else {
+      delete next[ATTR_GRADER_AUDIT_ID];
     }
   }
 

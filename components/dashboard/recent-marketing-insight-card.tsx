@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { RecentMarketingInsight } from "@/lib/grader/dashboard";
+import { locationFixQueueHref } from "@/lib/grader/location-audit-bridge";
 
 function intentLabel(intent: string | undefined) {
   switch (intent) {
@@ -75,6 +76,22 @@ export function RecentMarketingInsightCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isGrader && insight.topFailedChecks.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              Top leaks from your audit
+            </p>
+            <ul className="space-y-1 text-sm">
+              {insight.topFailedChecks.map((label) => (
+                <li key={label} className="flex items-start gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-emerald-600" />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         {isGrader && insight.topKeywords.length > 0 ? (
           <div className="space-y-2">
             <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -127,14 +144,20 @@ export function RecentMarketingInsightCard({
             render={
               <Link
                 href={
-                  isGrader
-                    ? `/dashboard/onboarding?auditId=${insight.auditId}&intent=fix`
-                    : "/dashboard/locations"
+                  isGrader && insight.locationId
+                    ? locationFixQueueHref(insight.locationId)
+                    : isGrader
+                      ? `/grader/${insight.auditId}`
+                      : "/dashboard/locations"
                 }
               />
             }
           >
-            {isGrader ? "Continue fixing leaks" : "Open business profile"}
+            {isGrader
+              ? insight.locationId
+                ? "Continue fixing leaks"
+                : "Claim audit in workspace"
+              : "Open business profile"}
           </Button>
         </div>
       </CardContent>

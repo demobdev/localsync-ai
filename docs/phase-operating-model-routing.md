@@ -1,6 +1,6 @@
 # Phase: Operating Model Routing Moat
 
-**Status:** Phase 1 in progress — do not ship unrelated grader/marketing work until routing gates below are green.
+**Status:** Infrastructure shipped (Gate A). **Primary focus moved to** [`phase-cyclical-funnel.md`](./phase-cyclical-funnel.md) — grader data must flow into agency automation.
 
 **Goal:** Every user path is tailored by *how they operate* (storefront, mobile, service area, online-first). The model chosen at `/grader` survives claim and drives onboarding, dashboard setup, and fix CTAs — not just copy.
 
@@ -170,3 +170,5 @@ Phase 1 is complete when:
 4. All fix CTAs use `routing.ts` — no duplicated URL strings.
 
 **Only after Gate A–B are green** should we resume grader scoring tweaks, new vertical packs, or marketing pages.
+
+**Update:** Gate A is green. **Do not block on Gates C–E** — prioritize cyclical funnel Gate 1–2 instead ([`phase-cyclical-funnel.md`](./phase-cyclical-funnel.md)).
