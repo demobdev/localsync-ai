@@ -21,10 +21,12 @@ import {
   type GraderPlaceInput,
 } from "@/lib/grader/place";
 import {
+  classifyKeywordIntent,
   deriveCompetitors,
   generateKeywords,
   getRankProvider,
 } from "@/lib/grader/rank-provider";
+import { resolveSearchVertical } from "@/lib/grader/vertical";
 import {
   buildPhotoBenchmark,
   deriveSignalNarration,
@@ -452,7 +454,16 @@ async function runGraderPipeline(input: {
     const businessName =
       extracted.businessName ?? websiteDomain.split(".")[0] ?? websiteDomain;
 
-    const keywords = await getRankProvider().fetchKeywordResults({
+    // Niche noun customers actually type ("sports bar", not "restaurant") —
+    // resolved from the Places type, business name, and extracted services.
+    const vertical = resolveSearchVertical({
+      primaryType: place?.primaryType,
+      businessName,
+      services: extracted.services,
+      industry: extracted.industry,
+    });
+
+    const rawKeywords = await getRankProvider().fetchKeywordResults({
       businessName,
       websiteDomain,
       city: extracted.city,
@@ -463,8 +474,13 @@ async function runGraderPipeline(input: {
       keywords: generateKeywords({
         industry: extracted.industry,
         city: extracted.city,
+        vertical,
       }),
     });
+    const keywords = rawKeywords.map((keyword) => ({
+      ...keyword,
+      intent: classifyKeywordIntent(keyword),
+    }));
     const competitors = deriveCompetitors(keywords);
 
     // Competitor pins for the scan map: prefer coords from the map results.

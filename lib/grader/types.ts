@@ -48,6 +48,14 @@ export type OrganicResult = {
   isYou: boolean;
 };
 
+/**
+ * What a probed keyword means for the business:
+ * - protecting  — they hold a top-3 spot (map or organic); defend it
+ * - competing   — ranked but below the fold; ground to gain
+ * - opportunity — absent from results; searches competitors own today
+ */
+export type KeywordIntent = "protecting" | "competing" | "opportunity";
+
 export type KeywordResult = {
   keyword: string;
   monthlyVolume: number | null;
@@ -60,6 +68,8 @@ export type KeywordResult = {
   organicResults: OrganicResult[];
   /** "sample" = generated placeholder ranks; "provider" = real SERP data. */
   source: "sample" | "provider";
+  /** Derived from ranks after the probe (absent on pre-existing audits). */
+  intent?: KeywordIntent;
 };
 
 export type Competitor = {

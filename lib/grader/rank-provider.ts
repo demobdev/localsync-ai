@@ -11,8 +11,11 @@
  */
 
 import { getIndustryProfile } from "./industry";
+import { getSerpApiProvider } from "./serp-provider";
+import type { SearchVertical } from "./vertical";
 import type {
   Competitor,
+  KeywordIntent,
   KeywordResult,
   MapResult,
   OrganicResult,
@@ -34,23 +37,66 @@ export interface RankProvider {
   fetchKeywordResults(input: RankLookupInput): Promise<KeywordResult[]>;
 }
 
-/** Local-intent keywords from the industry pack + city. */
+/**
+ * Local-intent keywords from the resolved search vertical + city.
+ *
+ * The vertical noun is the niche customers actually type ("sports bar",
+ * not "restaurant") — resolved automatically from Places type, business
+ * name, and extracted services. Falls back to the industry pack when no
+ * vertical is provided.
+ */
 export function generateKeywords(input: {
   industry: string;
   city: string | null;
+  vertical?: SearchVertical;
 }): string[] {
   const profile = getIndustryProfile(input.industry);
   const city = input.city?.trim() || "your area";
-  const [serviceA, serviceB] = profile.serviceTerms;
 
-  return [
-    `best ${profile.categoryNoun} in ${city}`,
-    `${profile.categoryNoun} ${city}`,
-    `${serviceA} near me`,
-    `${serviceA} ${city}`,
-    `${serviceB} ${city}`,
-    `${profile.categoryNoun} near me`,
+  const noun = input.vertical?.noun ?? profile.categoryNoun;
+  const modifiers = input.vertical?.modifiers ?? [];
+  const secondary = input.vertical?.secondaryTerms ?? profile.serviceTerms;
+
+  const candidates = [
+    `best ${noun} in ${city}`,
+    `${noun} ${city}`,
+    ...(modifiers[0] ? [`${modifiers[0]} ${noun} ${city}`] : []),
+    `${noun} near me`,
+    ...secondary.map((term) => `${term} ${city}`),
+    ...(modifiers[1] ? [`${modifiers[1]} ${noun} ${city}`] : []),
   ];
+
+  // Dedupe (case-insensitive) and cap to keep SERP probe costs predictable.
+  const seen = new Set<string>();
+  const keywords: string[] = [];
+  for (const candidate of candidates) {
+    const key = candidate.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      keywords.push(candidate);
+    }
+    if (keywords.length >= 6) break;
+  }
+  return keywords;
+}
+
+/**
+ * Classifies a probed keyword by what it means for the business:
+ * - protecting  — top-3 map or organic; dominance to defend
+ * - competing   — ranked but below the fold; ground to gain
+ * - opportunity — absent; searches competitors currently own
+ */
+export function classifyKeywordIntent(result: {
+  yourMapRank: number | null;
+  yourOrganicRank: number | null;
+}): KeywordIntent {
+  const best = Math.min(
+    result.yourMapRank ?? Infinity,
+    result.yourOrganicRank ?? Infinity,
+  );
+  if (best <= 3) return "protecting";
+  if (best !== Infinity) return "competing";
+  return "opportunity";
 }
 
 /** Deterministic PRNG (mulberry32) so sample data is stable per business. */
@@ -260,9 +306,13 @@ export function deriveCompetitors(keywords: KeywordResult[]): Competitor[] {
     .map((competitor, index) => ({ ...competitor, rank: index + 1 }));
 }
 
-/** Swap in a real provider (DataForSEO / SerpAPI) here when keys exist. */
+/**
+ * Real SERP data when SERPAPI_KEY is set; deterministic sample otherwise.
+ * The SerpAPI provider falls back to sample results per-keyword on failure,
+ * so the report always renders fully either way.
+ */
 export function getRankProvider(): RankProvider {
-  return sampleRankProvider;
+  return getSerpApiProvider(sampleRankProvider) ?? sampleRankProvider;
 }
 
 function titleCase(value: string): string {

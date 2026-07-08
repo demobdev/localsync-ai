@@ -3,7 +3,12 @@
 import { ChevronDownIcon, GlobeIcon, MapPinIcon } from "lucide-react";
 import { useState } from "react";
 
-import type { AuditReport, KeywordResult, MapResult } from "@/lib/grader/types";
+import type {
+  AuditReport,
+  KeywordIntent,
+  KeywordResult,
+  MapResult,
+} from "@/lib/grader/types";
 import { cn } from "@/lib/utils";
 
 import { GoogleGIcon, Pill, ReportCard, Stars } from "./primitives";
@@ -50,6 +55,27 @@ function rankPill(rank: number | null): { tone: "red" | "amber" | "green"; label
   return { tone: "amber", label: `Position ${rank}` };
 }
 
+const INTENT_META: Record<
+  KeywordIntent,
+  { label: string; tone: "red" | "amber" | "green" }
+> = {
+  protecting: { label: "Protect", tone: "green" },
+  competing: { label: "Gain ground", tone: "amber" },
+  opportunity: { label: "Opportunity", tone: "red" },
+};
+
+/** Pre-existing audits lack the stored intent — derive it from ranks. */
+function keywordIntent(keyword: KeywordResult): KeywordIntent {
+  if (keyword.intent) return keyword.intent;
+  const best = Math.min(
+    keyword.yourMapRank ?? Infinity,
+    keyword.yourOrganicRank ?? Infinity,
+  );
+  if (best <= 3) return "protecting";
+  if (best !== Infinity) return "competing";
+  return "opportunity";
+}
+
 function KeywordAccordionRow({
   keyword,
   businessName,
@@ -67,6 +93,7 @@ function KeywordAccordionRow({
 }) {
   const map = rankPill(keyword.yourMapRank);
   const organic = rankPill(keyword.yourOrganicRank);
+  const intent = INTENT_META[keywordIntent(keyword)];
 
   return (
     <div className="border-t border-black/5">
@@ -80,6 +107,7 @@ function KeywordAccordionRow({
           &ldquo;{keyword.keyword}&rdquo;
         </span>
         <span className="flex flex-wrap items-center gap-1.5">
+          <Pill tone={intent.tone}>{intent.label}</Pill>
           {keyword.topCompetitor && (
             <Pill tone="red">#1: {keyword.topCompetitor}</Pill>
           )}
