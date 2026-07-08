@@ -14,6 +14,7 @@ import { GoToDashboardButton } from "@/components/onboarding/go-to-dashboard-but
 import { OrgAwareNavButton } from "@/components/navigation/org-aware-nav-button";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { modelLabel, resolvePostSetupRoute } from "@/lib/onboarding/routing";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { Button } from "@/components/ui/button";
 
@@ -134,7 +135,9 @@ export function SetupCompleteCard({
               }`}
             />
             <span>
-              Computed the first <strong>visibility score</strong>. It goes up as
+              Computed the first{" "}
+              <strong>{SCORE_LABELS.workspaceHealthShort.toLowerCase()}</strong>.
+              It goes up as
               you complete the profile and fix listing inconsistencies.
             </span>
           </li>

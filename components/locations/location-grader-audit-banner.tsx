@@ -15,6 +15,7 @@ import { startGraderAuditFromLocationAction } from "@/app/actions/grader";
 import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 import { Button } from "@/components/ui/button";
 import type { LinkedGraderAudit } from "@/lib/grader/location-audit-bridge";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 
 export function LocationGraderAuditBanner({
   locationId,
@@ -48,7 +49,7 @@ export function LocationGraderAuditBanner({
       <div className="min-w-0 space-y-1">
         <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
           <RadarIcon className="size-3.5" />
-          Visibility audit linked
+          {SCORE_LABELS.marketAuditShort} linked
         </p>
         <p className="text-sm text-foreground">
           <span className="font-semibold tabular-nums">{audit.totalScore}/100</span>

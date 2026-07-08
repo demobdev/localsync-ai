@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 
 import type { AuditReport } from "@/lib/grader/types";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 
 export function ImproveWithAICTA({
   report,
@@ -84,7 +85,7 @@ export function ImproveWithAICTA({
               </div>
               <div className="rounded-xl bg-white/10 p-2.5">
                 <p className="text-[10px] font-medium text-emerald-200">
-                  Visibility score
+                  {SCORE_LABELS.marketAuditShort}
                 </p>
                 <p className="text-xl font-bold text-white">92/100</p>
                 <div className="mt-1 h-1 rounded-full bg-white/20">

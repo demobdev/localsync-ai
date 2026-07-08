@@ -21,8 +21,8 @@
 | 1 | `/` | LocalMap = agency + product; LocalSync = engine. Four pillars on the page. |
 | 2 | Sign in | No org picker noise for solo users — workspace is automatic. |
 | 3 | `/dashboard/onboarding` | One form: business name, city, category, phone. ~1 minute. |
-| 4 | Success screen | **20 publishers** auto-tracked; visibility score starts low until profile fills out. |
-| 5 | `/dashboard` | Stat cards are clickable. Explain visibility vs audits vs publishers. |
+| 4 | Success screen | **20 publishers** auto-tracked; workspace health starts low until profile fills out. |
+| 5 | `/dashboard` | Stat cards are clickable. Explain **market audit** (grader) vs **workspace health** vs listing consistency. |
 
 **If user already has a business:** onboarding redirects to dashboard automatically. Add more via **Locations → Add another business**.
 
@@ -64,8 +64,9 @@
 
 | Dashboard number | Meaning |
 |------------------|---------|
-| **Visibility score** | Profile completeness (incl. FAQs) + audit consistency. |
-| **Listing audits** | Audit half of score (0 until you run an audit). |
+| **Market audit** | Grader score — external rankings, site, GBP signals (0–100). |
+| **Workspace health** | In-app profile completeness + listing consistency (0–100). |
+| **Listing consistency** | Listing audit half of workspace health (0–50 until first audit). |
 | **Businesses** | Location count in workspace. |
 | **Publishers tracked** | ~20 seeded directories linked per location. |
 

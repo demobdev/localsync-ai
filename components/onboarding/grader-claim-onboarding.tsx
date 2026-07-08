@@ -21,6 +21,7 @@ import type { AuditClaimContext, OrgLocationOption } from "@/lib/grader/claim-co
 import type { OrganizationType } from "@/lib/auth/organizations";
 import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import { gradeForScore } from "@/lib/grader/scoring";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 
 type GraderClaimStep = "account-type" | "agency-name" | "link-or-create";
 
@@ -31,7 +32,7 @@ function GraderAuditHero({ claimContext }: { claimContext: AuditClaimContext }) 
   return (
     <div className="rounded-2xl border border-emerald-200/60 bg-gradient-to-br from-emerald-50/90 to-white p-5 dark:from-emerald-950/20 dark:to-card">
       <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
-        Visibility audit · {label}
+        {SCORE_LABELS.marketAuditShort} · {label}
       </p>
       <div className="mt-2 flex flex-wrap items-end gap-4">
         <div>

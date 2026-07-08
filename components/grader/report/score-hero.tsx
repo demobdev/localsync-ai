@@ -3,6 +3,7 @@
 import { ListChecksIcon, MapPinIcon, MonitorSmartphoneIcon, SearchIcon } from "lucide-react";
 
 import { CATEGORY_MAX, type AuditReport } from "@/lib/grader/types";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 
 import { gradeColor, Pill, ReportCard, ScoreRing } from "./primitives";
 
@@ -52,7 +53,7 @@ export function ScoreHero({ report }: { report: AuditReport }) {
         <div className="space-y-1">
           <p className="flex items-center justify-center gap-1.5 text-sm font-medium tracking-wide text-zinc-500 uppercase">
             <ListChecksIcon className="size-4" />
-            LocalSync Visibility Score
+            {SCORE_LABELS.marketAudit}
           </p>
           <h1 className="text-2xl font-bold text-zinc-900 sm:text-3xl">
             {report.businessName}

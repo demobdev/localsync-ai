@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 import type { VisibilityScoreBreakdown } from "@/lib/visibility/score";
 
 type VisibilityData = {
@@ -56,7 +57,9 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border bg-card p-6 localmap-card-glow">
       <p className={`text-5xl font-bold tabular-nums ${tone}`}>{score}</p>
-      <p className="mt-1 text-sm text-muted-foreground">Visibility score / 100</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {SCORE_LABELS.workspaceHealth} / 100
+      </p>
     </div>
   );
 }
@@ -83,14 +86,17 @@ export function VisibilityPanel({ data }: { data: VisibilityData }) {
         <ScoreRing score={data.score.total} />
         <Card className="localmap-card-glow">
           <CardHeader>
-            <CardTitle>Score breakdown</CardTitle>
+            <CardTitle>{SCORE_LABELS.workspaceHealth} breakdown</CardTitle>
             <CardDescription>
-              Profile completeness (50 pts) + listing audit consistency (50 pts).
+              {SCORE_LABELS.profileCompleteness} (50 pts) +{" "}
+              {SCORE_LABELS.listingConsistency.toLowerCase()} (50 pts).
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-sm font-medium">Profile · {data.score.profileScore}/50</p>
+              <p className="text-sm font-medium">
+                {SCORE_LABELS.profileCompleteness} · {data.score.profileScore}/50
+              </p>
               <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                 {data.score.profileChecks.map((check) => (
                   <li key={check.label} className="flex items-center gap-2">
@@ -101,7 +107,9 @@ export function VisibilityPanel({ data }: { data: VisibilityData }) {
               </ul>
             </div>
             <div>
-              <p className="text-sm font-medium">Audits · {data.score.auditScore}/50</p>
+              <p className="text-sm font-medium">
+                {SCORE_LABELS.listingConsistency} · {data.score.auditScore}/50
+              </p>
               {data.score.auditSummary ? (
                 <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
                   <li>{data.score.auditSummary.runs} completed run(s)</li>

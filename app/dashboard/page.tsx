@@ -28,6 +28,7 @@ import { RecentMarketingInsightCard } from "@/components/dashboard/recent-market
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkline } from "@/components/ui/sparkline";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 import {
   Card,
   CardContent,
@@ -221,14 +222,14 @@ export default async function DashboardPage({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {
-            label: "Visibility audit",
+            label: SCORE_LABELS.marketAuditShort,
             value: graderSummary.averageScore != null ? `${graderSummary.averageScore}` : "—",
             hint:
               graderSummary.auditedLocationCount > 0
                 ? graderSummary.latestScoreDelta != null
                   ? `${graderSummary.latestScoreDelta >= 0 ? "+" : ""}${graderSummary.latestScoreDelta} pts on latest re-grade · ${graderSummary.auditedLocationCount}/${graderSummary.totalLocationCount} locations audited.`
-                  : `${graderSummary.auditedLocationCount} location${graderSummary.auditedLocationCount === 1 ? "" : "s"} with grader scores. Re-run audits to track improvement.`
-                : "Run the grader on a location to get your first audit score.",
+                  : `${graderSummary.auditedLocationCount} location${graderSummary.auditedLocationCount === 1 ? "" : "s"} with market audit scores. Re-run audits to track improvement.`
+                : "Run the grader on a location to get your first market audit score.",
             icon: FileBarChart2Icon,
             tone: "text-emerald-600",
             href: graderSummary.trendLocationId
@@ -237,13 +238,13 @@ export default async function DashboardPage({
             trend: graderSummary.scoreTrend,
           },
           {
-            label: "Profile score",
+            label: SCORE_LABELS.workspaceHealth,
             value: hasData ? `${visibility.averageScore}` : "—",
             hint: hasData
               ? history.length > 1
                 ? `${history[history.length - 1]!.score - history[0]!.score >= 0 ? "+" : ""}${history[history.length - 1]!.score - history[0]!.score} over ${history.length} days tracked.`
-                : "How complete + consistent your business info is. Click to improve it."
-              : "Add a business to get your first score.",
+                : "Profile completeness + listing consistency in LocalSync. Click to improve."
+              : "Add a business to get your first workspace health score.",
             icon: GlobeIcon,
             tone: "text-primary",
             href: topLocation
@@ -252,9 +253,11 @@ export default async function DashboardPage({
             trend: history.map((point) => point.score),
           },
           {
-            label: "Listing audits",
-            value: hasData ? String(topLocation?.score.auditScore ?? 0) : "—",
-            hint: "We crawl your public listings and flag wrong info. Click to run one.",
+            label: SCORE_LABELS.listingConsistency,
+            value: hasData
+              ? `${topLocation?.score.auditScore ?? 0}/50`
+              : "—",
+            hint: "Listing audit points (0–50). Run a listing audit to unlock this half of workspace health.",
             icon: RadarIcon,
             tone: "text-chart-2",
             href: topLocation

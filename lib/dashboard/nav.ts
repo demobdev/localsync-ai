@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { SCORE_LABELS } from "@/lib/scores/labels";
+
 export type DashboardNavItem = {
   title: string;
   href: string;
@@ -64,7 +66,7 @@ const billingNavItem: DashboardNavItem = {
 };
 
 const visibilityAuditNavItem: DashboardNavItem = {
-  title: "Visibility audit",
+  title: SCORE_LABELS.marketAuditShort,
   href: "/grader",
   icon: FileBarChart2,
 };

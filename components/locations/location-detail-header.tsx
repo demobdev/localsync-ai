@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeftIcon, GlobeIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 
 export function LocationDetailHeader({
   locationId,
@@ -53,7 +54,7 @@ export function LocationDetailHeader({
                 {visibilityScore}
               </p>
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Visibility
+                {SCORE_LABELS.workspaceHealthShort}
               </p>
             </div>
           </Link>
