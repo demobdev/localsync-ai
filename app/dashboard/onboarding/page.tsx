@@ -23,6 +23,8 @@ import { countOrgLocations } from "@/lib/org/locations";
 import { getLocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { getScanPrefill } from "@/lib/scan/leads";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardOnboardingPage({
   searchParams,
 }: {

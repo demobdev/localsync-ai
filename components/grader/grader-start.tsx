@@ -392,6 +392,9 @@ export function GraderStart({
   const [isPending, startTransition] = useTransition();
   const [operatingModel, setOperatingModel] =
     useState<GraderOperatingModel>(initialModel);
+  const [showModelOptions, setShowModelOptions] = useState(
+    initialModel !== "storefront",
+  );
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -594,50 +597,6 @@ export function GraderStart({
 
   return (
     <div className="rounded-3xl border border-black/5 bg-white/90 p-6 shadow-sm sm:p-8">
-      <fieldset className="mb-5">
-        <legend className="mb-3 text-sm font-semibold text-zinc-800">
-          What kind of business is this?
-        </legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {OPERATING_MODELS.map((option) => {
-            const Icon = option.icon;
-            const active = operatingModel === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => {
-                  setOperatingModel(option.id);
-                  setSelectedPlace(null);
-                  setNotFound(false);
-                }}
-                className={cn(
-                  "flex items-start gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors",
-                  active
-                    ? "border-emerald-500 bg-emerald-50/80"
-                    : "border-zinc-200 bg-white hover:border-zinc-300",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "mt-0.5 size-4 shrink-0",
-                    active ? "text-emerald-700" : "text-zinc-400",
-                  )}
-                />
-                <span>
-                  <span className="block text-sm font-medium text-zinc-900">
-                    {option.label}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-zinc-500">
-                    {option.hint}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
         <div ref={containerRef} className="relative flex-1">
           <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-zinc-400" />
@@ -726,6 +685,67 @@ export function GraderStart({
           <ArrowRightIcon className="size-4" />
         </button>
       </form>
+
+      <div className="mt-3 text-center text-sm text-zinc-500">
+        {operatingModel === "storefront" && !showModelOptions ? (
+          <button
+            type="button"
+            className="font-medium text-emerald-700 hover:text-emerald-800"
+            onClick={() => setShowModelOptions(true)}
+          >
+            Mobile, service-area, or online-only business?
+          </button>
+        ) : (
+          <div className="space-y-2 text-left">
+            <p className="text-center text-xs font-medium tracking-wide text-zinc-500 uppercase">
+              Optional — only if you&apos;re not a storefront
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {OPERATING_MODELS.filter((option) => option.id !== "storefront").map(
+                (option) => {
+                  const active = operatingModel === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => {
+                        setOperatingModel(option.id);
+                        setSelectedPlace(null);
+                        setNotFound(false);
+                      }}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        active
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                          : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                },
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setOperatingModel("storefront");
+                  setShowModelOptions(false);
+                  setSelectedPlace(null);
+                  setNotFound(false);
+                }}
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  operatingModel === "storefront"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-800"
+                    : "border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300",
+                )}
+              >
+                Storefront
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {selectedPlace ? (
         <div className="mt-3 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4">

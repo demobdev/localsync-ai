@@ -79,8 +79,9 @@ export default async function GraderPage({
                 you.
               </h1>
               <p className="mx-auto max-w-xl text-lg text-zinc-600">
-                Search your business on Google — or tell us if you&apos;re mobile
-                or online-first. We match the audit to how you actually operate.
+                Search your business on Google — the same way customers find you
+                today. We&apos;ll grade your visibility and show where revenue
+                is leaking.
               </p>
             </div>
 

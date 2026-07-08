@@ -25,13 +25,8 @@ function resolveInitialStep(input: {
   showAccountTypeChoice: boolean;
   hasWorkspace: boolean;
   organizationType: OrganizationType | null;
-  hasAuditPrefill: boolean;
 }): OnboardingStep {
   if (input.addingAnother) {
-    return "business";
-  }
-
-  if (input.hasAuditPrefill && !input.hasWorkspace) {
     return "business";
   }
 
@@ -75,7 +70,6 @@ export function OnboardingFlow({
       showAccountTypeChoice,
       hasWorkspace,
       organizationType,
-      hasAuditPrefill: prefill?.source === "audit",
     }),
   );
   const [selectedType, setSelectedType] = useState<AccountType | null>(() => {

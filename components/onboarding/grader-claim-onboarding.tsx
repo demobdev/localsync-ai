@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 
+import {
+  AccountTypeSelector,
+  type AccountType,
+} from "@/components/onboarding/account-type-selector";
+import { AgencySetupWizard } from "@/components/onboarding/agency-setup-wizard";
 import { AuditAlreadyClaimedCard } from "@/components/onboarding/audit-already-claimed-card";
 import { AuditLinkPicker } from "@/components/onboarding/audit-link-picker";
 import {
@@ -11,10 +16,13 @@ import {
 import type { BusinessCategoryOption } from "@/components/onboarding/business-category-select";
 import { OperatingModelGuide } from "@/components/onboarding/operating-model-guide";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { AuditClaimContext, OrgLocationOption } from "@/lib/grader/claim-context";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import { gradeForScore } from "@/lib/grader/scoring";
+
+type GraderClaimStep = "account-type" | "agency-name" | "link-or-create";
 
 function GraderAuditHero({ claimContext }: { claimContext: AuditClaimContext }) {
   const grade = gradeForScore(claimContext.score);
@@ -57,6 +65,22 @@ function GraderAuditHero({ claimContext }: { claimContext: AuditClaimContext }) 
   );
 }
 
+function resolveInitialGraderClaimStep(input: {
+  hasWorkspace: boolean;
+  organizationType: OrganizationType | null;
+  existingLocationCount: number;
+}): GraderClaimStep {
+  if (!input.hasWorkspace) {
+    return "account-type";
+  }
+
+  if (input.existingLocationCount > 0) {
+    return "link-or-create";
+  }
+
+  return "link-or-create";
+}
+
 export function GraderClaimOnboarding({
   claimContext,
   categories,
@@ -78,6 +102,19 @@ export function GraderClaimOnboarding({
   organizationName: string | null;
   onboardingIntent?: OnboardingIntent;
 }) {
+  const [step, setStep] = useState<GraderClaimStep>(() =>
+    resolveInitialGraderClaimStep({
+      hasWorkspace,
+      organizationType,
+      existingLocationCount: existingLocations.length,
+    }),
+  );
+  const [selectedType, setSelectedType] = useState<AccountType | null>(() => {
+    if (organizationType === "agency") return "agency";
+    if (organizationType === "business" && hasWorkspace) return "business";
+    return null;
+  });
+  const [agencyName, setAgencyName] = useState(organizationName ?? "");
   const [showCreateForm, setShowCreateForm] = useState(
     existingLocations.length === 0,
   );
@@ -92,60 +129,117 @@ export function GraderClaimOnboarding({
   }
 
   const businessMode: BusinessSetupMode =
-    organizationType === "agency" ? "agency-client" : "initial-business";
+    selectedType === "agency" || organizationType === "agency"
+      ? "agency-client"
+      : "initial-business";
+
+  function handleAccountTypeSelect(type: AccountType) {
+    setSelectedType(type);
+    if (type === "agency") {
+      setStep("agency-name");
+      return;
+    }
+    setStep("link-or-create");
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Connect your audit to LocalSync
+          {step === "account-type"
+            ? "How will you use LocalSync?"
+            : "Connect your audit to LocalSync"}
         </h1>
         <p className="mt-2 text-muted-foreground">
-          Your grader results are ready — link them to a workspace location and
-          start fixing what&apos;s holding you back in local search.
+          {step === "account-type"
+            ? "Pick the path that matches how you manage listings — your visibility audit is saved and ready to link."
+            : "Link your grader results to a workspace location and start fixing what's holding you back in local search."}
         </p>
       </div>
 
-      <GraderAuditHero claimContext={claimContext} />
-
-      {claimContext.operatingModel ? (
-        <OperatingModelGuide prefill={claimContext} />
+      {step !== "account-type" ? (
+        <GraderAuditHero claimContext={claimContext} />
       ) : null}
 
-      {hasWorkspace &&
-      existingLocations.length > 0 &&
-      !showCreateForm &&
-      organizationId ? (
-        <AuditLinkPicker
-          auditId={claimContext.auditId!}
-          businessName={claimContext.businessName}
-          existingLocations={existingLocations}
-          suggestedLocationId={suggestedLocationId}
-          organizationId={organizationId}
-          onboardingIntent={onboardingIntent}
-          onCreateNew={() => setShowCreateForm(true)}
-        />
-      ) : (
+      {step === "account-type" ? (
+        <AccountTypeSelector onSelect={handleAccountTypeSelect} />
+      ) : null}
+
+      {step === "agency-name" ? (
         <>
-          {hasWorkspace && existingLocations.length > 0 ? (
-            <button
-              type="button"
-              className="text-sm font-medium text-primary hover:underline"
-              onClick={() => setShowCreateForm(false)}
-            >
-              ← Link to an existing business instead
-            </button>
-          ) : null}
-          <BusinessSetupWizard
-            categories={categories}
-            hasWorkspace={hasWorkspace}
-            mode={businessMode}
-            agencyName={organizationName ?? undefined}
-            prefill={claimContext}
-            onboardingIntent={onboardingIntent}
+          <AgencySetupWizard
+            onComplete={(name) => {
+              setAgencyName(name);
+              setStep("link-or-create");
+            }}
           />
+          <Button
+            variant="ghost"
+            className="self-start px-0 text-muted-foreground"
+            onClick={() => {
+              setSelectedType(null);
+              setStep("account-type");
+            }}
+          >
+            ← Back to account type
+          </Button>
         </>
-      )}
+      ) : null}
+
+      {step === "link-or-create" ? (
+        <>
+          {claimContext.operatingModel ? (
+            <OperatingModelGuide prefill={claimContext} />
+          ) : null}
+
+          {hasWorkspace &&
+          existingLocations.length > 0 &&
+          !showCreateForm &&
+          organizationId ? (
+            <AuditLinkPicker
+              auditId={claimContext.auditId!}
+              businessName={claimContext.businessName}
+              existingLocations={existingLocations}
+              suggestedLocationId={suggestedLocationId}
+              organizationId={organizationId}
+              onboardingIntent={onboardingIntent}
+              onCreateNew={() => setShowCreateForm(true)}
+            />
+          ) : (
+            <>
+              {hasWorkspace && existingLocations.length > 0 ? (
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary hover:underline"
+                  onClick={() => setShowCreateForm(false)}
+                >
+                  ← Link to an existing business instead
+                </button>
+              ) : null}
+              <BusinessSetupWizard
+                categories={categories}
+                hasWorkspace={hasWorkspace || selectedType === "agency"}
+                mode={businessMode}
+                agencyName={agencyName || organizationName || undefined}
+                prefill={claimContext}
+                onboardingIntent={onboardingIntent}
+              />
+              {!hasWorkspace && selectedType !== "agency" ? (
+                <Button
+                  variant="ghost"
+                  className="self-start px-0 text-muted-foreground"
+                  onClick={() => {
+                    setSelectedType(null);
+                    setStep("account-type");
+                  }}
+                >
+                  ← Back to account type
+                </Button>
+              ) : null}
+            </>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }
