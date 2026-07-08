@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { ScanPrefill } from "@/lib/scan/leads";
+import type { SetupPrefill } from "@/lib/onboarding/prefill";
 
 export type BusinessSetupMode =
   | "initial-business"
@@ -69,14 +69,18 @@ export function BusinessSetupWizard({
   hasWorkspace: boolean;
   mode?: BusinessSetupMode;
   agencyName?: string;
-  prefill?: ScanPrefill | null;
+  prefill?: SetupPrefill | null;
 }) {
   const router = useRouter();
   const { setActive } = useClerk();
   const [categorySlug, setCategorySlug] = useState(
-    categories.find((category) => category.slug === "internet-saas")?.slug ??
-      categories[0]?.slug ??
-      "internet-saas",
+    // Audit prefill carries a detected industry — preselect it when valid.
+    (prefill?.categorySlug &&
+      categories.find((category) => category.slug === prefill.categorySlug)
+        ?.slug) ||
+      (categories.find((category) => category.slug === "internet-saas")?.slug ??
+        categories[0]?.slug ??
+        "internet-saas"),
   );
   const [isPending, startTransition] = useTransition();
   const copy = copyByMode[mode];
@@ -92,6 +96,7 @@ export function BusinessSetupWizard({
           state: String(formData.get("state") ?? "") || undefined,
           website: String(formData.get("website") ?? "") || undefined,
           workspaceType: mode === "agency-client" ? "agency" : "business",
+          auditId: prefill?.auditId,
         });
 
         if (setup.createdOrganization) {
@@ -100,9 +105,16 @@ export function BusinessSetupWizard({
           await setActive({ organization: setup.organizationId });
         }
 
-        router.replace(
-          `/dashboard/onboarding?done=1&location=${setup.locationId}&publishers=${setup.publishersTracked}&accountType=${mode === "agency-client" ? "agency" : "business"}`,
-        );
+        const doneParams = new URLSearchParams({
+          done: "1",
+          location: setup.locationId,
+          publishers: String(setup.publishersTracked),
+          accountType: mode === "agency-client" ? "agency" : "business",
+        });
+        if (setup.claimedAuditId) {
+          doneParams.set("audit", setup.claimedAuditId);
+        }
+        router.replace(`/dashboard/onboarding?${doneParams.toString()}`);
         router.refresh();
       } catch (error) {
         toast.error(

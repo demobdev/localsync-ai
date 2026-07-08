@@ -160,8 +160,16 @@ export function roundFriendly(value: number): number {
 export function deriveTopProblems(input: {
   checks: AuditCheck[];
   keywords: KeywordResult[];
+  /** false = no-website audit; leads the list with the missing site. */
+  hasWebsite?: boolean;
 }): string[] {
   const problems: string[] = [];
+
+  if (input.hasWebsite === false) {
+    problems.push(
+      "No website found — the single biggest local visibility leak",
+    );
+  }
 
   const unrankedMap = input.keywords.filter((k) => k.yourMapRank === null).length;
   if (unrankedMap > 0 && input.keywords.length > 0) {

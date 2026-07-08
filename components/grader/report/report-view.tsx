@@ -70,6 +70,7 @@ export function GraderReport({
   const problems = deriveTopProblems({
     checks: report.checks,
     keywords: report.keywords,
+    hasWebsite: report.websiteUrl !== null,
   });
   const fixPlan = deriveFixPlan(report.checks);
 

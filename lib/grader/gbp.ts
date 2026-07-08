@@ -27,14 +27,24 @@ function createRng(seed: string): () => number {
 }
 
 export function buildSampleGbpProfile(input: {
+  /** Seed for deterministic sample values (domain, or placeId when no website). */
   websiteDomain: string;
   extracted: ExtractedBusiness;
+  /** False when the business has no website — the website field must fail. */
+  hasWebsite?: boolean;
+  /** Real values from the Places record, when the audit started from autocomplete. */
+  realRating?: number | null;
+  realReviewCount?: number | null;
 }): GbpProfile {
   const rng = createRng(input.websiteDomain);
   const { extracted } = input;
+  const hasWebsite = input.hasWebsite ?? true;
 
-  const rating = Math.round((3.6 + rng() * 1.1) * 10) / 10;
-  const reviewCount = 12 + Math.floor(rng() * 140);
+  const sampleRating = Math.round((3.6 + rng() * 1.1) * 10) / 10;
+  const sampleReviewCount = 12 + Math.floor(rng() * 140);
+  const ratingIsReal = input.realRating != null;
+  const rating = input.realRating ?? sampleRating;
+  const reviewCount = input.realReviewCount ?? sampleReviewCount;
   const hasDescription = Boolean(extracted.description) && rng() > 0.35;
   const respondsToReviews = rng() > 0.6;
   const recentReviews = rng() > 0.45;
@@ -43,8 +53,10 @@ export function buildSampleGbpProfile(input: {
     {
       id: "website",
       label: "First-party website linked",
-      status: "pass",
-      detail: `Profile links to ${input.websiteDomain} — customers land on your site, not a third-party page.`,
+      status: hasWebsite ? "pass" : "fail",
+      detail: hasWebsite
+        ? `Profile links to ${input.websiteDomain} — customers land on your site, not a third-party page.`
+        : "No website found. Your profile sends customers nowhere — competitors with a site win the click.",
     },
     {
       id: "description",
@@ -67,7 +79,9 @@ export function buildSampleGbpProfile(input: {
       label: "Phone number listed",
       status: extracted.phone ? "pass" : "fail",
       detail: extracted.phone
-        ? `${extracted.phone} is listed and matches your website.`
+        ? hasWebsite
+          ? `${extracted.phone} is listed and matches your website.`
+          : `${extracted.phone} is listed on the profile.`
         : "No phone number confirmed on the profile.",
     },
     {
@@ -137,5 +151,12 @@ export function buildSampleGbpProfile(input: {
     },
   ];
 
-  return { rating, reviewCount, profileFields, reviewFields, isSample: true };
+  return {
+    rating,
+    reviewCount,
+    profileFields,
+    reviewFields,
+    isSample: true,
+    ratingIsReal,
+  };
 }

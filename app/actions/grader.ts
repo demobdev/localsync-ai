@@ -7,10 +7,18 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { graderAudits, graderLeads } from "@/db/schema";
 import { scrapeUrlFull } from "@/lib/firecrawl";
-import { buildAuditChecks } from "@/lib/grader/checks";
+import {
+  applyNoWebsiteOverrides,
+  buildAuditChecks,
+} from "@/lib/grader/checks";
 import { buildSampleGbpProfile } from "@/lib/grader/gbp";
 import { INDUSTRY_SLUGS } from "@/lib/grader/industry";
-import { fetchPageSpeed } from "@/lib/grader/pagespeed";
+import { emptyPageSpeed, fetchPageSpeed } from "@/lib/grader/pagespeed";
+import {
+  mapPlaceTypeToIndustry,
+  parseCityState,
+  type GraderPlaceInput,
+} from "@/lib/grader/place";
 import {
   deriveCompetitors,
   generateKeywords,
@@ -77,17 +85,49 @@ function normalizeUrl(raw: string): string {
   return parsed.toString();
 }
 
+/** Signals shape for businesses without a website — everything absent. */
+function noWebsiteSignals(): Awaited<ReturnType<typeof analyzeSite>> {
+  return {
+    https: false,
+    customDomain: false,
+    domainMatchesName: null,
+    h1Text: null,
+    title: null,
+    metaDescription: null,
+    hasOpenGraph: false,
+    hasJsonLd: false,
+    hasLocalBusinessSchema: false,
+    hasCanonical: false,
+    noindex: false,
+    hasViewportMeta: false,
+    hasTelLink: false,
+    hasFavicon: false,
+    robotsTxtOk: null,
+    sitemapOk: null,
+  };
+}
+
 export async function startGraderAuditAction(input: {
-  url: string;
+  /** Website URL; may be omitted when a place without a website is selected. */
+  url?: string;
+  /** Google Places selection from the landing autocomplete. */
+  place?: GraderPlaceInput;
   scanLeadId?: string;
 }): Promise<{ auditId: string }> {
-  const url = normalizeUrl(input.url);
-  const db = getDb();
+  const rawUrl = input.url?.trim() || input.place?.websiteUri?.trim() || null;
+  const url = rawUrl ? normalizeUrl(rawUrl) : null;
+  const place = input.place ?? null;
 
+  if (!url && !place) {
+    throw new Error("Enter your business website URL");
+  }
+
+  const db = getDb();
   const [pending] = await db
     .insert(graderAudits)
     .values({
-      url,
+      // url is NOT NULL for record-keeping; no-website audits store a marker.
+      url: url ?? `place:${place!.placeId}`,
       websiteUrl: url,
       status: "scanning",
       scanLeadId: input.scanLeadId ?? null,
@@ -97,53 +137,92 @@ export async function startGraderAuditAction(input: {
   if (!pending) throw new Error("Could not start the audit");
 
   try {
-    // Crawl + PageSpeed run in parallel; PSI degrades to "unknown" on failure.
-    const [scrape, pageSpeed] = await Promise.all([
-      scrapeUrlFull(url),
-      fetchPageSpeed(url),
-    ]);
-    const markdown = scrape.markdown.slice(0, 25000);
+    const placeCityState = parseCityState(place?.formattedAddress);
 
-    const { object } = await generateObject({
-      model: GRADER_MODEL,
-      schema: graderExtractionSchema,
-      prompt: [
-        "You are auditing a local business website for a visibility report.",
-        `Source URL: ${url}`,
-        "Extract ONLY information explicitly present on the page. Use null when absent.",
-        "For booleans, judge from the page content order (earlier = closer to the top).",
-        "",
-        "Page content (markdown):",
-        markdown,
-      ].join("\n"),
-    });
+    let extracted: ExtractedBusiness;
+    let signals: Awaited<ReturnType<typeof analyzeSite>>;
+    let pageSpeed: Awaited<ReturnType<typeof fetchPageSpeed>>;
+    let websiteDomain: string;
 
-    const extracted: ExtractedBusiness = {
-      businessName: object.businessName,
-      phone: object.phone,
-      address: object.address,
-      city: object.city,
-      state: object.state,
-      hoursSummary: object.hoursSummary,
-      services: object.services,
-      description: object.description,
-      industry: object.industry,
-      phoneVisible: object.phoneVisible,
-      addressVisible: object.addressVisible,
-      hoursVisible: object.hoursVisible,
-      hasCallToAction: object.hasCallToAction,
-      hasTestimonials: object.hasTestimonials,
-    };
+    if (url) {
+      // ── Website path: crawl + extract, PSI in parallel ─────────────────
+      const [scrape, psi] = await Promise.all([
+        scrapeUrlFull(url),
+        fetchPageSpeed(url),
+      ]);
+      pageSpeed = psi;
+      const markdown = scrape.markdown.slice(0, 25000);
 
-    const signals = await analyzeSite({
-      url: scrape.finalUrl ?? url,
-      rawHtml: scrape.rawHtml,
-      title: scrape.title ?? null,
-      metaDescription: scrape.description ?? null,
-      businessName: extracted.businessName,
-    });
+      const { object } = await generateObject({
+        model: GRADER_MODEL,
+        schema: graderExtractionSchema,
+        prompt: [
+          "You are auditing a local business website for a visibility report.",
+          `Source URL: ${url}`,
+          "Extract ONLY information explicitly present on the page. Use null when absent.",
+          "For booleans, judge from the page content order (earlier = closer to the top).",
+          "",
+          "Page content (markdown):",
+          markdown,
+        ].join("\n"),
+      });
 
-    const websiteDomain = new URL(url).hostname.replace(/^www\./, "");
+      // Place data (when present) fills gaps the crawl missed — the place
+      // record is authoritative for identity, the site for on-page signals.
+      extracted = {
+        businessName: place?.name ?? object.businessName,
+        phone: object.phone ?? place?.phone ?? null,
+        address: object.address ?? place?.formattedAddress ?? null,
+        city: object.city ?? placeCityState.city,
+        state: object.state ?? placeCityState.state,
+        hoursSummary: object.hoursSummary,
+        services: object.services,
+        description: object.description,
+        industry: object.industry,
+        phoneVisible: object.phoneVisible,
+        addressVisible: object.addressVisible,
+        hoursVisible: object.hoursVisible,
+        hasCallToAction: object.hasCallToAction,
+        hasTestimonials: object.hasTestimonials,
+        latitude: place?.latitude ?? null,
+        longitude: place?.longitude ?? null,
+        placeId: place?.placeId ?? null,
+      };
+
+      signals = await analyzeSite({
+        url: scrape.finalUrl ?? url,
+        rawHtml: scrape.rawHtml,
+        title: scrape.title ?? null,
+        metaDescription: scrape.description ?? null,
+        businessName: extracted.businessName,
+      });
+      websiteDomain = new URL(url).hostname.replace(/^www\./, "");
+    } else {
+      // ── No-website path: the place record is all we have ───────────────
+      extracted = {
+        businessName: place!.name,
+        phone: place!.phone ?? null,
+        address: place!.formattedAddress ?? null,
+        city: placeCityState.city,
+        state: placeCityState.state,
+        hoursSummary: null,
+        services: [],
+        description: null,
+        industry: mapPlaceTypeToIndustry(place!.primaryType),
+        phoneVisible: false,
+        addressVisible: false,
+        hoursVisible: false,
+        hasCallToAction: false,
+        hasTestimonials: false,
+        latitude: place!.latitude ?? null,
+        longitude: place!.longitude ?? null,
+        placeId: place!.placeId,
+      };
+      signals = noWebsiteSignals();
+      pageSpeed = emptyPageSpeed();
+      websiteDomain = place!.placeId; // deterministic sample seed
+    }
+
     const businessName =
       extracted.businessName ?? websiteDomain.split(".")[0] ?? websiteDomain;
 
@@ -153,15 +232,32 @@ export async function startGraderAuditAction(input: {
       city: extracted.city,
       state: extracted.state,
       industry: extracted.industry,
+      latitude: extracted.latitude,
+      longitude: extracted.longitude,
       keywords: generateKeywords({
         industry: extracted.industry,
         city: extracted.city,
       }),
     });
     const competitors = deriveCompetitors(keywords);
-    const gbpProfile = buildSampleGbpProfile({ websiteDomain, extracted });
+    const gbpProfile = buildSampleGbpProfile({
+      websiteDomain,
+      extracted,
+      hasWebsite: Boolean(url),
+      realRating: place?.rating ?? null,
+      realReviewCount: place?.reviewCount ?? null,
+    });
 
-    const checks = buildAuditChecks({ signals, extracted, pageSpeed, gbp: gbpProfile });
+    let checks = buildAuditChecks({
+      signals,
+      extracted,
+      pageSpeed,
+      gbp: gbpProfile,
+    });
+    if (!url) {
+      checks = applyNoWebsiteOverrides(checks);
+    }
+
     const scores = scoreAudit({ checks, keywords });
     const estimatedMonthlyLoss = estimateMonthlyLoss({
       industry: extracted.industry,

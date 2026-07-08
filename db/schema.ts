@@ -704,6 +704,13 @@ export const graderAudits = pgTable(
       onDelete: "set null",
     }),
     leadCaptured: boolean("lead_captured").notNull().default(false),
+    /** Set when a signed-in user claims this audit during onboarding. */
+    claimedByUserId: text("claimed_by_user_id"),
+    organizationId: text("organization_id"),
+    locationId: uuid("location_id").references(() => locations.id, {
+      onDelete: "set null",
+    }),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

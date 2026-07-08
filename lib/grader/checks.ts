@@ -598,6 +598,27 @@ export function buildAuditChecks(input: {
   return checks;
 }
 
+/**
+ * No-website mode: every check that reads the website fails with explicit
+ * "No website found" evidence. Listings (GBP) checks are left untouched —
+ * they don't depend on a site existing.
+ */
+export function applyNoWebsiteOverrides(checks: AuditCheck[]): AuditCheck[] {
+  return checks.map((check) => {
+    if (check.category === "listings") return check;
+    if (check.id === "gbp-website") return check;
+
+    return {
+      ...check,
+      status: "fail" as const,
+      detail:
+        "No website found — this check can't pass without one. A missing website is the single biggest local visibility leak.",
+      recommendation:
+        "Launch even a simple one-page website with your name, services, city, phone, and hours — it unlocks every check in this section.",
+    };
+  });
+}
+
 function metricStatus(
   pageSpeed: PageSpeedData,
   id: "LCP" | "CLS" | "INP",

@@ -35,6 +35,9 @@ export type MapResult = {
   rating: number;
   reviewCount: number;
   isYou: boolean;
+  /** Optional coordinates — present when the audit has a real business location. */
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type OrganicResult = {
@@ -102,6 +105,8 @@ export type GbpProfile = {
   reviewFields: GbpField[];
   /** True while GBP data comes from sample generation (no Places API connected). */
   isSample: boolean;
+  /** True when rating/reviewCount came from the real Places record. */
+  ratingIsReal?: boolean;
 };
 
 export type ExtractedBusiness = {
@@ -119,6 +124,10 @@ export type ExtractedBusiness = {
   hoursVisible: boolean;
   hasCallToAction: boolean;
   hasTestimonials: boolean;
+  /** Present when the audit started from a Google Places selection. */
+  latitude?: number | null;
+  longitude?: number | null;
+  placeId?: string | null;
 };
 
 export type CategoryScores = {
@@ -148,11 +157,14 @@ export type FixPlan = {
 export type AuditReport = {
   id: string;
   url: string;
-  websiteUrl: string;
+  /** null = business has no website (itself the biggest leak). */
+  websiteUrl: string | null;
   businessName: string;
   city: string | null;
   state: string | null;
   phone: string | null;
+  latitude: number | null;
+  longitude: number | null;
   industry: string;
   status: string;
   totalScore: number;

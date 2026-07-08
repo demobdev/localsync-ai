@@ -63,11 +63,14 @@ export default async function GraderReportPage({
   const report: AuditReport = {
     id: audit.id,
     url: audit.url,
-    websiteUrl: audit.websiteUrl ?? audit.url,
+    // Null = no-website audit (url column holds a "place:" marker instead).
+    websiteUrl: audit.websiteUrl,
     businessName: audit.businessName ?? "Your business",
     city: audit.city,
     state: audit.state,
     phone: audit.phone,
+    latitude: audit.extracted?.latitude ?? null,
+    longitude: audit.extracted?.longitude ?? null,
     industry: audit.industry ?? "retail",
     status: audit.status,
     totalScore: audit.totalScore,

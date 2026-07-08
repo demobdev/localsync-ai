@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import {
   businessCategories,
   clients,
+  graderAudits,
   locationPublishers,
   locationVersions,
   locations,
@@ -16,6 +17,7 @@ import {
 import { upsertOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
+import { claimGraderAudit } from "@/lib/grader/claim";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
@@ -56,6 +58,8 @@ export type QuickSetupResult = {
   clientId: string;
   locationId: string;
   publishersTracked: number;
+  /** Set when a grader audit was linked to the new location. */
+  claimedAuditId: string | null;
 };
 
 export type CreateAgencyWorkspaceResult = {
@@ -114,6 +118,8 @@ export async function quickSetupBusinessAction(input: {
   state?: string;
   website?: string;
   workspaceType?: OrganizationType;
+  /** Grader audit to claim + enrich the profile from (optional). */
+  auditId?: string;
 }): Promise<QuickSetupResult> {
   const session = await auth();
 
@@ -128,6 +134,14 @@ export async function quickSetupBusinessAction(input: {
   }
 
   const db = getDb();
+
+  // Rich extracted data from the grader audit (crawl + Places), when linked.
+  const audit = input.auditId
+    ? await db.query.graderAudits.findFirst({
+        where: eq(graderAudits.id, input.auditId),
+        columns: { id: true, websiteUrl: true, extracted: true },
+      })
+    : null;
 
   // 1. Workspace: create a new org when none exists or setup is still incomplete.
   let organizationId = session.orgId ?? null;
@@ -197,13 +211,20 @@ export async function quickSetupBusinessAction(input: {
   }
 
   // 3. Location + initial profile snapshot.
+  const extracted = audit?.extracted ?? null;
   const profileBase: LocationProfileSnapshot = {
     ...EMPTY_LOCATION_PROFILE,
     name: businessName,
-    phone: input.phone?.trim() || undefined,
-    city: input.city?.trim() || undefined,
-    state: input.state?.trim() || undefined,
-    website: input.website?.trim() || undefined,
+    phone: input.phone?.trim() || extracted?.phone || undefined,
+    city: input.city?.trim() || extracted?.city || undefined,
+    state: input.state?.trim() || extracted?.state || undefined,
+    website: input.website?.trim() || audit?.websiteUrl || undefined,
+    // Audit-only enrichment: the crawl found these, no extra typing needed.
+    addressLine1: extracted?.address || undefined,
+    latitude: extracted?.latitude ?? undefined,
+    longitude: extracted?.longitude ?? undefined,
+    // A real description beats the category-pack template below.
+    description: extracted?.description || undefined,
     categorySlug: input.categorySlug,
     serviceSlugs: [],
   };
@@ -216,7 +237,7 @@ export async function quickSetupBusinessAction(input: {
 
   const profile: LocationProfileSnapshot = {
     ...profileBase,
-    description: packed.description,
+    description: profileBase.description ?? packed.description,
     serviceSlugs: packed.serviceSlugs,
   };
 
@@ -267,6 +288,20 @@ export async function quickSetupBusinessAction(input: {
     );
   }
 
+  // 5. Claim the grader audit that led here, linking it to this workspace.
+  let claimedAuditId: string | null = null;
+  if (audit) {
+    const claimed = await claimGraderAudit({
+      auditId: audit.id,
+      userId: session.userId,
+      organizationId,
+      locationId: location.id,
+    });
+    if (claimed) {
+      claimedAuditId = audit.id;
+    }
+  }
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/locations");
   revalidatePath("/dashboard/clients");
@@ -277,5 +312,6 @@ export async function quickSetupBusinessAction(input: {
     clientId,
     locationId: location.id,
     publishersTracked: allPublishers.length,
+    claimedAuditId,
   };
 }

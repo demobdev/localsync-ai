@@ -3,6 +3,7 @@ import {
   ArrowRightIcon,
   BuildingIcon,
   CheckCircle2Icon,
+  FileBarChart2Icon,
   GlobeIcon,
   RadarIcon,
   UserPlusIcon,
@@ -23,10 +24,13 @@ export function SetupCompleteCard({
   locationId,
   publishersTracked,
   accountType = "business",
+  auditId = null,
 }: {
   locationId: string;
   publishersTracked: number;
   accountType?: OrganizationType;
+  /** Claimed grader audit — links back to the full report. */
+  auditId?: string | null;
 }) {
   const isAgency = accountType === "agency";
 
@@ -121,6 +125,16 @@ export function SetupCompleteCard({
             {isAgency ? "Complete client profile" : "Complete your profile"}
             <ArrowRightIcon className="size-4" />
           </Button>
+          {auditId ? (
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={`/grader/${auditId}`} />}
+            >
+              <FileBarChart2Icon className="size-4" />
+              View your full audit report
+            </Button>
+          ) : null}
           {isAgency ? (
             <>
               <Button

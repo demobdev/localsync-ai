@@ -58,7 +58,11 @@ export function ScoreHero({ report }: { report: AuditReport }) {
             {report.businessName}
           </h1>
           <p className="text-sm text-zinc-500">
-            {report.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+            {report.websiteUrl ? (
+              report.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")
+            ) : (
+              <span className="font-medium text-red-600">No website found</span>
+            )}
             {report.city ? ` · ${report.city}${report.state ? `, ${report.state}` : ""}` : ""}
           </p>
         </div>

@@ -9,14 +9,20 @@ const UUID_RE =
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ scan?: string }>;
+  searchParams: Promise<{ scan?: string; audit?: string; auditId?: string }>;
 }) {
-  const { scan } = await searchParams;
+  const { scan, audit, auditId: auditIdParam } = await searchParams;
   const scanId = scan && UUID_RE.test(scan) ? scan : null;
+  const auditCandidate = audit ?? auditIdParam;
+  const auditId =
+    auditCandidate && UUID_RE.test(auditCandidate) ? auditCandidate : null;
 
-  const redirectUrl = scanId
-    ? `/dashboard/onboarding?scan=${scanId}`
-    : undefined;
+  // Audit wins over scan — it carries richer prefill data.
+  const redirectUrl = auditId
+    ? `/dashboard/onboarding?auditId=${auditId}&intent=fix`
+    : scanId
+      ? `/dashboard/onboarding?scan=${scanId}`
+      : undefined;
 
   return (
     <div className="localmap-mesh flex min-h-full flex-col">
@@ -25,7 +31,12 @@ export default async function SignUpPage({
         <ThemeToggle />
       </div>
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:p-6">
-        {scanId ? (
+        {auditId ? (
+          <p className="max-w-sm text-center text-sm text-muted-foreground">
+            Your audit report is saved — create an account and we&apos;ll
+            pre-fill your business profile and start fixing the leaks it found.
+          </p>
+        ) : scanId ? (
           <p className="max-w-sm text-center text-sm text-muted-foreground">
             Your scan results are saved — create an account and we&apos;ll
             pre-fill your business profile from them.

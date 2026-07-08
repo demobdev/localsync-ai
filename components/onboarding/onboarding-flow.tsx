@@ -13,7 +13,7 @@ import {
 } from "@/components/onboarding/business-setup-wizard";
 import type { BusinessCategoryOption } from "@/components/onboarding/business-category-select";
 import type { OrganizationType } from "@/lib/auth/organizations";
-import type { ScanPrefill } from "@/lib/scan/leads";
+import type { SetupPrefill } from "@/lib/onboarding/prefill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -51,7 +51,7 @@ export function OnboardingFlow({
   organizationName,
   addingAnother,
   showAccountTypeChoice,
-  scanPrefill = null,
+  prefill = null,
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
@@ -59,7 +59,7 @@ export function OnboardingFlow({
   organizationName: string | null;
   addingAnother: boolean;
   showAccountTypeChoice: boolean;
-  scanPrefill?: ScanPrefill | null;
+  prefill?: SetupPrefill | null;
 }) {
   const [step, setStep] = useState<OnboardingStep>(() =>
     resolveInitialStep({
@@ -151,12 +151,17 @@ export function OnboardingFlow({
           {heading.title}
         </h1>
         <p className="mt-2 text-muted-foreground">{heading.description}</p>
-        {scanPrefill ? (
+        {prefill ? (
           <Badge
             variant="secondary"
             className="mt-3 rounded-full border border-primary/20 bg-primary/10 text-primary"
           >
-            Pre-filled from your scan of {scanPrefill.url.replace(/^https?:\/\//, "").replace(/\/$/, "")} · score {scanPrefill.score}/100
+            Pre-filled from your {prefill.source === "audit" ? "audit" : "scan"}{" "}
+            of{" "}
+            {(prefill.url ?? prefill.businessName ?? "your business")
+              .replace(/^https?:\/\//, "")
+              .replace(/\/$/, "")}{" "}
+            · score {prefill.score}/100
           </Badge>
         ) : null}
       </div>
@@ -195,7 +200,7 @@ export function OnboardingFlow({
             hasWorkspace={hasWorkspace || selectedType === "agency"}
             mode={businessMode}
             agencyName={agencyName || organizationName || undefined}
-            prefill={scanPrefill}
+            prefill={prefill}
           />
           {!addingAnother && !hasWorkspace && selectedType !== "agency" ? (
             <Button

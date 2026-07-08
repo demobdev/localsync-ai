@@ -39,7 +39,11 @@ function ProblemSummaryCard({
             {report.businessName}
           </p>
           <p className="truncate text-sm text-zinc-500">
-            {report.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+            {report.websiteUrl ? (
+              report.websiteUrl.replace(/^https?:\/\//, "").replace(/\/$/, "")
+            ) : (
+              <span className="font-medium text-red-600">No website found</span>
+            )}
           </p>
         </div>
       </div>

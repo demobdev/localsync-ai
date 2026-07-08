@@ -25,6 +25,9 @@ export type RankLookupInput = {
   state: string | null;
   industry: string;
   keywords: string[];
+  /** Business coordinates when known (Places) — enables real map rendering. */
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 export interface RankProvider {
@@ -120,11 +123,16 @@ export const sampleRankProvider: RankProvider = {
       city: input.city,
     });
 
+    const hasCoords = input.latitude != null && input.longitude != null;
     const competitorMeta = competitorNames.map((name) => ({
       name,
       rating: Math.round((3.9 + rng() * 1.0) * 10) / 10,
       reviewCount: 40 + Math.floor(rng() * 380),
       domain: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.com`,
+      // Plausible spots near the real business so the static map renders a
+      // believable local cluster. Real coords arrive with a SERP provider.
+      lat: hasCoords ? input.latitude! + (rng() - 0.5) * 0.028 : null,
+      lng: hasCoords ? input.longitude! + (rng() - 0.5) * 0.036 : null,
     }));
 
     return input.keywords.map((keyword, keywordIndex) => {
@@ -145,6 +153,8 @@ export const sampleRankProvider: RankProvider = {
         rating: c.rating,
         reviewCount: c.reviewCount,
         isYou: false,
+        lat: c.lat,
+        lng: c.lng,
       }));
       if (yourMapRank !== null && yourMapRank <= 3) {
         mapResults[yourMapRank - 1] = {
@@ -153,6 +163,8 @@ export const sampleRankProvider: RankProvider = {
           rating: 4.2,
           reviewCount: 28 + Math.floor(rng() * 40),
           isYou: true,
+          lat: input.latitude ?? null,
+          lng: input.longitude ?? null,
         };
       }
 

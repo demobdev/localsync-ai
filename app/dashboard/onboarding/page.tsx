@@ -7,6 +7,8 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getOrganization } from "@/lib/auth/organizations";
+import { getAuditPrefill } from "@/lib/grader/claim";
+import { prefillFromScan, type SetupPrefill } from "@/lib/onboarding/prefill";
 import { countOrgLocations } from "@/lib/org/locations";
 import { getScanPrefill } from "@/lib/scan/leads";
 
@@ -20,6 +22,9 @@ export default async function DashboardOnboardingPage({
     add?: string;
     accountType?: string;
     scan?: string;
+    auditId?: string;
+    audit?: string;
+    intent?: string;
   }>;
 }) {
   const [session, categories, params] = await Promise.all([
@@ -37,14 +42,22 @@ export default async function DashboardOnboardingPage({
     ? await countOrgLocations(session.orgId)
     : 0;
   const showAccountTypeChoice = locationCount === 0 && !addingAnother;
-  const scanPrefill =
-    params.scan && !setupComplete ? await getScanPrefill(params.scan) : null;
 
-  if (
-    session.orgId &&
-    !setupComplete &&
-    !addingAnother
-  ) {
+  // Grader audit prefill wins over scan prefill when both params exist.
+  let prefill: SetupPrefill | null = null;
+  if (!setupComplete) {
+    if (params.auditId) {
+      prefill = await getAuditPrefill(params.auditId);
+    }
+    if (!prefill && params.scan) {
+      const scanPrefill = await getScanPrefill(params.scan);
+      prefill = scanPrefill ? prefillFromScan(scanPrefill) : null;
+    }
+  }
+
+  // An audit-driven visit behaves like "add another business" — existing
+  // workspaces shouldn't be bounced to the dashboard before claiming it.
+  if (session.orgId && !setupComplete && !addingAnother && !prefill?.auditId) {
     const locationCount = await countOrgLocations(session.orgId);
     if (locationCount > 0) {
       redirect("/dashboard");
@@ -66,6 +79,7 @@ export default async function DashboardOnboardingPage({
               accountType={
                 params.accountType === "agency" ? "agency" : "business"
               }
+              auditId={params.audit ?? null}
             />
           ) : (
             <OnboardingFlow
@@ -75,7 +89,7 @@ export default async function DashboardOnboardingPage({
               organizationName={organization?.name ?? null}
               addingAnother={addingAnother}
               showAccountTypeChoice={showAccountTypeChoice}
-              scanPrefill={scanPrefill}
+              prefill={prefill}
             />
           )}
         </div>
