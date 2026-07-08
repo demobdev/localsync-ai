@@ -134,12 +134,25 @@ export function ScanExperience({
   return (
     // Full-page takeover: the scan owns the whole viewport while it runs.
     <div className="flex min-h-dvh flex-col bg-[#faf7ef]">
-      {/* Top bar: logo + live countdown */}
+      {/* Top bar: logo + live countdown. The scan bg is always light, so the
+          wordmark uses fixed zinc tones instead of theme-aware foreground. */}
       <header className="flex shrink-0 items-center justify-between gap-4 px-5 py-4 sm:px-8">
-        <Link href="/" aria-label="LocalMap home">
-          <LocalMapLogo />
+        <Link
+          href="/"
+          aria-label="LocalMap home"
+          className="flex items-center gap-2.5"
+        >
+          <LocalMapLogo compact />
+          <span className="min-w-0">
+            <span className="block truncate font-semibold tracking-tight text-zinc-900">
+              LocalMap
+            </span>
+            <span className="block truncate text-[11px] font-medium tracking-[0.18em] text-zinc-500 uppercase">
+              Local Intelligence
+            </span>
+          </span>
         </Link>
-        <span className="flex items-center gap-2 text-sm font-medium text-zinc-500">
+        <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-zinc-600">
           <LoaderIcon className="size-4 animate-spin text-emerald-600" />
           {countdownText}
         </span>
