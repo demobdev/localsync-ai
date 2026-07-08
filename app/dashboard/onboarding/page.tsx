@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { listOnboardingCategoriesAction } from "@/app/actions/onboarding";
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { OperatingModelGuide } from "@/components/onboarding/operating-model-guide";
 import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getOrganization } from "@/lib/auth/organizations";
@@ -85,7 +86,11 @@ export default async function DashboardOnboardingPage({
               organizationId={params.org ?? session.orgId ?? null}
             />
           ) : (
-            <OnboardingFlow
+            <>
+              {prefill?.operatingModel ? (
+                <OperatingModelGuide prefill={prefill} />
+              ) : null}
+              <OnboardingFlow
               categories={categories}
               hasWorkspace={Boolean(session.orgId)}
               organizationType={organization?.type ?? null}
@@ -94,6 +99,7 @@ export default async function DashboardOnboardingPage({
               showAccountTypeChoice={showAccountTypeChoice}
               prefill={prefill}
             />
+            </>
           )}
         </div>
       </div>

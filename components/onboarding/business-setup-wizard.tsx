@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { onboardingGuideForModel } from "@/lib/onboarding/operating-model-paths";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 
 export type BusinessSetupMode =
@@ -82,6 +83,13 @@ export function BusinessSetupWizard({
   );
   const [isPending, startTransition] = useTransition();
   const copy = copyByMode[mode];
+  const modelGuide = prefill?.operatingModel
+    ? onboardingGuideForModel(
+        prefill.operatingModel,
+        prefill.auditTier ?? "full_local",
+      )
+    : null;
+  const description = modelGuide?.description ?? copy.description;
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -134,8 +142,8 @@ export function BusinessSetupWizard({
         <CardTitle>{copy.title}</CardTitle>
         <CardDescription>
           {agencyName && mode === "agency-client"
-            ? `${copy.description} Workspace: ${agencyName}.`
-            : copy.description}
+            ? `${description} Workspace: ${agencyName}.`
+            : description}
         </CardDescription>
       </CardHeader>
       <CardContent>

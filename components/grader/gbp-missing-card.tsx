@@ -2,8 +2,12 @@ import Link from "next/link";
 import { ExternalLinkIcon, MapPinIcon, RefreshCwIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  GOOGLE_BUSINESS_CREATE_URL,
+  LOCALSYNC_PREMIUM_SETUP_URL,
+} from "@/lib/grader/gbp-links";
 
-const GBP_CREATE_URL = "https://business.google.com/create";
+const GBP_CREATE_URL = GOOGLE_BUSINESS_CREATE_URL;
 
 export function GbpMissingCard({
   businessLabel,
@@ -79,6 +83,14 @@ export function GbpMissingCard({
                 Search by business name
               </Button>
             )}
+            <Button
+              size="sm"
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={LOCALSYNC_PREMIUM_SETUP_URL} />}
+            >
+              Done-for-you setup
+            </Button>
           </div>
         </div>
       </div>

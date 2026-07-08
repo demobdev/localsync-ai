@@ -25,6 +25,8 @@ export async function getAuditPrefill(
       state: true,
       totalScore: true,
       industry: true,
+      progress: true,
+      gbpProfile: true,
     },
   });
 
@@ -40,6 +42,9 @@ export async function getAuditPrefill(
     state: audit.state,
     score: audit.totalScore,
     categorySlug: audit.industry,
+    operatingModel: audit.progress?.operatingModel,
+    auditTier: audit.progress?.auditTier,
+    gbpLinked: audit.gbpProfile?.gbpLinked !== false,
   };
 }
 

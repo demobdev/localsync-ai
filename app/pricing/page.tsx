@@ -269,6 +269,7 @@ export default async function PricingPage() {
             {LISTING_PLANS.map((plan) => (
               <Card
                 key={plan.slug}
+                id={plan.tier === "premium" ? "premium-listings" : undefined}
                 className={cn(
                   "localmap-card-glow relative overflow-visible",
                   plan.tier === "premium" && "border-primary/40 bg-primary/5",

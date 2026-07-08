@@ -17,6 +17,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { startGraderAuditAction } from "@/app/actions/grader";
+import { BusinessNotFoundHelp } from "@/components/grader/business-not-found-help";
 import type { GraderPlaceInput } from "@/lib/grader/place";
 import {
   domainToSearchQuery,
@@ -690,12 +691,27 @@ export function GraderStart() {
                   </button>
                 </li>
               ))}
-              <li className="border-t border-black/5 px-4 py-2 text-[11px] text-zinc-400">
-                <GlobeIcon className="mr-1 inline size-3" />
-                Or paste your website — we&apos;ll match your Google listing
-              </li>
+              <BusinessNotFoundHelp
+                query={query.trim()}
+                operatingModel={operatingModel}
+                variant="dropdown"
+              />
             </ul>
           )}
+
+          {!dropdownOpen &&
+          !selectedPlace &&
+          query.trim().length >= 2 &&
+          !isUrlMode &&
+          suggestions.length === 0 &&
+          !searching ? (
+            <BusinessNotFoundHelp
+              query={query.trim()}
+              operatingModel={operatingModel}
+              variant="panel"
+              className="mt-2"
+            />
+          ) : null}
         </div>
         <button
           type="submit"
@@ -750,20 +766,27 @@ export function GraderStart() {
       !resolvingUrl &&
       query.trim().length >= 2 ? (
         requiresGbp || !isUrlMode ? (
-        <div className="mt-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          <XCircleIcon className="mt-0.5 size-5 shrink-0 text-red-500" />
-          <div>
-            <p className="font-semibold text-red-900">
-              {isUrlMode
-                ? "No Google Business Profile matched this website"
-                : "We couldn't find that business on Google"}
-            </p>
-            <p className="mt-1 text-red-800/90">
-              {isUrlMode
-                ? "Try searching the exact business name, or create a Google Business Profile first."
-                : "Try the full name (e.g. “The Owners Box”), check spelling, or paste your website URL."}
-            </p>
+        <div className="mt-3 space-y-3">
+          <div className="flex items-start gap-2 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-800">
+            <XCircleIcon className="mt-0.5 size-5 shrink-0 text-zinc-400" />
+            <div>
+              <p className="font-semibold text-zinc-900">
+                {isUrlMode
+                  ? "No Google Business Profile matched this website"
+                  : "We couldn't find that business on Google"}
+              </p>
+              <p className="mt-1 text-zinc-600">
+                {isUrlMode
+                  ? "Try searching the exact business name instead."
+                  : "Try the full name (e.g. “The Owners Box”) or check spelling."}
+              </p>
+            </div>
           </div>
+          <BusinessNotFoundHelp
+            query={query.trim()}
+            operatingModel={operatingModel}
+            variant="panel"
+          />
         </div>
         ) : (
         <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">

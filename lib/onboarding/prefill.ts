@@ -1,3 +1,7 @@
+import type {
+  GraderAuditTier,
+  GraderOperatingModel,
+} from "@/lib/grader/types";
 import type { ScanPrefill } from "@/lib/scan/leads";
 
 /**
@@ -17,6 +21,10 @@ export type SetupPrefill = {
   score: number;
   /** Category pack slug (grader industry) to preselect, when known. */
   categorySlug: string | null;
+  /** From grader — tailors onboarding copy and checklist. */
+  operatingModel?: GraderOperatingModel;
+  auditTier?: GraderAuditTier;
+  gbpLinked?: boolean;
 };
 
 export function prefillFromScan(scan: ScanPrefill): SetupPrefill {
