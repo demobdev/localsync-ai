@@ -1,6 +1,6 @@
 # Phase: Cyclical Funnel (Grader → Agency → Re-grade)
 
-**Status:** Active — this is the primary phase. Operating-model routing (Gate A) is infrastructure; **this phase is the product.**
+**Status:** Gates 1–5 complete — cyclical funnel demo path is shippable. Operating-model routing (Gate A) is infrastructure; **this phase is the product.**
 
 **North star:** Owner wins on “fix in minutes” with an **AI website they host on Owner**. LocalSync wins on **observability + approve-first automation** while the client **keeps their own website**. The grader is the emotional hook; the dashboard is the ongoing agency engine.
 
@@ -116,6 +116,12 @@ Checks stay on `grader_audits` (large jsonb) — **no duplicate store**. Locatio
 - [x] Diff score on dashboard after re-grade
 - [x] Agency: per-client audit from Clients list
 
+### Gate 5 — Dashboard observability ✅
+
+- [x] Org-level grader audit stat tile with score trend sparkline
+- [x] Recent locations show audit score + delta badges
+- [x] Tasks page highlights visibility-audit queue separately
+
 ---
 
 ## Primary ICP path (script this demo)
@@ -126,8 +132,10 @@ Checks stay on `grader_audits` (large jsonb) — **no duplicate store**. Locatio
 2. Sign up → onboarding prefilled → location created + audit claimed
 3. `/dashboard?audit=` → insight card shows leaks + keywords
 4. “Continue fixing” → location setup guide with **audit fix steps** at top
-5. Complete profile → run listing audit → publish visibility page
-6. Show client `/grader/[id]` report + dashboard score improvement
+5. **`/dashboard/tasks`** — seeded fix tasks from quick wins (grouped under “From visibility audit”)
+6. Complete profile → run listing audit → publish visibility page
+7. Re-run audit → dashboard **Visibility audit** stat + location badges show improvement
+8. Show client `/grader/[id]` report + score delta on dashboard
 
 **Lane B (no GBP):** same through step 2, then Google create + Premium CTA — no full wizard parity.
 

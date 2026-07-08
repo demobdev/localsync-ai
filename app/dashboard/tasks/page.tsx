@@ -7,10 +7,10 @@ export default async function TasksPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Manual tasks</h1>
+        <h1 className="text-3xl font-semibold">Fix queue</h1>
         <p className="text-muted-foreground">
-          Per-publisher checklists for destinations that require manual updates.
-          Create them from a location&apos;s Listings &amp; Audits tab.
+          Visibility audit quick wins and manual publisher checklists — work
+          through leaks, then track listing updates.
         </p>
       </div>
 

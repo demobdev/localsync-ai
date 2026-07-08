@@ -54,6 +54,7 @@ export async function listTasksAction() {
       title: manualTasks.title,
       description: manualTasks.description,
       status: manualTasks.status,
+      checklistItemKey: manualTasks.checklistItemKey,
       dueAt: manualTasks.dueAt,
       completedAt: manualTasks.completedAt,
       createdAt: manualTasks.createdAt,

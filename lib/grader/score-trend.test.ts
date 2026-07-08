@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { summarizeLocationAudit } from "@/lib/grader/client-audit-summaries";
+import { summarizeLocationAudit, buildOrgGraderAuditSummary } from "@/lib/grader/client-audit-summaries";
 import { buildGraderScoreTrend } from "@/lib/grader/location-audit-bridge";
 import { EMPTY_LOCATION_PROFILE } from "@/lib/types/location-profile";
 
@@ -54,6 +54,7 @@ describe("summarizeLocationAudit", () => {
           totalScore: 80,
           grade: "B",
           failedChecks: 4,
+          createdAt: new Date("2026-07-02"),
         },
         {
           id: "audit-1",
@@ -61,6 +62,7 @@ describe("summarizeLocationAudit", () => {
           totalScore: 65,
           grade: "C",
           failedChecks: 8,
+          createdAt: new Date("2026-07-01"),
         },
       ],
     });
@@ -69,5 +71,58 @@ describe("summarizeLocationAudit", () => {
     expect(summary.totalScore).toBe(80);
     expect(summary.scoreDelta).toBe(15);
     expect(summary.auditId).toBe("audit-2");
+  });
+});
+
+describe("buildOrgGraderAuditSummary", () => {
+  it("averages latest scores and picks trend from most-audited location", () => {
+    const auditsByLocation = new Map([
+      [
+        "loc-a",
+        [
+          {
+            id: "a2",
+            locationId: "loc-a",
+            totalScore: 80,
+            grade: "B",
+            failedChecks: 3,
+            createdAt: new Date("2026-07-02"),
+          },
+          {
+            id: "a1",
+            locationId: "loc-a",
+            totalScore: 65,
+            grade: "C",
+            failedChecks: 8,
+            createdAt: new Date("2026-07-01"),
+          },
+        ],
+      ],
+      [
+        "loc-b",
+        [
+          {
+            id: "b1",
+            locationId: "loc-b",
+            totalScore: 70,
+            grade: "C",
+            failedChecks: 5,
+            createdAt: new Date("2026-07-03"),
+          },
+        ],
+      ],
+    ]);
+
+    const summary = buildOrgGraderAuditSummary({
+      locationIds: ["loc-a", "loc-b", "loc-c"],
+      auditsByLocation,
+    });
+
+    expect(summary.averageScore).toBe(75);
+    expect(summary.auditedLocationCount).toBe(2);
+    expect(summary.totalLocationCount).toBe(3);
+    expect(summary.latestScoreDelta).toBe(15);
+    expect(summary.scoreTrend).toEqual([65, 80]);
+    expect(summary.trendLocationId).toBe("loc-a");
   });
 });

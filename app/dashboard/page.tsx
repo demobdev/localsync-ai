@@ -12,7 +12,7 @@ import { redirect } from "next/navigation";
 
 import { getOrgReviewSummaryAction } from "@/app/actions/reviews";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
-import { getRecentMarketingInsightAction } from "@/app/actions/marketing-insights";
+import { getRecentMarketingInsightAction, getOrgGraderAuditSummaryAction, getLocationGraderScoresAction } from "@/app/actions/marketing-insights";
 import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
 import {
   listLocationsAction,
@@ -35,6 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 import { getOrganization } from "@/lib/auth/organizations";
 
 const UUID_RE =
@@ -69,7 +70,7 @@ export default async function DashboardPage({
   const organization = await getOrganization(session.orgId);
   const isAgency = organization?.type === "agency";
 
-  const [locations, visibility, googleState, primarySetup, reviews, recentInsight] =
+  const [locations, visibility, googleState, primarySetup, reviews, recentInsight, graderSummary, locationGraderScores] =
     await Promise.all([
       safe("listLocations", () => listLocationsAction(), []),
       safe(
@@ -110,6 +111,23 @@ export default async function DashboardPage({
             highlightScanId,
           }),
         null,
+      ),
+      safe(
+        "graderSummary",
+        () => getOrgGraderAuditSummaryAction(),
+        {
+          averageScore: null,
+          auditedLocationCount: 0,
+          totalLocationCount: 0,
+          latestScoreDelta: null,
+          scoreTrend: [],
+          trendLocationId: null,
+        },
+      ),
+      safe(
+        "locationGraderScores",
+        () => getLocationGraderScoresAction(),
+        {},
       ),
     ]);
 
@@ -192,7 +210,23 @@ export default async function DashboardPage({
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {
-            label: "Visibility score",
+            label: "Visibility audit",
+            value: graderSummary.averageScore != null ? `${graderSummary.averageScore}` : "—",
+            hint:
+              graderSummary.auditedLocationCount > 0
+                ? graderSummary.latestScoreDelta != null
+                  ? `${graderSummary.latestScoreDelta >= 0 ? "+" : ""}${graderSummary.latestScoreDelta} pts on latest re-grade · ${graderSummary.auditedLocationCount}/${graderSummary.totalLocationCount} locations audited.`
+                  : `${graderSummary.auditedLocationCount} location${graderSummary.auditedLocationCount === 1 ? "" : "s"} with grader scores. Re-run audits to track improvement.`
+                : "Run the grader on a location to get your first audit score.",
+            icon: FileBarChart2Icon,
+            tone: "text-emerald-600",
+            href: graderSummary.trendLocationId
+              ? `/dashboard/locations/${graderSummary.trendLocationId}`
+              : "/grader",
+            trend: graderSummary.scoreTrend,
+          },
+          {
+            label: "Profile score",
             value: hasData ? `${visibility.averageScore}` : "—",
             hint: hasData
               ? history.length > 1
@@ -316,7 +350,9 @@ export default async function DashboardPage({
                 </div>
               </div>
             ) : (
-              locations.slice(0, 5).map((location) => (
+              locations.slice(0, 5).map((location) => {
+                const graderScore = locationGraderScores[location.id];
+                return (
                 <Link
                   key={location.id}
                   href={`/dashboard/locations/${location.id}`}
@@ -329,11 +365,23 @@ export default async function DashboardPage({
                       {location.profile.city ? ` · ${location.profile.city}` : ""}
                     </p>
                   </div>
-                  <Badge variant="outline" className="shrink-0">
-                    Profile
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    {graderScore ? (
+                      <>
+                        <Badge variant="outline" className="tabular-nums">
+                          Audit {graderScore.totalScore}
+                        </Badge>
+                        {graderScore.scoreDelta != null ? (
+                          <GraderScoreDelta delta={graderScore.scoreDelta} />
+                        ) : null}
+                      </>
+                    ) : (
+                      <Badge variant="secondary">No audit</Badge>
+                    )}
+                  </div>
                 </Link>
-              ))
+              );
+              })
             )}
           </CardContent>
         </Card>

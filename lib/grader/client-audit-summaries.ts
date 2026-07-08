@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { graderAudits } from "@/db/schema";
+import { graderAudits, locations } from "@/db/schema";
 import { buildGraderScoreTrend } from "@/lib/grader/location-audit-bridge";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 
@@ -24,6 +24,7 @@ type AuditRow = {
   totalScore: number;
   grade: string | null;
   failedChecks: number;
+  createdAt: Date;
 };
 
 function locationCanRunAudit(profile: LocationProfileSnapshot): boolean {
@@ -104,4 +105,84 @@ export async function fetchCompletedAuditsForLocations(locationIds: string[]) {
     .orderBy(desc(graderAudits.createdAt));
 
   return auditsByLocation(audits);
+}
+
+export type OrgGraderAuditSummary = {
+  averageScore: number | null;
+  auditedLocationCount: number;
+  totalLocationCount: number;
+  latestScoreDelta: number | null;
+  /** Chronological scores for sparkline (most active audited location). */
+  scoreTrend: number[];
+  trendLocationId: string | null;
+};
+
+export function buildOrgGraderAuditSummary(input: {
+  locationIds: string[];
+  auditsByLocation: Map<string, AuditRow[]>;
+}): OrgGraderAuditSummary {
+  const latestScores: number[] = [];
+  let latestScoreDelta: number | null = null;
+  let latestAuditAt = 0;
+
+  for (const locationId of input.locationIds) {
+    const audits = input.auditsByLocation.get(locationId) ?? [];
+    const current = audits[0];
+    if (!current) continue;
+
+    latestScores.push(current.totalScore);
+
+    const prior = audits[1];
+    if (prior && current.createdAt.getTime() > latestAuditAt) {
+      latestAuditAt = current.createdAt.getTime();
+      latestScoreDelta = current.totalScore - prior.totalScore;
+    }
+  }
+
+  let trendLocationId: string | null = null;
+  let maxAudits = 0;
+  for (const locationId of input.locationIds) {
+    const count = input.auditsByLocation.get(locationId)?.length ?? 0;
+    if (count > maxAudits) {
+      maxAudits = count;
+      trendLocationId = locationId;
+    }
+  }
+
+  const scoreTrend =
+    trendLocationId != null
+      ? [...(input.auditsByLocation.get(trendLocationId) ?? [])]
+          .reverse()
+          .map((audit) => audit.totalScore)
+      : [];
+
+  const averageScore =
+    latestScores.length > 0
+      ? Math.round(
+          latestScores.reduce((sum, score) => sum + score, 0) /
+            latestScores.length,
+        )
+      : null;
+
+  return {
+    averageScore,
+    auditedLocationCount: latestScores.length,
+    totalLocationCount: input.locationIds.length,
+    latestScoreDelta,
+    scoreTrend,
+    trendLocationId,
+  };
+}
+
+export async function getOrgGraderAuditSummary(organizationId: string) {
+  const db = getDb();
+  const locationRows = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(eq(locations.organizationId, organizationId));
+
+  const locationIds = locationRows.map((row) => row.id);
+  const auditsByLocation = await fetchCompletedAuditsForLocations(locationIds);
+
+  return buildOrgGraderAuditSummary({ locationIds, auditsByLocation });
 }

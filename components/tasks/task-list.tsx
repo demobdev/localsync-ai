@@ -32,6 +32,7 @@ type TaskRow = {
   title: string;
   description: string | null;
   status: TaskStatus;
+  checklistItemKey: string | null;
   createdAt: Date;
   completedAt: Date | null;
 };
@@ -53,6 +54,74 @@ const statusVariants: Record<
   blocked: "destructive",
 };
 
+function isGraderTask(task: TaskRow) {
+  return task.checklistItemKey?.startsWith("grader:") ?? false;
+}
+
+function TaskRowCard({
+  task,
+  isPending,
+  onStatusChange,
+}: {
+  task: TaskRow;
+  isPending: boolean;
+  onStatusChange: (taskId: string, status: TaskStatus) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-medium">{task.title}</p>
+          {isGraderTask(task) ? (
+            <Badge
+              variant="secondary"
+              className="rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200"
+            >
+              Visibility audit
+            </Badge>
+          ) : null}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          <Link
+            href={`/dashboard/locations/${task.locationId}`}
+            className="underline underline-offset-4"
+          >
+            {task.locationName}
+          </Link>
+          {" · "}
+          {task.publisherName}
+        </p>
+        {task.description ? (
+          <p className="mt-1 text-sm text-muted-foreground">{task.description}</p>
+        ) : null}
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge variant={statusVariants[task.status]}>
+          {statusLabels[task.status]}
+        </Badge>
+        <Select
+          value={task.status}
+          onValueChange={(value) =>
+            value && onStatusChange(task.id, value as TaskStatus)
+          }
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
 export function TaskList({ tasks }: { tasks: TaskRow[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -71,13 +140,43 @@ export function TaskList({ tasks }: { tasks: TaskRow[] }) {
   }
 
   const openTasks = tasks.filter((task) => task.status !== "done");
+  const graderOpenTasks = openTasks.filter(isGraderTask);
+  const otherOpenTasks = openTasks.filter((task) => !isGraderTask(task));
   const doneTasks = tasks.filter((task) => task.status === "done");
 
   return (
     <div className="space-y-6">
+      {graderOpenTasks.length > 0 ? (
+        <Card className="localmap-card-glow border-emerald-500/20 bg-emerald-500/5">
+          <CardHeader>
+            <CardTitle>
+              From visibility audit ({graderOpenTasks.length})
+            </CardTitle>
+            <CardDescription>
+              Quick wins queued automatically when you claim or re-run a grader
+              audit.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {graderOpenTasks.map((task) => (
+              <TaskRowCard
+                key={task.id}
+                task={task}
+                isPending={isPending}
+                onStatusChange={setStatus}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardHeader>
-          <CardTitle>Open tasks ({openTasks.length})</CardTitle>
+          <CardTitle>
+            {otherOpenTasks.length > 0
+              ? `Other open tasks (${otherOpenTasks.length})`
+              : `Open tasks (${openTasks.length})`}
+          </CardTitle>
           <CardDescription>
             Manual work per publisher — the honest rail for destinations without
             APIs.
@@ -86,57 +185,21 @@ export function TaskList({ tasks }: { tasks: TaskRow[] }) {
         <CardContent className="space-y-3">
           {openTasks.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No open tasks. Create per-publisher checklists from a
-              location&apos;s Listings &amp; Audits tab.
+              No open tasks. Claim a grader audit or create per-publisher
+              checklists from a location&apos;s Listings tab.
+            </p>
+          ) : otherOpenTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              All open tasks are from your visibility audit above.
             </p>
           ) : (
-            openTasks.map((task) => (
-              <div
+            otherOpenTasks.map((task) => (
+              <TaskRowCard
                 key={task.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{task.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    <Link
-                      href={`/dashboard/locations/${task.locationId}/listings`}
-                      className="underline underline-offset-4"
-                    >
-                      {task.locationName}
-                    </Link>
-                    {" · "}
-                    {task.publisherName}
-                  </p>
-                  {task.description ? (
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {task.description}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={statusVariants[task.status]}>
-                    {statusLabels[task.status]}
-                  </Badge>
-                  <Select
-                    value={task.status}
-                    onValueChange={(value) =>
-                      value && setStatus(task.id, value as TaskStatus)
-                    }
-                    disabled={isPending}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                task={task}
+                isPending={isPending}
+                onStatusChange={setStatus}
+              />
             ))
           )}
         </CardContent>
