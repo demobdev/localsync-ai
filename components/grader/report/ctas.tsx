@@ -11,13 +11,10 @@ import {
 import { useEffect, useState } from "react";
 
 import type { AuditReport } from "@/lib/grader/types";
+import { buildGraderFixHref } from "@/lib/onboarding/routing";
 
 export function fixHref(report: AuditReport, signedIn: boolean): string {
-  // Signed out → Clerk sign-up forwards ?audit= into onboarding via
-  // forceRedirectUrl; signed in → straight to prefilled onboarding.
-  return signedIn
-    ? `/dashboard/onboarding?auditId=${report.id}&intent=fix`
-    : `/sign-up?audit=${report.id}`;
+  return buildGraderFixHref({ auditId: report.id, signedIn });
 }
 
 export function ImproveWithAICTA({

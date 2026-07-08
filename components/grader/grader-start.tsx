@@ -383,11 +383,15 @@ async function resolveUrlToPlace(
   return null;
 }
 
-export function GraderStart() {
+export function GraderStart({
+  initialModel = "storefront",
+}: {
+  initialModel?: GraderOperatingModel;
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [operatingModel, setOperatingModel] =
-    useState<GraderOperatingModel>("storefront");
+    useState<GraderOperatingModel>(initialModel);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);

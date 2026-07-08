@@ -249,3 +249,5 @@ Owner assumes **brick-and-mortar + GBP**. LocalSync supports multiple paths:
 **Rule:** never fake GBP data. If no listing, label the report honestly and weight guest/search sections; listings checks become “create/claim profile” recommendations.
 
 **Stored on** `grader_audits.progress`: `operatingModel`, `auditTier`.
+
+**Routing moat (active phase):** see [`docs/phase-operating-model-routing.md`](./phase-operating-model-routing.md) — model persists on location profile after claim and drives onboarding, setup guide, and fix CTAs.

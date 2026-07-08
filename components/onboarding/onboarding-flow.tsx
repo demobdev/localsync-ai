@@ -13,6 +13,7 @@ import {
 } from "@/components/onboarding/business-setup-wizard";
 import type { BusinessCategoryOption } from "@/components/onboarding/business-category-select";
 import type { OrganizationType } from "@/lib/auth/organizations";
+import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function OnboardingFlow({
   addingAnother,
   showAccountTypeChoice,
   prefill = null,
+  onboardingIntent = "organic",
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
@@ -60,6 +62,7 @@ export function OnboardingFlow({
   addingAnother: boolean;
   showAccountTypeChoice: boolean;
   prefill?: SetupPrefill | null;
+  onboardingIntent?: OnboardingIntent;
 }) {
   const [step, setStep] = useState<OnboardingStep>(() =>
     resolveInitialStep({
@@ -201,6 +204,7 @@ export function OnboardingFlow({
             mode={businessMode}
             agencyName={agencyName || organizationName || undefined}
             prefill={prefill}
+            onboardingIntent={onboardingIntent}
           />
           {!addingAnother && !hasWorkspace && selectedType !== "agency" ? (
             <Button

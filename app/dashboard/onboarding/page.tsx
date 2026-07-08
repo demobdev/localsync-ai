@@ -7,11 +7,16 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { OperatingModelGuide } from "@/components/onboarding/operating-model-guide";
 import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getDb } from "@/db";
+import { locations } from "@/db/schema";
 import { getOrganization } from "@/lib/auth/organizations";
 import { getAuditPrefill } from "@/lib/grader/claim";
+import { parseOnboardingIntent } from "@/lib/onboarding/routing";
 import { prefillFromScan, type SetupPrefill } from "@/lib/onboarding/prefill";
 import { countOrgLocations } from "@/lib/org/locations";
+import { getLocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { getScanPrefill } from "@/lib/scan/leads";
+import { eq } from "drizzle-orm";
 
 export default async function DashboardOnboardingPage({
   searchParams,
@@ -37,6 +42,7 @@ export default async function DashboardOnboardingPage({
 
   const setupComplete = params.done === "1" && params.location;
   const addingAnother = params.add === "1";
+  const onboardingIntent = parseOnboardingIntent(params.intent);
   const organization = session.orgId
     ? await getOrganization(session.orgId)
     : null;
@@ -66,6 +72,18 @@ export default async function DashboardOnboardingPage({
     }
   }
 
+  let operatingContext = null;
+  if (setupComplete && params.location) {
+    const db = getDb();
+    const location = await db.query.locations.findFirst({
+      where: eq(locations.id, params.location),
+      columns: { profile: true },
+    });
+    if (location) {
+      operatingContext = getLocationOperatingContext(location.profile);
+    }
+  }
+
   return (
     <div className="localmap-mesh min-h-screen">
       <div className="mx-auto flex min-h-screen max-w-xl flex-col px-4 py-8 sm:px-6">
@@ -84,6 +102,7 @@ export default async function DashboardOnboardingPage({
               auditId={params.audit ?? null}
               scanId={params.scan ?? null}
               organizationId={params.org ?? session.orgId ?? null}
+              operatingContext={operatingContext}
             />
           ) : (
             <>
@@ -98,6 +117,7 @@ export default async function DashboardOnboardingPage({
               addingAnother={addingAnother}
               showAccountTypeChoice={showAccountTypeChoice}
               prefill={prefill}
+              onboardingIntent={onboardingIntent}
             />
             </>
           )}

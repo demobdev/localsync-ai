@@ -2,6 +2,7 @@ import {
   ArrowRightIcon,
   BuildingIcon,
   CheckCircle2Icon,
+  ExternalLinkIcon,
   FileBarChart2Icon,
   GlobeIcon,
   RadarIcon,
@@ -12,6 +13,9 @@ import {
 import { GoToDashboardButton } from "@/components/onboarding/go-to-dashboard-button";
 import { OrgAwareNavButton } from "@/components/navigation/org-aware-nav-button";
 import type { OrganizationType } from "@/lib/auth/organizations";
+import { modelLabel, resolvePostSetupRoute } from "@/lib/onboarding/routing";
+import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
+import { Button } from "@/components/ui/button";
 
 export function SetupCompleteCard({
   locationId,
@@ -20,6 +24,7 @@ export function SetupCompleteCard({
   auditId = null,
   scanId = null,
   organizationId = null,
+  operatingContext = null,
 }: {
   locationId: string;
   publishersTracked: number;
@@ -27,8 +32,25 @@ export function SetupCompleteCard({
   auditId?: string | null;
   scanId?: string | null;
   organizationId?: string | null;
+  operatingContext?: LocationOperatingContext | null;
 }) {
   const isAgency = accountType === "agency";
+  const context =
+    operatingContext ??
+    ({
+      operatingModel: "storefront",
+      auditTier: "full_local",
+      gbpLinkedAtAudit: true,
+      serviceAreaCities: null,
+      onboardingIntent: null,
+    } satisfies LocationOperatingContext);
+
+  const route = resolvePostSetupRoute({
+    locationId,
+    context,
+    auditId,
+    isAgency,
+  });
 
   return (
     <div className="localmap-card-glow rounded-2xl border bg-card">
@@ -45,6 +67,11 @@ export function SetupCompleteCard({
         <h2 className="text-xl font-semibold">
           {isAgency ? "Your agency workspace is ready" : "You're set up!"}
         </h2>
+        {!isAgency && operatingContext ? (
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {modelLabel(context.operatingModel)} path
+          </p>
+        ) : null}
         <p className="text-sm text-muted-foreground">
           {isAgency
             ? "Your first client is live. Here's what we set up:"
@@ -111,30 +138,83 @@ export function SetupCompleteCard({
             </span>
           </li>
         </ul>
+
+        {!isAgency ? (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-semibold">{route.headline}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{route.subline}</p>
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-2">
           <GoToDashboardButton
             organizationId={organizationId}
             auditId={auditId}
             scanId={scanId}
           />
-          <OrgAwareNavButton
-            href={`/dashboard/locations/${locationId}?tab=nap`}
-            organizationId={organizationId}
-            variant="outline"
-          >
-            {isAgency ? "Complete client profile" : "Complete your profile"}
-            <ArrowRightIcon className="size-4" />
-          </OrgAwareNavButton>
-          {auditId ? (
-            <OrgAwareNavButton
-              href={`/grader/${auditId}`}
-              organizationId={organizationId}
-              variant="outline"
+
+          {route.primary.external ? (
+            <Button
+              variant="default"
+              className="w-full"
+              nativeButton={false}
+              render={
+                <a
+                  href={route.primary.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                />
+              }
             >
-              <FileBarChart2Icon className="size-4" />
-              View your full audit report
+              {route.primary.label}
+              <ExternalLinkIcon className="size-4" />
+            </Button>
+          ) : (
+            <OrgAwareNavButton
+              href={route.primary.href}
+              organizationId={organizationId}
+            >
+              {route.primary.label}
+              <ArrowRightIcon className="size-4" />
             </OrgAwareNavButton>
-          ) : null}
+          )}
+
+          {route.secondary.map((action) =>
+            action.external ? (
+              <Button
+                key={action.id}
+                variant="outline"
+                className="w-full"
+                nativeButton={false}
+                render={
+                  <a
+                    href={action.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                {action.label}
+                <ExternalLinkIcon className="size-3.5" />
+              </Button>
+            ) : (
+              <OrgAwareNavButton
+                key={action.id}
+                href={action.href}
+                organizationId={organizationId}
+                variant="outline"
+              >
+                {action.id === "audit" ? (
+                  <FileBarChart2Icon className="size-4" />
+                ) : null}
+                {action.label}
+                {action.id !== "audit" ? (
+                  <ArrowRightIcon className="size-4" />
+                ) : null}
+              </OrgAwareNavButton>
+            ),
+          )}
+
           {isAgency ? (
             <>
               <OrgAwareNavButton
@@ -153,15 +233,7 @@ export function SetupCompleteCard({
                 Manage clients
               </OrgAwareNavButton>
             </>
-          ) : (
-            <OrgAwareNavButton
-              href="/dashboard/connect"
-              organizationId={organizationId}
-              variant="outline"
-            >
-              Connect listings & Google
-            </OrgAwareNavButton>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

@@ -11,6 +11,7 @@ import {
 
 import { GraderStart } from "@/components/grader/grader-start";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { parseGraderModelParam } from "@/lib/onboarding/routing";
 
 export const metadata: Metadata = {
   title: "Free Local Visibility Grader — LocalSync",
@@ -36,8 +37,13 @@ const PROOF_POINTS = [
   },
 ];
 
-export default async function GraderPage() {
-  const session = await auth();
+export default async function GraderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ model?: string }>;
+}) {
+  const [session, params] = await Promise.all([auth(), searchParams]);
+  const initialModel = parseGraderModelParam(params.model) ?? "storefront";
 
   return (
     <div className="flex min-h-full flex-col bg-[#faf7ef]">
@@ -78,7 +84,7 @@ export default async function GraderPage() {
               </p>
             </div>
 
-            <GraderStart />
+            <GraderStart initialModel={initialModel} />
           </div>
         </section>
 

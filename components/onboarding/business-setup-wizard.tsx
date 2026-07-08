@@ -20,7 +20,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModelSetupFields } from "@/components/onboarding/model-setup-fields";
 import { onboardingGuideForModel } from "@/lib/onboarding/operating-model-paths";
+import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 
 export type BusinessSetupMode =
@@ -64,12 +66,14 @@ export function BusinessSetupWizard({
   mode = "initial-business",
   agencyName,
   prefill = null,
+  onboardingIntent = "organic",
 }: {
   categories: BusinessCategoryOption[];
   hasWorkspace: boolean;
   mode?: BusinessSetupMode;
   agencyName?: string;
   prefill?: SetupPrefill | null;
+  onboardingIntent?: OnboardingIntent;
 }) {
   const { setActive } = useClerk();
   const [categorySlug, setCategorySlug] = useState(
@@ -101,6 +105,9 @@ export function BusinessSetupWizard({
           city: String(formData.get("city") ?? "") || undefined,
           state: String(formData.get("state") ?? "") || undefined,
           website: String(formData.get("website") ?? "") || undefined,
+          serviceAreaCities:
+            String(formData.get("serviceAreaCities") ?? "") || undefined,
+          onboardingIntent,
           workspaceType: mode === "agency-client" ? "agency" : "business",
           auditId: prefill?.auditId,
           scanId: prefill?.scanId,
@@ -211,6 +218,10 @@ export function BusinessSetupWizard({
               />
             </div>
           </div>
+
+          {prefill?.operatingModel ? (
+            <ModelSetupFields operatingModel={prefill.operatingModel} />
+          ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending

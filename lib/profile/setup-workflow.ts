@@ -1,3 +1,5 @@
+import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
+import { buildOperatingModelSetupSteps } from "@/lib/profile/model-setup-steps";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { computeProfileScore } from "@/lib/visibility/score";
 
@@ -223,6 +225,7 @@ export function mergeSetupProgress(steps: SetupStep[]): SetupProgress {
 export function buildLocationSetupProgress(input: {
   locationId: string;
   profile: LocationProfileSnapshot;
+  operatingContext?: LocationOperatingContext | null;
   googleConnected: boolean;
   googleCanImport: boolean;
   listingUrlsConfigured: number;
@@ -236,11 +239,21 @@ export function buildLocationSetupProgress(input: {
   const reviewCount = input.reviewCount ?? 0;
   const unrepliedCount = input.unrepliedReviewCount ?? 0;
 
+  const modelSteps = input.operatingContext
+    ? buildOperatingModelSetupSteps({
+        locationId: input.locationId,
+        context: input.operatingContext,
+        profile: input.profile,
+        googleConnected: input.googleConnected,
+      })
+    : [];
+
   const steps = [
     ...buildProfileFieldSteps({
       locationId: input.locationId,
       profile: input.profile,
     }),
+    ...modelSteps,
     ...buildConnectionSteps({
       locationId: input.locationId,
       googleConnected: input.googleConnected,

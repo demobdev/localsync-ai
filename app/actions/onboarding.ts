@@ -18,7 +18,11 @@ import { upsertOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
 import { claimGraderAudit } from "@/lib/grader/claim";
+import type { GraderAuditTier, GraderOperatingModel } from "@/lib/grader/types";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
+import {
+  withLocationOperatingContext,
+} from "@/lib/profile/operating-model-meta";
 import { claimScanLead } from "@/lib/scan/leads";
 import { uniqueSlug } from "@/lib/slugify";
 import { applyCategoryPackToProfile } from "@/lib/taxonomy/category-packs";
@@ -125,6 +129,10 @@ export async function quickSetupBusinessAction(input: {
   auditId?: string;
   /** Free scan to claim + link to the new location (optional). */
   scanId?: string;
+  /** Service-area / mobile operating notes from onboarding. */
+  serviceAreaCities?: string;
+  /** How the user arrived — `fix` from grader report CTA. */
+  onboardingIntent?: "fix" | "organic";
 }): Promise<QuickSetupResult> {
   const session = await auth();
 
@@ -144,9 +152,20 @@ export async function quickSetupBusinessAction(input: {
   const audit = input.auditId
     ? await db.query.graderAudits.findFirst({
         where: eq(graderAudits.id, input.auditId),
-        columns: { id: true, websiteUrl: true, extracted: true },
+        columns: {
+          id: true,
+          websiteUrl: true,
+          extracted: true,
+          progress: true,
+          gbpProfile: true,
+        },
       })
     : null;
+
+  const auditOperatingModel: GraderOperatingModel | undefined =
+    audit?.progress?.operatingModel;
+  const auditTier: GraderAuditTier | undefined = audit?.progress?.auditTier;
+  const gbpLinkedAtAudit = audit?.gbpProfile?.gbpLinked !== false;
 
   // 1. Workspace: create a new org when none exists or setup is still incomplete.
   let organizationId = session.orgId ?? null;
@@ -246,6 +265,14 @@ export async function quickSetupBusinessAction(input: {
     serviceSlugs: packed.serviceSlugs,
   };
 
+  const profileWithMeta = withLocationOperatingContext(profile, {
+    operatingModel: auditOperatingModel,
+    auditTier,
+    gbpLinkedAtAudit: audit ? gbpLinkedAtAudit : undefined,
+    serviceAreaCities: input.serviceAreaCities?.trim() || null,
+    onboardingIntent: input.onboardingIntent ?? (audit ? "fix" : "organic"),
+  });
+
   const [location] = await db
     .insert(locations)
     .values({
@@ -253,7 +280,7 @@ export async function quickSetupBusinessAction(input: {
       clientId,
       name: businessName,
       slug: uniqueSlug(businessName, input.city ?? crypto.randomUUID().slice(0, 6)),
-      profile,
+      profile: profileWithMeta,
     })
     .returning();
 
@@ -266,7 +293,7 @@ export async function quickSetupBusinessAction(input: {
     .values({
       locationId: location.id,
       versionNumber: 1,
-      snapshot: profile,
+      snapshot: profileWithMeta,
       source: "user",
       actorUserId: session.userId,
       changeSummary: "Business created during onboarding",

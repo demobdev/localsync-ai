@@ -12,6 +12,7 @@ import {
   locations,
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
+import { getLocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import {
   buildLocationSetupProgress,
   type SetupProgress,
@@ -94,6 +95,7 @@ export async function getLocationSetupProgressAction(
   return buildLocationSetupProgress({
     locationId,
     profile: location.profile,
+    operatingContext: getLocationOperatingContext(location.profile),
     googleConnected,
     googleCanImport,
     listingUrlsConfigured,
