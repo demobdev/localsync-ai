@@ -12,6 +12,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { startGraderAuditFromLocationAction } from "@/app/actions/grader";
+import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 import { Button } from "@/components/ui/button";
 import type { LinkedGraderAudit } from "@/lib/grader/location-audit-bridge";
 
@@ -54,11 +55,24 @@ export function LocationGraderAuditBanner({
           {audit.grade ? (
             <span className="text-muted-foreground"> · Grade {audit.grade}</span>
           ) : null}
+          {audit.scoreDelta != null ? (
+            <span className="ml-2 inline-flex align-middle">
+              <GraderScoreDelta delta={audit.scoreDelta} />
+            </span>
+          ) : null}
           <span className="text-muted-foreground">
             {" "}
             · {audit.failedChecks} leak{audit.failedChecks === 1 ? "" : "s"} to fix
           </span>
         </p>
+        {audit.priorTotalScore != null ? (
+          <p className="text-xs text-muted-foreground">
+            Previous audit: {audit.priorTotalScore}/100
+            {audit.failedChecksDelta != null && audit.failedChecksDelta > 0
+              ? ` · ${audit.failedChecksDelta} fewer leak${audit.failedChecksDelta === 1 ? "" : "s"}`
+              : null}
+          </p>
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
         <Button

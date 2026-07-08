@@ -1,9 +1,16 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
 import type { AuditCheck, KeywordResult } from "@/lib/grader/types";
 import type { SetupStep } from "@/lib/profile/setup-workflow";
+
+export type GraderScoreTrend = {
+  priorTotalScore: number | null;
+  scoreDelta: number | null;
+  priorFailedChecks: number | null;
+  failedChecksDelta: number | null;
+};
 
 export type LinkedGraderAudit = {
   id: string;
@@ -14,7 +21,50 @@ export type LinkedGraderAudit = {
   keywords: KeywordResult[];
   locationId: string | null;
   businessName: string | null;
-};
+} & GraderScoreTrend;
+
+async function getPriorCompletedGraderAudit(input: {
+  locationId: string;
+  excludeAuditId: string;
+}): Promise<{ totalScore: number; failedChecks: number } | null> {
+  const db = getDb();
+  const prior = await db.query.graderAudits.findFirst({
+    where: and(
+      eq(graderAudits.locationId, input.locationId),
+      eq(graderAudits.status, "complete"),
+      ne(graderAudits.id, input.excludeAuditId),
+    ),
+    orderBy: [desc(graderAudits.createdAt)],
+    columns: {
+      totalScore: true,
+      failedChecks: true,
+    },
+  });
+
+  return prior ?? null;
+}
+
+export function buildGraderScoreTrend(input: {
+  totalScore: number;
+  failedChecks: number;
+  prior: { totalScore: number; failedChecks: number } | null;
+}): GraderScoreTrend {
+  if (!input.prior) {
+    return {
+      priorTotalScore: null,
+      scoreDelta: null,
+      priorFailedChecks: null,
+      failedChecksDelta: null,
+    };
+  }
+
+  return {
+    priorTotalScore: input.prior.totalScore,
+    scoreDelta: input.totalScore - input.prior.totalScore,
+    priorFailedChecks: input.prior.failedChecks,
+    failedChecksDelta: input.prior.failedChecks - input.failedChecks,
+  };
+}
 
 /** Latest claimed grader audit linked to this location. */
 export async function getGraderAuditForLocation(
@@ -38,6 +88,16 @@ export async function getGraderAuditForLocation(
 
   if (!audit) return null;
 
+  const prior = await getPriorCompletedGraderAudit({
+    locationId,
+    excludeAuditId: audit.id,
+  });
+  const trend = buildGraderScoreTrend({
+    totalScore: audit.totalScore,
+    failedChecks: audit.failedChecks,
+    prior,
+  });
+
   return {
     id: audit.id,
     totalScore: audit.totalScore,
@@ -47,6 +107,7 @@ export async function getGraderAuditForLocation(
     keywords: audit.keywords ?? [],
     locationId: audit.locationId,
     businessName: audit.businessName,
+    ...trend,
   };
 }
 

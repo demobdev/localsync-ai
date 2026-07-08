@@ -16,6 +16,11 @@ import {
 import { requireOrgAuth } from "@/lib/auth/org";
 import { buildClientSlug } from "@/lib/clients";
 import {
+  fetchCompletedAuditsForLocations,
+  summarizeLocationAudit,
+  type LocationAuditSummary,
+} from "@/lib/grader/client-audit-summaries";
+import {
   diffLocationProfiles,
   summarizeProfileDiff,
 } from "@/lib/location-versioning";
@@ -67,6 +72,69 @@ export async function listClientsAction() {
     .from(clients)
     .where(eq(clients.organizationId, orgId))
     .orderBy(desc(clients.createdAt));
+}
+
+export type ClientWithLocationAudits = {
+  id: string;
+  name: string;
+  slug: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  notes: string | null;
+  locations: LocationAuditSummary[];
+};
+
+/** Agency clients with per-location grader audit summaries. */
+export async function listClientsWithLocationAuditsAction(): Promise<
+  ClientWithLocationAudits[]
+> {
+  const { orgId } = await requireOrgAuth();
+  const db = getDb();
+
+  const [clientRows, locationRows] = await Promise.all([
+    db
+      .select()
+      .from(clients)
+      .where(eq(clients.organizationId, orgId))
+      .orderBy(desc(clients.createdAt)),
+    db
+      .select({
+        id: locations.id,
+        name: locations.name,
+        clientId: locations.clientId,
+        profile: locations.profile,
+      })
+      .from(locations)
+      .where(eq(locations.organizationId, orgId))
+      .orderBy(desc(locations.updatedAt)),
+  ]);
+
+  const auditsByLocation = await fetchCompletedAuditsForLocations(
+    locationRows.map((row) => row.id),
+  );
+
+  const locationsByClient = new Map<string, LocationAuditSummary[]>();
+  for (const location of locationRows) {
+    const summary = summarizeLocationAudit({
+      locationId: location.id,
+      locationName: location.name,
+      profile: location.profile,
+      auditsForLocation: auditsByLocation.get(location.id) ?? [],
+    });
+    const list = locationsByClient.get(location.clientId) ?? [];
+    list.push(summary);
+    locationsByClient.set(location.clientId, list);
+  }
+
+  return clientRows.map((client) => ({
+    id: client.id,
+    name: client.name,
+    slug: client.slug,
+    contactEmail: client.contactEmail,
+    contactPhone: client.contactPhone,
+    notes: client.notes,
+    locations: locationsByClient.get(client.id) ?? [],
+  }));
 }
 
 export async function createClientAction(input: {

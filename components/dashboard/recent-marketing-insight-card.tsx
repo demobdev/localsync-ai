@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import type { RecentMarketingInsight } from "@/lib/grader/dashboard";
 import { locationFixQueueHref } from "@/lib/grader/location-audit-bridge";
+import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 
 function intentLabel(intent: string | undefined) {
   switch (intent) {
@@ -59,20 +60,27 @@ export function RecentMarketingInsightCard({
           <CardTitle className="text-xl">{subtitle}</CardTitle>
           <CardDescription>
             {isGrader
-              ? `${insight.failedChecks} visibility leaks found — continue fixing them from your workspace.`
+              ? insight.scoreDelta != null
+                ? `${insight.failedChecks} visibility leaks found — ${insight.scoreDelta >= 0 ? "up" : "down"} ${Math.abs(insight.scoreDelta)} pts since your last audit.`
+                : `${insight.failedChecks} visibility leaks found — continue fixing them from your workspace.`
               : "Your scan results are linked to this business — keep improving visibility from here."}
           </CardDescription>
         </div>
-        <div className="flex shrink-0 items-center gap-2 rounded-2xl border bg-background/80 px-4 py-3">
-          {isGrader ? (
-            <FileBarChart2Icon className="size-5 text-emerald-600" />
-          ) : (
-            <RadarIcon className="size-5 text-emerald-600" />
-          )}
-          <div>
-            <p className="text-xs text-muted-foreground">Score</p>
-            <p className="text-2xl font-bold tabular-nums">{score}</p>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex shrink-0 items-center gap-2 rounded-2xl border bg-background/80 px-4 py-3">
+            {isGrader ? (
+              <FileBarChart2Icon className="size-5 text-emerald-600" />
+            ) : (
+              <RadarIcon className="size-5 text-emerald-600" />
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground">Score</p>
+              <p className="text-2xl font-bold tabular-nums">{score}</p>
+            </div>
           </div>
+          {isGrader && insight.scoreDelta != null ? (
+            <GraderScoreDelta delta={insight.scoreDelta} size="md" />
+          ) : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">

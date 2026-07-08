@@ -113,8 +113,8 @@ Checks stay on `grader_audits` (large jsonb) — **no duplicate store**. Locatio
 
 - [x] Start grader from location (“Re-run visibility audit”)
 - [x] Attach new audit to same location; update `graderAuditId` on complete
-- [ ] Diff score on dashboard after re-grade
-- [ ] Agency: per-client audit from Clients list
+- [x] Diff score on dashboard after re-grade
+- [x] Agency: per-client audit from Clients list
 
 ---
 

@@ -825,9 +825,11 @@ async function runGraderPipeline(input: {
         locationId: linked.locationId,
         auditId,
       });
+      revalidatePath("/dashboard");
+      revalidatePath("/dashboard/clients");
+      revalidatePath(`/dashboard/locations/${linked.locationId}`);
       if (tasksSeeded > 0) {
         revalidatePath("/dashboard/tasks");
-        revalidatePath(`/dashboard/locations/${linked.locationId}`);
       }
     }
   } catch (error) {
