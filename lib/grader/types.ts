@@ -200,6 +200,12 @@ export type GraderProgressEvidence = {
     lng: number | null;
   }>;
   pageSpeed?: { lcp?: string; cls?: string; status: "pass" | "fail" | "unknown" };
+  /** v2 reasoning layer — AI grouping of place reviews into rated themes. */
+  reviewThemes?: Array<{ theme: string; rating: number }>;
+  /** v2 reasoning layer — consultant lines appended as stages complete. */
+  narration?: string[];
+  /** v2 reasoning layer — photo count vs. local competitors. */
+  photoBenchmark?: { yours: number; competitorAvg: number };
 };
 
 /** Persisted on grader_audits.progress; polled via /api/grader/status/[id]. */

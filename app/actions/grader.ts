@@ -25,6 +25,12 @@ import {
   generateKeywords,
   getRankProvider,
 } from "@/lib/grader/rank-provider";
+import {
+  buildPhotoBenchmark,
+  deriveSignalNarration,
+  generateReviewThemes,
+  photoBenchmarkNarration,
+} from "@/lib/grader/reasoning";
 import { estimateMonthlyLoss, scoreAudit } from "@/lib/grader/scoring";
 import { analyzeSite } from "@/lib/grader/site-analysis";
 import type {
@@ -37,6 +43,10 @@ import type {
 
 const GRADER_MODEL =
   process.env.AUDIT_EXTRACTION_MODEL ?? "google/gemini-2.5-flash";
+
+// Tiny reasoning calls (review themes) use the lite model: ~1s vs ~10s.
+const REASONING_MODEL =
+  process.env.GRADER_REASONING_MODEL ?? "google/gemini-2.5-flash-lite";
 
 const graderExtractionSchema = z.object({
   businessName: z.string().nullable().describe("Business name shown on the site"),
@@ -227,6 +237,15 @@ function markStageDone(
   progress.stage = next;
 }
 
+/** Appends narration lines (deduped) so the array grows across polls. */
+function appendNarration(progress: GraderProgress, lines: string[]): void {
+  const existing = progress.evidence.narration ?? [];
+  progress.evidence.narration = [
+    ...existing,
+    ...lines.filter((line) => line && !existing.includes(line)),
+  ];
+}
+
 export async function startGraderAuditAction(input: {
   /** Website URL; may be omitted when a place without a website is selected. */
   url?: string;
@@ -288,6 +307,18 @@ async function runGraderPipeline(input: {
   const { auditId, url, place } = input;
   const db = getDb();
   const writer = createProgressWriter(auditId, input.initialProgress);
+
+  // Reviews exist at insert (place selection), so theme grouping runs
+  // concurrently with the crawl — near-zero added wall-clock latency.
+  // Failure-safe: any AI error resolves to null and the field is skipped.
+  const themesPromise =
+    place && (place.reviews?.length ?? 0) >= 2
+      ? generateReviewThemes({
+          model: REASONING_MODEL,
+          businessName: place.name,
+          reviews: place.reviews!,
+        })
+      : Promise.resolve(null);
 
   try {
     const placeCityState = parseCityState(place?.formattedAddress);
@@ -353,9 +384,15 @@ async function runGraderPipeline(input: {
         placeId: place?.placeId ?? null,
       };
 
+      // Themes ran concurrently with the crawl; usually resolved by now.
+      const themesResult = await themesPromise;
       writer.write((p) => {
         p.evidence.services = extracted.services.slice(0, 8);
         p.evidence.warnings = deriveEarlyWarnings({ extracted, hasWebsite: true });
+        if (themesResult) {
+          p.evidence.reviewThemes = themesResult.themes;
+          appendNarration(p, [themesResult.summary]);
+        }
         markStageDone(p, "extract", "keywords");
       });
 
@@ -365,6 +402,9 @@ async function runGraderPipeline(input: {
         title: scrape.title ?? null,
         metaDescription: scrape.description ?? null,
         businessName: extracted.businessName,
+      });
+      writer.write((p) => {
+        appendNarration(p, deriveSignalNarration({ signals, extracted }));
       });
       websiteDomain = new URL(url).hostname.replace(/^www\./, "");
       pageSpeed = await psiPromise;
@@ -393,11 +433,19 @@ async function runGraderPipeline(input: {
       pageSpeed = emptyPageSpeed();
       websiteDomain = place!.placeId; // deterministic sample seed
 
+      const themesResult = await themesPromise;
       writer.write((p) => {
         p.evidence.warnings = deriveEarlyWarnings({
           extracted,
           hasWebsite: false,
         });
+        if (themesResult) {
+          p.evidence.reviewThemes = themesResult.themes;
+          appendNarration(p, [themesResult.summary]);
+        }
+        appendNarration(p, [
+          "No website linked — every check that needs one fails automatically.",
+        ]);
       });
     }
 
@@ -438,7 +486,20 @@ async function runGraderPipeline(input: {
         lat: coordsByName.get(competitor.name)?.lat ?? null,
         lng: coordsByName.get(competitor.name)?.lng ?? null,
       }));
+      if (place) {
+        const benchmark = buildPhotoBenchmark({
+          seed: websiteDomain,
+          yours: place.photoCount ?? place.photoUrls?.length ?? 0,
+        });
+        p.evidence.photoBenchmark = benchmark;
+        appendNarration(p, [photoBenchmarkNarration(benchmark)]);
+      }
       markStageDone(p, "keywords", "scoring");
+    });
+
+    // Scoring stage narration — the closer before the report reveal.
+    writer.write((p) => {
+      appendNarration(p, ["Calculating revenue impact…"]);
     });
 
     const gbpProfile = buildSampleGbpProfile({

@@ -42,7 +42,7 @@ export default async function GraderPage() {
       <MarketingHeader signedIn={Boolean(session.userId)} />
 
       <main className="flex-1">
-        <section className="relative overflow-hidden">
+        <section className="relative z-30">
           <div className="mx-auto max-w-3xl px-4 pt-14 pb-10 sm:px-6 sm:pt-20">
             <div className="mb-8 space-y-4 text-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-600/10 px-3 py-1 text-sm font-medium text-emerald-700">

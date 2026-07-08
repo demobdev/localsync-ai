@@ -170,6 +170,7 @@ async function fetchPlaceDetails(
     longitude: place.location?.longitude ?? null,
     primaryType: place.primaryTypeDisplayName?.text ?? null,
     photoUrls,
+    photoCount: place.photos?.length ?? photoUrls.length,
     reviews,
   };
 }
@@ -313,7 +314,7 @@ export function GraderStart() {
           )}
 
           {dropdownOpen && suggestions.length > 0 && (
-            <ul className="absolute top-full right-0 left-0 z-20 mt-2 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg">
+            <ul className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-2xl border border-black/5 bg-white shadow-lg">
               {suggestions.map((suggestion) => (
                 <li key={suggestion.placeId}>
                   <button

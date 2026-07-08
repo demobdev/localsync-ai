@@ -21,6 +21,8 @@ export type GraderPlaceInput = {
    * (the only key is referrer-restricted; server-side calls would 403).
    */
   photoUrls?: string[];
+  /** Total photos the Places record reports (we only carry up to 6 URLs). */
+  photoCount?: number;
   reviews?: Array<{ author: string; rating: number; text: string; when: string }>;
 };
 

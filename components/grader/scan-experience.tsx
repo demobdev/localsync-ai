@@ -18,6 +18,7 @@ import {
   GlobeIcon,
   LoaderIcon,
   MapPinIcon,
+  SparklesIcon,
   StoreIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -180,8 +181,35 @@ export function ScanExperience({
         </div>
       </div>
 
-      {/* Center stage: evidence scenes, crossfading as data lands */}
-      <EvidenceStage evidence={data.evidence} domain={domain} />
+      {/* Center stage: evidence scenes + streamed AI narration */}
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <EvidenceStage evidence={data.evidence} domain={domain} />
+        <NarrationPanel lines={data.evidence.narration ?? []} />
+      </div>
+    </div>
+  );
+}
+
+/** Streamed consultant lines — fades new lines in as polls deliver them. */
+function NarrationPanel({ lines }: { lines: string[] }) {
+  if (lines.length === 0) return null;
+
+  return (
+    <div className="rounded-3xl border border-black/5 bg-white/90 p-4 shadow-sm sm:p-5">
+      <p className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold tracking-wide text-emerald-700 uppercase">
+        <SparklesIcon className="size-3.5" />
+        LocalSync AI
+      </p>
+      <div className="space-y-1.5">
+        {lines.map((line) => (
+          <p
+            key={line}
+            className="animate-in fade-in slide-in-from-bottom-1 text-sm text-zinc-700 duration-500"
+          >
+            {line}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -347,13 +375,32 @@ function IdentityScene({
 
 function ReviewsScene({ evidence }: { evidence: GraderProgressEvidence }) {
   const reviews = evidence.place?.reviews ?? [];
+  const themes = evidence.reviewThemes ?? [];
 
   return (
     <div className="w-full max-w-md space-y-3">
       <p className="text-center text-sm font-medium text-zinc-500">
         Reading what customers say about you
       </p>
-      {reviews.slice(0, 4).map((review) => (
+      {themes.length > 0 && (
+        <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+          {themes.map((theme) => (
+            <div
+              key={theme.theme}
+              className="flex items-center justify-between border-b border-black/5 py-1.5 last:border-b-0"
+            >
+              <span className="text-sm font-medium text-zinc-800">
+                {theme.theme}
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+                <Stars rating={theme.rating} />
+                {theme.rating}/5
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {reviews.slice(0, themes.length > 0 ? 2 : 4).map((review) => (
         <div
           key={`${review.author}-${review.when}`}
           className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm"

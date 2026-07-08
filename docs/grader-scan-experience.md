@@ -210,10 +210,16 @@ type GraderProgress = {
 };
 ```
 
-Notes for the creative agent:
+Notes for the creative agent (from the shipped backend):
 - Poll-driven, not websockets — design tolerates 1.5s granularity; use dwell-time minimums so scenes don't flash.
+- **Fast sites finish in 8–15s.** Scene pacing needs minimum dwell times or the finale arrives before Scenes 3–6 play. `stagesDone` is the truth; never assume 45s.
 - Scenes must tolerate any evidence field being absent forever (skip) or arriving late (hold + shimmer).
-- The `narration` and `reviewThemes` fields are a backend follow-up; design Scene 3/7 so they degrade to the evidence-only version if narration is empty.
+- `competitors[].lat/lng` are **nullable** (URL-only audits have no anchor coordinates) — the map scene must tolerate null pins.
+- `evidence.warnings` arrive at the `extract` stage for website audits, but immediately at insert for no-website audits.
+- The final checklist item completes on `status: "complete"`, not on a 6th stage event.
+- Screenshot URLs are full-page captures (tall) — crop with `object-top` or pan.
+- `startedAt` is an ISO string — countdown anchor.
+- The `narration`, `reviewThemes`, and `photoBenchmark` fields are the reasoning-layer follow-up; design Scenes 3/7 to degrade to the evidence-only version when they're empty.
 - The scan lives at `/grader/[auditId]` while `status === "scanning"` — refresh-safe, shareable; the same URL becomes the report.
 
 ---
