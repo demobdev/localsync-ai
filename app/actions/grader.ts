@@ -3,6 +3,7 @@
 import { generateObject } from "ai";
 import { eq, desc } from "drizzle-orm";
 import { after } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { getDb } from "@/db";
@@ -820,10 +821,14 @@ async function runGraderPipeline(input: {
       columns: { locationId: true },
     });
     if (linked?.locationId) {
-      await syncGraderAuditIdToLocation({
+      const { tasksSeeded } = await syncGraderAuditIdToLocation({
         locationId: linked.locationId,
         auditId,
       });
+      if (tasksSeeded > 0) {
+        revalidatePath("/dashboard/tasks");
+        revalidatePath(`/dashboard/locations/${linked.locationId}`);
+      }
     }
   } catch (error) {
     const message =

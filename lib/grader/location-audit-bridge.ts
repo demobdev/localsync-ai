@@ -2,7 +2,7 @@ import { desc, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
-import type { AuditCheck } from "@/lib/grader/types";
+import type { AuditCheck, KeywordResult } from "@/lib/grader/types";
 import type { SetupStep } from "@/lib/profile/setup-workflow";
 
 export type LinkedGraderAudit = {
@@ -11,6 +11,7 @@ export type LinkedGraderAudit = {
   grade: string | null;
   failedChecks: number;
   checks: AuditCheck[];
+  keywords: KeywordResult[];
   locationId: string | null;
   businessName: string | null;
 };
@@ -29,6 +30,7 @@ export async function getGraderAuditForLocation(
       grade: true,
       failedChecks: true,
       checks: true,
+      keywords: true,
       locationId: true,
       businessName: true,
     },
@@ -42,6 +44,7 @@ export async function getGraderAuditForLocation(
     grade: audit.grade,
     failedChecks: audit.failedChecks,
     checks: audit.checks ?? [],
+    keywords: audit.keywords ?? [],
     locationId: audit.locationId,
     businessName: audit.businessName,
   };
@@ -139,6 +142,22 @@ export function buildGraderFixSteps(input: {
 
 export function locationFixQueueHref(locationId: string): string {
   return `/dashboard/locations/${locationId}?tab=nap`;
+}
+
+export function buildGraderTaskQueueStep(input: {
+  locationId: string;
+  openTaskCount: number;
+}): SetupStep | null {
+  if (input.openTaskCount <= 0) return null;
+
+  return {
+    id: "grader-task-queue",
+    phase: "audit",
+    title: "Complete audit fix tasks",
+    description: `${input.openTaskCount} open task${input.openTaskCount === 1 ? "" : "s"} queued from your visibility audit`,
+    done: false,
+    href: "/dashboard/tasks",
+  };
 }
 
 /** Top failed check labels for dashboard teaser. */

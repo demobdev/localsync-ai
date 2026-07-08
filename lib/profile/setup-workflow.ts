@@ -1,6 +1,6 @@
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { buildOperatingModelSetupSteps } from "@/lib/profile/model-setup-steps";
-import { buildGraderFixSteps } from "@/lib/grader/location-audit-bridge";
+import { buildGraderFixSteps, buildGraderTaskQueueStep } from "@/lib/grader/location-audit-bridge";
 import type { AuditCheck } from "@/lib/grader/types";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { computeProfileScore } from "@/lib/visibility/score";
@@ -229,6 +229,7 @@ export function buildLocationSetupProgress(input: {
   profile: LocationProfileSnapshot;
   operatingContext?: LocationOperatingContext | null;
   graderChecks?: AuditCheck[] | null;
+  graderOpenTaskCount?: number;
   googleConnected: boolean;
   googleCanImport: boolean;
   listingUrlsConfigured: number;
@@ -259,8 +260,14 @@ export function buildLocationSetupProgress(input: {
         })
       : [];
 
+  const graderTaskStep = buildGraderTaskQueueStep({
+    locationId: input.locationId,
+    openTaskCount: input.graderOpenTaskCount ?? 0,
+  });
+
   const steps = [
     ...graderFixSteps,
+    ...(graderTaskStep ? [graderTaskStep] : []),
     ...buildProfileFieldSteps({
       locationId: input.locationId,
       profile: input.profile,

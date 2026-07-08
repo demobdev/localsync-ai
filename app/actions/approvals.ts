@@ -17,6 +17,8 @@ import {
   summarizeProfileDiff,
 } from "@/lib/location-versioning";
 import type { LocationFaq, LocationProfileSnapshot } from "@/lib/types/location-profile";
+import { getGraderAuditForLocation } from "@/lib/grader/location-audit-bridge";
+import { extractKeywordOpportunities } from "@/lib/grader/seed-tasks-from-audit";
 import { generateFaqDrafts } from "@/lib/visibility/faq-generate";
 
 import { generateVisibilityPageAction } from "./visibility";
@@ -110,10 +112,16 @@ export async function generateFaqDraftAction(locationId: string) {
           .where(inArray(serviceTaxonomy.slug, location.profile.serviceSlugs))
       : [];
 
+  const linkedAudit = await getGraderAuditForLocation(locationId);
+  const keywordOpportunities = linkedAudit?.keywords
+    ? extractKeywordOpportunities(linkedAudit.keywords)
+    : undefined;
+
   const faqs = await generateFaqDrafts({
     profile: location.profile,
     categoryName: category?.name,
     serviceNames: services.map((service) => service.name),
+    keywordOpportunities,
   });
 
   const [request] = await db

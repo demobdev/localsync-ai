@@ -104,9 +104,10 @@ Checks stay on `grader_audits` (large jsonb) — **no duplicate store**. Locatio
 
 ### Gate 3 — Work queue
 
-- [ ] Seed `manualTasks` from fix-plan quick wins
+- [x] Seed `manualTasks` from fix-plan quick wins
 - [x] Location header: audit score + leaks via linked audit banner
-- [ ] Keyword opportunities feed FAQ / visibility generation
+- [x] Keyword opportunities feed FAQ / visibility generation
+- [x] Setup guide step → `/dashboard/tasks` when open grader tasks exist
 
 ### Gate 4 — Re-grade loop
 

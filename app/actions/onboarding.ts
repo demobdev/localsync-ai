@@ -23,6 +23,7 @@ import {
   enrichProfileFromGraderExtracted,
   matchExtractedServicesToSlugs,
 } from "@/lib/grader/claim-enrichment";
+import { seedGraderFixTasksForLocation } from "@/lib/grader/seed-tasks-from-audit";
 import type { GraderAuditTier, GraderOperatingModel } from "@/lib/grader/types";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import {
@@ -163,6 +164,7 @@ export async function quickSetupBusinessAction(input: {
           extracted: true,
           progress: true,
           gbpProfile: true,
+          checks: true,
         },
       })
     : null;
@@ -364,6 +366,13 @@ export async function quickSetupBusinessAction(input: {
     });
     if (claimed) {
       claimedAuditId = audit.id;
+      if (audit.checks?.length) {
+        await seedGraderFixTasksForLocation({
+          db,
+          locationId: location.id,
+          checks: audit.checks,
+        });
+      }
     }
   }
 
@@ -383,6 +392,7 @@ export async function quickSetupBusinessAction(input: {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/locations");
   revalidatePath("/dashboard/clients");
+  revalidatePath("/dashboard/tasks");
 
   return {
     organizationId,

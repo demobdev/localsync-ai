@@ -27,8 +27,10 @@ export async function generateFaqDrafts(input: {
   profile: LocationProfileSnapshot;
   categoryName?: string;
   serviceNames: string[];
+  /** From grader audit — opportunity keywords to target in FAQs when supported by profile facts. */
+  keywordOpportunities?: string[];
 }): Promise<FaqDraft[]> {
-  const { profile, categoryName, serviceNames } = input;
+  const { profile, categoryName, serviceNames, keywordOpportunities } = input;
 
   const { object } = await generateObject({
     model: FAQ_MODEL,
@@ -37,6 +39,9 @@ export async function generateFaqDrafts(input: {
       "Generate FAQ entries for a local business visibility page.",
       "Use ONLY facts from the business profile below. If you cannot answer from the data, write a conservative generic answer or skip that topic.",
       "Questions should be practical (hours, location, services, contact).",
+      keywordOpportunities && keywordOpportunities.length > 0
+        ? `When natural, weave these search topics into questions (only if supported by profile facts): ${keywordOpportunities.join(", ")}`
+        : "",
       "",
       `Business: ${profile.name}`,
       categoryName ? `Category: ${categoryName}` : "",
