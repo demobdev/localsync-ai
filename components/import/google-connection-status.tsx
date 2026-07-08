@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import type { GbpFetchErrorCode } from "@/lib/connectors/google";
 import type { GoogleImportState } from "@/app/actions/google-import";
+import { googleConnectCopyForContext } from "@/lib/connect/google-connect-copy";
+import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +28,18 @@ function fetchErrorTitle(code: GbpFetchErrorCode) {
   }
 }
 
-export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) {
+export function GoogleConnectionStatus({
+  state,
+  operatingContext = null,
+}: {
+  state: GoogleImportState;
+  operatingContext?: LocationOperatingContext | null;
+}) {
+  const copy = googleConnectCopyForContext({
+    context: operatingContext,
+    googleState: state,
+  });
+
   if (state.status === "not_configured") {
     return (
       <Card>
@@ -48,12 +61,8 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
           <div className="flex items-center gap-3">
             <PublisherIcon slug="google-business-profile" badge size={32} />
             <div className="space-y-1">
-              <CardTitle>Connect your Google account</CardTitle>
-              <CardDescription>
-                Sign in with a Google account that is a test user in your Cloud
-                project and an owner/manager on at least one Business Profile.
-                Read only — nothing is written back to Google.
-              </CardDescription>
+              <CardTitle>{copy.headline}</CardTitle>
+              <CardDescription>{copy.description}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -62,12 +71,18 @@ export function GoogleConnectionStatus({ state }: { state: GoogleImportState }) 
             nativeButton={false}
             render={<Link href="/api/connectors/google" />}
           >
-            Connect Google Business Profile
+            {copy.cta}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            No Business Profile yet? Create one at business.google.com first,
-            then connect the same Google account you use as listing manager.
-          </p>
+          {copy.helper ? (
+            <p className="text-xs text-muted-foreground">{copy.helper}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Sign in with a Google account that is a test user in your Cloud
+              project and an owner/manager on at least one Business Profile.
+              Read only — nothing is written back to Google until you push from
+              Premium.
+            </p>
+          )}
         </CardContent>
       </Card>
     );

@@ -12,6 +12,9 @@ import {
 import type { GoogleImportState } from "@/app/actions/google-import";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
 import type { SetupProgress } from "@/lib/profile/setup-workflow";
+import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
+import { listingsDescriptionForModel } from "@/lib/profile/publisher-packs-by-model";
+import { googleConnectCopyForContext } from "@/lib/connect/google-connect-copy";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,11 +43,18 @@ export function ConnectionsHub({
   googleState,
   setupProgress,
   primaryLocationId,
+  operatingContext = null,
 }: {
   googleState: GoogleImportState;
   setupProgress: SetupProgress | null;
   primaryLocationId: string | null;
+  operatingContext?: LocationOperatingContext | null;
 }) {
+  const googleCopy = googleConnectCopyForContext({
+    context: operatingContext,
+    googleState,
+  });
+  const model = operatingContext?.operatingModel ?? "storefront";
   const googleConnected = googleState.status === "connected";
   const googleQuotaPending =
     googleConnected &&
@@ -60,11 +70,7 @@ export function ConnectionsHub({
     {
       id: "google",
       title: "Google Business Profile",
-      description: googleQuotaPending
-        ? "Connected — waiting on Google API approval to import listing data."
-        : googleConnected
-          ? "Account linked. Import NAP, hours, and categories into your master profile."
-          : "OAuth read-only link. Requires a verified profile on your Google account.",
+      description: googleCopy.description,
       icon: GlobeIcon,
       publisherSlug: "google-business-profile",
       done: googleConnected,
@@ -74,14 +80,13 @@ export function ConnectionsHub({
           ? "Connected"
           : "Not connected",
       href: "/dashboard/connect/google",
-      cta: googleConnected ? "Manage import" : "Connect Google",
+      cta: googleConnected ? googleCopy.cta : googleCopy.cta,
       tone: googleConnected ? "text-primary" : undefined,
     },
     {
       id: "listings",
       title: "Directory listings",
-      description:
-        "Add Yelp, BBB, and other URLs. We crawl and compare them to your master profile.",
+      description: listingsDescriptionForModel(model),
       icon: Link2Icon,
       done: listingStep?.done ?? false,
       statusLabel: listingStep?.done ? "URLs added" : "Add URLs",
@@ -136,9 +141,13 @@ export function ConnectionsHub({
           Connections & data sources
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-          Link external profiles, import canonical data, audit directories, and
-          publish your AI-readable visibility page — in order or as you go.
+          {operatingContext
+            ? `${googleCopy.headline}. Link external profiles, import canonical data, audit directories, and publish your AI-readable visibility page.`
+            : "Link external profiles, import canonical data, audit directories, and publish your AI-readable visibility page — in order or as you go."}
         </p>
+        {googleCopy.helper ? (
+          <p className="mt-2 text-xs text-muted-foreground">{googleCopy.helper}</p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

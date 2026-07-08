@@ -1,6 +1,6 @@
 # Phase: Operating Model Routing Moat
 
-**Status:** Infrastructure shipped (Gate A). **Primary focus moved to** [`phase-cyclical-funnel.md`](./phase-cyclical-funnel.md) — grader data must flow into agency automation.
+**Status:** Gates A–D shipped for UX routing. Gate E (pipeline scoring) remains. Cyclical funnel is complete — see [`phase-cyclical-funnel.md`](./phase-cyclical-funnel.md).
 
 **Goal:** Every user path is tailored by *how they operate* (storefront, mobile, service area, online-first). The model chosen at `/grader` survives claim and drives onboarding, dashboard setup, and fix CTAs — not just copy.
 
@@ -114,15 +114,15 @@ flowchart TB
 
 - [x] Operating model guide (copy checklist)
 - [x] Model-specific wizard fields (service area cities)
-- [ ] Full wizard branch per model (hide address, mobile locations)
-- [ ] Model-specific report sections (not just `GbpMissingCard`)
+- [x] Full wizard branch per model (hide address, mobile locations)
+- [x] Model-specific report sections (not just `GbpMissingCard`)
 
 ### Gate D — Dashboard moat 🔄 Phase 2
 
 - [x] Model-aware setup workflow steps (connect phase)
-- [ ] Dashboard banner keyed to model + GBP status
-- [ ] `/dashboard/connect` copy per model
-- [ ] Publisher pack defaults per model (food truck vs home services)
+- [x] Dashboard banner keyed to model + GBP status
+- [x] `/dashboard/connect` copy per model
+- [x] Publisher pack defaults per model (food truck vs home services)
 
 ### Gate E — Pipeline honesty 🔄 Phase 2
 

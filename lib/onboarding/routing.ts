@@ -190,6 +190,11 @@ export function resolvePostSetupRoute(input: {
       },
       secondary: [
         {
+          id: "connect-google",
+          label: "Connect existing Google listing",
+          href: connectGoogleHref,
+        },
+        {
           id: "premium",
           label: "We'll set it up for you (Premium)",
           href: LOCALSYNC_PREMIUM_SETUP_URL,

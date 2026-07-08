@@ -12,7 +12,7 @@ import {
   locations,
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
-import { getLocationOperatingContext } from "@/lib/profile/operating-model-meta";
+import { getLocationOperatingContext, type LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import {
   buildLocationSetupProgress,
   type SetupProgress,
@@ -122,21 +122,26 @@ export async function getLocationSetupProgressAction(
 export async function getPrimaryLocationSetupAction(): Promise<{
   locationId: string | null;
   progress: SetupProgress | null;
+  operatingContext: LocationOperatingContext | null;
 }> {
   const { orgId } = await requireOrgAuth();
   const db = getDb();
 
   const [location] = await db
-    .select({ id: locations.id })
+    .select({ id: locations.id, profile: locations.profile })
     .from(locations)
     .where(eq(locations.organizationId, orgId))
     .orderBy(desc(locations.updatedAt))
     .limit(1);
 
   if (!location) {
-    return { locationId: null, progress: null };
+    return { locationId: null, progress: null, operatingContext: null };
   }
 
   const progress = await getLocationSetupProgressAction(location.id);
-  return { locationId: location.id, progress };
+  return {
+    locationId: location.id,
+    progress,
+    operatingContext: getLocationOperatingContext(location.profile),
+  };
 }

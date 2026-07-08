@@ -3,7 +3,7 @@ import { getGoogleImportStateAction } from "@/app/actions/google-import";
 import { ConnectionsHub } from "@/components/connect/connections-hub";
 
 export default async function ConnectPage() {
-  const [{ progress, locationId }, googleState] = await Promise.all([
+  const [{ progress, locationId, operatingContext }, googleState] = await Promise.all([
     getPrimaryLocationSetupAction(),
     getGoogleImportStateAction(),
   ]);
@@ -13,6 +13,7 @@ export default async function ConnectPage() {
       googleState={googleState}
       setupProgress={progress}
       primaryLocationId={locationId}
+      operatingContext={operatingContext}
     />
   );
 }

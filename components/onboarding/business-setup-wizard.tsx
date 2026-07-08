@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ModelSetupFields } from "@/components/onboarding/model-setup-fields";
 import { onboardingGuideForModel } from "@/lib/onboarding/operating-model-paths";
+import { getWizardFieldConfig } from "@/lib/onboarding/wizard-field-config";
 import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 
@@ -93,6 +94,7 @@ export function BusinessSetupWizard({
         prefill.auditTier ?? "full_local",
       )
     : null;
+  const fieldConfig = getWizardFieldConfig(prefill?.operatingModel);
   const description = modelGuide?.description ?? copy.description;
 
   function handleSubmit(formData: FormData) {
@@ -176,26 +178,28 @@ export function BusinessSetupWizard({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                name="city"
-                placeholder="Austin"
-                defaultValue={prefill?.city ?? undefined}
-              />
+          {fieldConfig.showCityState ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="city">{fieldConfig.cityLabel}</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  placeholder="Austin"
+                  defaultValue={prefill?.city ?? undefined}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">{fieldConfig.stateLabel}</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  placeholder="TX"
+                  defaultValue={prefill?.state ?? undefined}
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                name="state"
-                placeholder="TX"
-                defaultValue={prefill?.state ?? undefined}
-              />
-            </div>
-          </div>
+          ) : null}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -209,18 +213,24 @@ export function BusinessSetupWizard({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
+              <Label htmlFor="website">
+                {fieldConfig.websiteLabel}
+              </Label>
               <Input
                 id="website"
                 name="website"
-                placeholder="https://…"
+                placeholder={fieldConfig.websitePlaceholder}
                 defaultValue={prefill?.url ?? undefined}
+                required={fieldConfig.websiteRequired}
               />
             </div>
           </div>
 
           {prefill?.operatingModel ? (
-            <ModelSetupFields operatingModel={prefill.operatingModel} />
+            <ModelSetupFields
+              operatingModel={prefill.operatingModel}
+              defaultServiceAreaCities={prefill.serviceAreaCities}
+            />
           ) : null}
 
           <Button type="submit" className="w-full" disabled={isPending}>
@@ -233,8 +243,7 @@ export function BusinessSetupWizard({
           </Button>
 
           <p className="text-center text-xs text-muted-foreground">
-            City, phone, and website are optional — you can finish your profile
-            after setup.
+            {fieldConfig.footerHint}
           </p>
         </form>
       </CardContent>

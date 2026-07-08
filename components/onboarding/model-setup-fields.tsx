@@ -49,5 +49,22 @@ export function ModelSetupFields({
     );
   }
 
+  if (operatingModel === "online") {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="serviceAreaCities">How you reach local buyers</Label>
+        <Input
+          id="serviceAreaCities"
+          name="serviceAreaCities"
+          placeholder="e.g. Ships nationwide · local pickup in Austin"
+          defaultValue={defaultServiceAreaCities ?? undefined}
+        />
+        <p className="text-xs text-muted-foreground">
+          Optional — helps us tailor citations and visibility copy for online-first brands.
+        </p>
+      </div>
+    );
+  }
+
   return null;
 }

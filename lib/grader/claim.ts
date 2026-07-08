@@ -45,6 +45,10 @@ export async function getAuditPrefill(
     operatingModel: audit.progress?.operatingModel,
     auditTier: audit.progress?.auditTier,
     gbpLinked: audit.gbpProfile?.gbpLinked !== false,
+    serviceAreaCities:
+      audit.city && audit.state
+        ? `${audit.city}, ${audit.state}`
+        : audit.city ?? null,
   };
 }
 

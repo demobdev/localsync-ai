@@ -2,6 +2,8 @@ import { Suspense } from "react";
 
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
 import { getLocationAction, listLocationsAction } from "@/app/actions/locations";
+import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
+import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { GoogleConnectionStatus } from "@/components/import/google-connection-status";
 import { GoogleImportFlow } from "@/components/import/google-import-flow";
@@ -17,8 +19,10 @@ import Link from "next/link";
 
 async function GoogleConnectContent({
   error,
+  operatingContext,
 }: {
   error?: string;
+  operatingContext: LocationOperatingContext | null;
 }) {
   const state = await getGoogleImportStateAction();
 
@@ -68,7 +72,7 @@ async function GoogleConnectContent({
         </Card>
       ) : null}
 
-      <GoogleConnectionStatus state={state} />
+      <GoogleConnectionStatus state={state} operatingContext={operatingContext} />
 
       {canImport && targetLocations.length === 0 ? (
         <Card>
@@ -103,7 +107,11 @@ export default async function ConnectGooglePage({
 }: {
   searchParams: Promise<{ error?: string; connected?: string }>;
 }) {
-  const { error } = await searchParams;
+  const [{ operatingContext }, params] = await Promise.all([
+    getPrimaryLocationSetupAction(),
+    searchParams,
+  ]);
+  const { error } = params;
 
   return (
     <div className="space-y-6">
@@ -132,7 +140,7 @@ export default async function ConnectGooglePage({
       </div>
 
       <Suspense fallback={<ConnectGoogleSkeleton />}>
-        <GoogleConnectContent error={error} />
+        <GoogleConnectContent error={error} operatingContext={operatingContext} />
       </Suspense>
     </div>
   );

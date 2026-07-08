@@ -25,6 +25,7 @@ export type SetupPrefill = {
   operatingModel?: GraderOperatingModel;
   auditTier?: GraderAuditTier;
   gbpLinked?: boolean;
+  serviceAreaCities?: string | null;
 };
 
 export function prefillFromScan(scan: ScanPrefill): SetupPrefill {

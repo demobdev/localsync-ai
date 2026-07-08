@@ -10,6 +10,7 @@ import {
 } from "@/lib/grader/types";
 
 import { ReportCard, SectionHeader, Stars, StatusIcon } from "./primitives";
+import { ModelReportNotes } from "./model-report-notes";
 
 export function LocalListingsSection({ report }: { report: AuditReport }) {
   return (
@@ -23,9 +24,18 @@ export function LocalListingsSection({ report }: { report: AuditReport }) {
       />
 
       <div className="px-4 pb-5 sm:px-5">
+        <ModelReportNotes
+          operatingModel={report.operatingModel}
+          auditTier={report.auditTier}
+          gbpLinked={report.gbpProfile.gbpLinked !== false}
+        />
         {report.gbpProfile.gbpLinked === false ? (
           <div className="mb-4">
-            <GbpMissingCard businessLabel={report.businessName} />
+            <GbpMissingCard
+              businessLabel={report.businessName}
+              operatingModel={report.operatingModel}
+              auditTier={report.auditTier}
+            />
           </div>
         ) : null}
         <GbpProfileCard report={report} />

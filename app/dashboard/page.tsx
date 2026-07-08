@@ -22,6 +22,7 @@ import {
   getOrgVisibilitySummaryAction,
 } from "@/app/actions/visibility";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
+import { OperatingModelDashboardBanner } from "@/components/dashboard/operating-model-banner";
 import { AuditNewBusinessCard } from "@/components/dashboard/audit-new-business-card";
 import { RecentMarketingInsightCard } from "@/components/dashboard/recent-marketing-insight-card";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +92,7 @@ export default async function DashboardPage({
       safe(
         "setupProgress",
         () => getPrimaryLocationSetupAction(),
-        { progress: null, locationId: null },
+        { progress: null, locationId: null, operatingContext: null },
       ),
       safe(
         "reviews",
@@ -195,6 +196,14 @@ export default async function DashboardPage({
       </div>
 
       <AuditNewBusinessCard isAgency={isAgency} />
+
+      {primarySetup.operatingContext && primarySetup.locationId ? (
+        <OperatingModelDashboardBanner
+          context={primarySetup.operatingContext}
+          locationId={primarySetup.locationId}
+          googleState={googleState}
+        />
+      ) : null}
 
       {recentInsight ? (
         <RecentMarketingInsightCard insight={recentInsight} />
