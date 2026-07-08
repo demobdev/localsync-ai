@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { getLocationAction } from "@/app/actions/locations";
 import { getLocationVisibilityAction } from "@/app/actions/visibility";
 import { LocationDetailHeader } from "@/components/locations/location-detail-header";
+import { LocationGraderAuditBanner } from "@/components/locations/location-grader-audit-banner";
 import { LocationTabs } from "@/components/locations/location-tabs";
+import { getGraderAuditForLocation } from "@/lib/grader/location-audit-bridge";
 
 export default async function LocationDetailLayout({
   children,
@@ -13,9 +15,10 @@ export default async function LocationDetailLayout({
   params: Promise<{ locationId: string }>;
 }) {
   const { locationId } = await params;
-  const [location, visibility] = await Promise.all([
+  const [location, visibility, linkedAudit] = await Promise.all([
     getLocationAction(locationId),
     getLocationVisibilityAction(locationId).catch(() => null),
+    getGraderAuditForLocation(locationId).catch(() => null),
   ]);
 
   if (!location) {
@@ -31,6 +34,12 @@ export default async function LocationDetailLayout({
         state={location.profile.state}
         visibilityScore={visibility?.score.total}
       />
+      {linkedAudit ? (
+        <LocationGraderAuditBanner
+          locationId={locationId}
+          audit={linkedAudit}
+        />
+      ) : null}
       <LocationTabs locationId={locationId} />
       {children}
     </div>

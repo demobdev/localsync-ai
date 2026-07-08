@@ -22,7 +22,7 @@ export async function getGraderAuditForLocation(
   const db = getDb();
   const audit = await db.query.graderAudits.findFirst({
     where: eq(graderAudits.locationId, locationId),
-    orderBy: [desc(graderAudits.claimedAt), desc(graderAudits.createdAt)],
+    orderBy: [desc(graderAudits.createdAt)],
     columns: {
       id: true,
       totalScore: true,

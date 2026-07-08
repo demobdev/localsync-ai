@@ -1,12 +1,12 @@
 "use server";
 
 import { generateObject } from "ai";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { after } from "next/server";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { graderAudits, graderLeads } from "@/db/schema";
+import { graderAudits, graderLeads, locations } from "@/db/schema";
 import { scrapeUrlFull } from "@/lib/firecrawl";
 import {
   applyNoWebsiteOverrides,
@@ -27,6 +27,8 @@ import {
   getRankProvider,
 } from "@/lib/grader/rank-provider";
 import { resolveSearchVertical } from "@/lib/grader/vertical";
+import { requireOrgAuth } from "@/lib/auth/org";
+import { getLocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import {
   buildPhotoBenchmark,
   deriveSignalNarration,
@@ -34,6 +36,7 @@ import {
   photoBenchmarkNarration,
 } from "@/lib/grader/reasoning";
 import { fetchLocalCompetitors } from "@/lib/grader/local-competitors";
+import { syncGraderAuditIdToLocation } from "@/lib/grader/sync-location-audit";
 import {
   domainToSearchQuery,
   lookupPlaceByText,
@@ -290,6 +293,10 @@ export async function startGraderAuditAction(input: {
   /** Drives GBP requirement and report scope labeling. */
   operatingModel?: GraderOperatingModel;
   scanLeadId?: string;
+  /** Pre-link audit to workspace location (re-grade from dashboard). */
+  sourceLocationId?: string;
+  organizationId?: string;
+  claimedByUserId?: string;
 }): Promise<{ auditId: string }> {
   const model: GraderOperatingModel = input.operatingModel ?? "storefront";
   const place = input.place ?? null;
@@ -349,6 +356,7 @@ export async function startGraderAuditAction(input: {
   };
 
   const db = getDb();
+  const prelinked = Boolean(input.sourceLocationId && input.organizationId);
   const [pending] = await db
     .insert(graderAudits)
     .values({
@@ -358,6 +366,14 @@ export async function startGraderAuditAction(input: {
       status: "scanning",
       scanLeadId: input.scanLeadId ?? null,
       progress: initialProgress,
+      ...(prelinked
+        ? {
+            locationId: input.sourceLocationId,
+            organizationId: input.organizationId,
+            claimedByUserId: input.claimedByUserId ?? null,
+            claimedAt: new Date(),
+          }
+        : {}),
     })
     .returning({ id: graderAudits.id });
 
@@ -798,6 +814,17 @@ async function runGraderPipeline(input: {
         extracted,
       })
       .where(eq(graderAudits.id, auditId));
+
+    const linked = await db.query.graderAudits.findFirst({
+      where: eq(graderAudits.id, auditId),
+      columns: { locationId: true },
+    });
+    if (linked?.locationId) {
+      await syncGraderAuditIdToLocation({
+        locationId: linked.locationId,
+        auditId,
+      });
+    }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Audit pipeline failed";
@@ -888,6 +915,83 @@ export async function retryGraderAuditAction(
   );
 
   return { ok: true };
+}
+
+/** Re-grade from an existing workspace location — closes the cyclical funnel. */
+export async function startGraderAuditFromLocationAction(input: {
+  locationId: string;
+}): Promise<{ auditId: string }> {
+  const { orgId, userId } = await requireOrgAuth();
+  const db = getDb();
+
+  const location = await db.query.locations.findFirst({
+    where: eq(locations.id, input.locationId),
+    columns: {
+      id: true,
+      organizationId: true,
+      name: true,
+      profile: true,
+    },
+  });
+
+  if (!location || location.organizationId !== orgId) {
+    throw new Error("Location not found");
+  }
+
+  const profile = location.profile;
+  const context = getLocationOperatingContext(profile);
+  const url = profile.website?.trim() || null;
+
+  const priorAudit = await db.query.graderAudits.findFirst({
+    where: eq(graderAudits.locationId, input.locationId),
+    orderBy: [desc(graderAudits.createdAt)],
+    columns: {
+      extracted: true,
+      progress: true,
+      websiteUrl: true,
+    },
+  });
+
+  const placeIdRaw = profile.attributes.googlePlaceId;
+  const placeId =
+    (typeof placeIdRaw === "string" ? placeIdRaw : null) ??
+    priorAudit?.extracted?.placeId ??
+    null;
+  const placeEvidence = priorAudit?.progress?.evidence?.place ?? null;
+  const resolvedUrl = url ?? priorAudit?.websiteUrl ?? null;
+
+  if (!resolvedUrl && !placeId) {
+    throw new Error(
+      "Add a website URL to this location before re-running an audit.",
+    );
+  }
+
+  const place =
+    placeId && placeEvidence
+      ? {
+          placeId: String(placeId),
+          name: placeEvidence.name ?? profile.name,
+          formattedAddress: placeEvidence.address ?? profile.addressLine1 ?? null,
+          phone: profile.phone ?? null,
+          websiteUri: resolvedUrl,
+          rating: placeEvidence.rating ?? null,
+          reviewCount: placeEvidence.reviewCount ?? null,
+          latitude: placeEvidence.lat ?? profile.latitude ?? null,
+          longitude: placeEvidence.lng ?? profile.longitude ?? null,
+          primaryType: placeEvidence.category ?? null,
+          photoUrls: placeEvidence.photoUrls ?? [],
+          reviews: placeEvidence.reviews ?? [],
+        }
+      : null;
+
+  return startGraderAuditAction({
+    url: resolvedUrl ?? undefined,
+    place: place ?? undefined,
+    operatingModel: context.operatingModel,
+    sourceLocationId: input.locationId,
+    organizationId: orgId,
+    claimedByUserId: userId,
+  });
 }
 
 export async function captureGraderLeadAction(input: {

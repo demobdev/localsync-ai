@@ -96,20 +96,23 @@ Checks stay on `grader_audits` (large jsonb) — **no duplicate store**. Locatio
 
 ### Gate 2 — Enrich claim
 
-- [ ] Map `extracted.services` → taxonomy slugs
-- [ ] Parse `hoursSummary` → `regularHours` when possible
-- [ ] Store `extracted.placeId` for GBP re-link
+- [x] Map `extracted.services` → taxonomy slugs
+- [x] Parse `hoursSummary` → `regularHours` when possible (raw summary stored otherwise)
+- [x] Store `extracted.placeId` for GBP re-link (`googlePlaceId` attribute)
+- [x] Location banner: audit score + leaks + report link
+- [x] Re-run audit from location (pre-linked claim + profile pointer update)
 
 ### Gate 3 — Work queue
 
 - [ ] Seed `manualTasks` from fix-plan quick wins
-- [ ] Location header: “Audit score 62 · 12 leaks” with link to report
+- [x] Location header: audit score + leaks via linked audit banner
 - [ ] Keyword opportunities feed FAQ / visibility generation
 
 ### Gate 4 — Re-grade loop
 
-- [ ] Start grader from location (“Re-run visibility audit”)
-- [ ] Attach new audit to same location; diff score on dashboard
+- [x] Start grader from location (“Re-run visibility audit”)
+- [x] Attach new audit to same location; update `graderAuditId` on complete
+- [ ] Diff score on dashboard after re-grade
 - [ ] Agency: per-client audit from Clients list
 
 ---

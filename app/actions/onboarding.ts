@@ -13,11 +13,16 @@ import {
   locationVersions,
   locations,
   publishers,
+  serviceTaxonomy,
 } from "@/db/schema";
 import { upsertOrganization } from "@/lib/auth/organizations";
 import type { OrganizationType } from "@/lib/auth/organizations";
 import { buildClientSlug } from "@/lib/clients";
 import { claimGraderAudit } from "@/lib/grader/claim";
+import {
+  enrichProfileFromGraderExtracted,
+  matchExtractedServicesToSlugs,
+} from "@/lib/grader/claim-enrichment";
 import type { GraderAuditTier, GraderOperatingModel } from "@/lib/grader/types";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import {
@@ -265,7 +270,34 @@ export async function quickSetupBusinessAction(input: {
     serviceSlugs: packed.serviceSlugs,
   };
 
-  const profileWithMeta = withLocationOperatingContext(profile, {
+  let enrichedProfile = profile;
+  if (audit && extracted) {
+    const taxonomyRows = await db
+      .select({
+        slug: serviceTaxonomy.slug,
+        name: serviceTaxonomy.name,
+        categorySlug: serviceTaxonomy.categorySlug,
+      })
+      .from(serviceTaxonomy);
+
+    const matchedSlugs = matchExtractedServicesToSlugs({
+      extractedServices: extracted.services ?? [],
+      taxonomyServices: taxonomyRows,
+      categorySlug: input.categorySlug,
+    });
+
+    enrichedProfile = enrichProfileFromGraderExtracted({
+      profile: {
+        ...profile,
+        serviceSlugs:
+          matchedSlugs.length > 0 ? matchedSlugs : profile.serviceSlugs,
+      },
+      extracted,
+      matchedServiceSlugs: matchedSlugs,
+    });
+  }
+
+  const profileWithMeta = withLocationOperatingContext(enrichedProfile, {
     operatingModel: auditOperatingModel,
     auditTier,
     gbpLinkedAtAudit: audit ? gbpLinkedAtAudit : undefined,
