@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import type {
   GraderProgressEvidence,
   GraderStatusResponse,
@@ -131,60 +132,75 @@ export function ScanExperience({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-4 py-6 sm:px-6 sm:py-10 lg:flex-row lg:gap-6">
-      {/* Left rail: checklist + progress + countdown */}
-      <div className="w-full shrink-0 rounded-3xl border border-black/5 bg-white/90 p-5 shadow-sm sm:p-6 lg:w-80">
-        <p className="text-lg font-bold text-zinc-900">Scanning…</p>
-        <p className="mb-5 text-sm text-zinc-500">
-          Auditing your local visibility across 44 factors
-        </p>
+    // Full-page takeover: the scan owns the whole viewport while it runs.
+    <div className="flex min-h-dvh flex-col bg-[#faf7ef]">
+      {/* Top bar: logo + live countdown */}
+      <header className="flex shrink-0 items-center justify-between gap-4 px-5 py-4 sm:px-8">
+        <Link href="/" aria-label="LocalMap home">
+          <LocalMapLogo />
+        </Link>
+        <span className="flex items-center gap-2 text-sm font-medium text-zinc-500">
+          <LoaderIcon className="size-4 animate-spin text-emerald-600" />
+          {countdownText}
+        </span>
+      </header>
 
-        <ul className="space-y-3">
-          {labels.map((label, index) => {
-            const state =
-              index < doneCount
-                ? "done"
-                : index === doneCount
-                  ? "active"
-                  : "pending";
-            return (
-              <li
-                key={label}
-                className={cn(
-                  "flex items-center gap-2.5 text-sm transition-opacity duration-500",
-                  state === "pending" && "opacity-30",
-                )}
-              >
-                {state === "done" ? (
-                  <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" />
-                ) : state === "active" ? (
-                  <LoaderIcon className="size-4 shrink-0 animate-spin text-emerald-600" />
-                ) : (
-                  <span className="size-4 shrink-0 rounded-full border border-zinc-300" />
-                )}
-                <span className="truncate font-medium text-zinc-700">
-                  {label}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Body fills the rest of the viewport, edge to edge */}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-5 sm:px-8 sm:pb-8 lg:flex-row lg:gap-8">
+        {/* Left rail: checklist + progress */}
+        <div className="w-full shrink-0 rounded-3xl border border-black/5 bg-white/90 p-5 shadow-sm sm:p-6 lg:flex lg:w-80 lg:flex-col xl:w-96">
+          <p className="text-lg font-bold text-zinc-900">Scanning…</p>
+          <p className="mb-5 text-sm text-zinc-500">
+            Auditing your local visibility across 44 factors
+          </p>
 
-        <div className="mt-6">
-          <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
-              style={{ width: `${progressPct}%` }}
-            />
+          <ul className="space-y-3 lg:space-y-4">
+            {labels.map((label, index) => {
+              const state =
+                index < doneCount
+                  ? "done"
+                  : index === doneCount
+                    ? "active"
+                    : "pending";
+              return (
+                <li
+                  key={label}
+                  className={cn(
+                    "flex items-center gap-2.5 text-sm transition-opacity duration-500",
+                    state === "pending" && "opacity-30",
+                  )}
+                >
+                  {state === "done" ? (
+                    <CheckCircle2Icon className="size-4 shrink-0 text-emerald-600" />
+                  ) : state === "active" ? (
+                    <LoaderIcon className="size-4 shrink-0 animate-spin text-emerald-600" />
+                  ) : (
+                    <span className="size-4 shrink-0 rounded-full border border-zinc-300" />
+                  )}
+                  <span className="truncate font-medium text-zinc-700">
+                    {label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Countdown text lives in the top bar; the rail keeps the bar only. */}
+          <div className="mt-6 lg:mt-auto lg:pt-6">
+            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-100">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all duration-1000"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
           </div>
-          <p className="mt-2 text-xs text-zinc-500">{countdownText}</p>
         </div>
-      </div>
 
-      {/* Center stage: evidence scenes + streamed AI narration */}
-      <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <EvidenceStage evidence={data.evidence} domain={domain} />
-        <NarrationPanel lines={data.evidence.narration ?? []} />
+        {/* Center stage: evidence scenes + streamed AI narration */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <EvidenceStage evidence={data.evidence} domain={domain} />
+          <NarrationPanel lines={data.evidence.narration ?? []} />
+        </div>
       </div>
     </div>
   );
@@ -285,8 +301,8 @@ function IdentityScene({
   const place = evidence.place;
 
   return (
-    <div className="w-full max-w-md">
-      <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
+    <div className="w-full max-w-lg">
+      <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex items-start gap-4">
           {place?.photoUrls[0] ? (
             // eslint-disable-next-line @next/next/no-img-element -- Places media URL
@@ -378,7 +394,7 @@ function ReviewsScene({ evidence }: { evidence: GraderProgressEvidence }) {
   const themes = evidence.reviewThemes ?? [];
 
   return (
-    <div className="w-full max-w-md space-y-3">
+    <div className="w-full max-w-lg space-y-3">
       <p className="text-center text-sm font-medium text-zinc-500">
         Reading what customers say about you
       </p>
@@ -432,7 +448,7 @@ function PhotosScene({ evidence }: { evidence: GraderProgressEvidence }) {
   const photos = evidence.place?.photoUrls ?? [];
 
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-2xl">
       <p className="mb-3 text-center text-sm font-medium text-zinc-500">
         Checking your photos & first impressions
       </p>
@@ -458,7 +474,7 @@ function PhotosScene({ evidence }: { evidence: GraderProgressEvidence }) {
 
 function ScreenshotScene({ evidence }: { evidence: GraderProgressEvidence }) {
   return (
-    <div className="w-full max-w-lg">
+    <div className="w-full max-w-2xl">
       <p className="mb-3 text-center text-sm font-medium text-zinc-500">
         Scanning your website like Google does
       </p>
@@ -472,7 +488,7 @@ function ScreenshotScene({ evidence }: { evidence: GraderProgressEvidence }) {
         <img
           src={evidence.screenshotUrl}
           alt="Your website homepage"
-          className="max-h-72 w-full object-cover object-top"
+          className="max-h-[26rem] w-full object-cover object-top"
         />
       </div>
       {(evidence.services?.length ?? 0) > 0 && (

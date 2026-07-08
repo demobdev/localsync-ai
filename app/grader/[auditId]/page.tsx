@@ -72,11 +72,8 @@ export default async function GraderReportPage({
       ? new URL(audit.websiteUrl).hostname.replace(/^www\./, "")
       : null;
 
-    return (
-      <div className="min-h-full bg-[#faf7ef]">
-        <ScanExperience auditId={audit.id} initial={initial} domain={domain} />
-      </div>
-    );
+    // Full-page takeover — the component owns the viewport (logo bar included).
+    return <ScanExperience auditId={audit.id} initial={initial} domain={domain} />;
   }
 
   const report: AuditReport = {
