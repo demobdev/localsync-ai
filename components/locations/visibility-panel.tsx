@@ -118,10 +118,33 @@ export function VisibilityPanel({ data }: { data: VisibilityData }) {
                   <li>{data.score.auditSummary.info} info items</li>
                 </ul>
               ) : (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Run a listing audit to unlock the audit half of the score.
-                </p>
+                <div className="mt-2 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Run a listing audit to unlock the listing half of workspace
+                    health.
+                  </p>
+                  <Button variant="outline" size="sm" nativeButton={false} render={
+                    <Link href={`/dashboard/locations/${data.locationId}/listings`} />
+                  }>
+                    Run listing audit
+                  </Button>
+                </div>
               )}
+              {data.score.auditSummary && data.score.auditScore < 50 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  nativeButton={false}
+                  render={
+                    <Link href={`/dashboard/locations/${data.locationId}/listings`} />
+                  }
+                >
+                  {data.score.auditScore === 0
+                    ? "Re-run listing audit"
+                    : "Fix findings & re-audit"}
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>

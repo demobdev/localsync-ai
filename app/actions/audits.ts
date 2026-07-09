@@ -1,7 +1,6 @@
 "use server";
 
 import { and, desc, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 
 import { getDb } from "@/db";
 import {
@@ -15,6 +14,11 @@ import {
 import { executeAuditRun } from "@/lib/audit/run";
 import { requireOrgAuth } from "@/lib/auth/org";
 import { inngest } from "@/lib/inngest/client";
+import {
+  getLocationVisibilityScoreBreakdown,
+} from "@/lib/visibility/location-score";
+import { revalidateLocationScorePaths } from "@/lib/visibility/revalidate-location-score";
+import type { VisibilityScoreBreakdown } from "@/lib/visibility/score";
 
 async function assertLocationInOrg(locationId: string, orgId: string) {
   const db = getDb();
@@ -32,6 +36,38 @@ async function assertLocationInOrg(locationId: string, orgId: string) {
 
   return location;
 }
+
+async function waitForAuditRunCompletion(
+  auditRunId: string,
+  maxWaitMs = 120_000,
+): Promise<"completed" | "failed"> {
+  const db = getDb();
+  const started = Date.now();
+
+  while (Date.now() - started < maxWaitMs) {
+    const [run] = await db
+      .select({ status: auditRuns.status })
+      .from(auditRuns)
+      .where(eq(auditRuns.id, auditRunId))
+      .limit(1);
+
+    if (run?.status === "completed" || run?.status === "failed") {
+      return run.status;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  throw new Error("Audit is still running — refresh in a minute to see results.");
+}
+
+export type StartAuditResult = {
+  auditRunId: string;
+  status: "completed" | "failed";
+  score: VisibilityScoreBreakdown;
+  priorListingScore: number | null;
+  listingScoreDelta: number | null;
+};
 
 export async function listLocationPublishersAction(locationId: string) {
   const { orgId } = await requireOrgAuth();
@@ -88,13 +124,18 @@ export async function updateListingUrlAction(input: {
       ),
     );
 
-  revalidatePath(`/dashboard/locations/${input.locationId}/listings`);
+  revalidateLocationScorePaths(input.locationId);
 }
 
-export async function startAuditAction(locationId: string) {
+export async function startAuditAction(
+  locationId: string,
+): Promise<StartAuditResult> {
   const { orgId, userId } = await requireOrgAuth();
   await assertLocationInOrg(locationId, orgId);
   const db = getDb();
+
+  const priorScore = await getLocationVisibilityScoreBreakdown(locationId);
+  const priorListingScore = priorScore?.auditScore ?? null;
 
   const [run] = await db
     .insert(auditRuns)
@@ -119,8 +160,33 @@ export async function startAuditAction(locationId: string) {
     await executeAuditRun(run.id);
   }
 
-  revalidatePath(`/dashboard/locations/${locationId}/listings`);
-  return run;
+  const status = await waitForAuditRunCompletion(run.id);
+
+  if (status === "failed") {
+    throw new Error("Listing audit failed — check URLs and try again.");
+  }
+
+  const score =
+    (await getLocationVisibilityScoreBreakdown(locationId)) ??
+    priorScore ?? {
+      total: 0,
+      profileScore: 0,
+      auditScore: 0,
+      profileChecks: [],
+    };
+
+  revalidateLocationScorePaths(locationId);
+
+  return {
+    auditRunId: run.id,
+    status,
+    score,
+    priorListingScore,
+    listingScoreDelta:
+      priorListingScore === null
+        ? score.auditScore
+        : score.auditScore - priorListingScore,
+  };
 }
 
 export async function listAuditRunsAction(locationId: string) {

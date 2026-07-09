@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SCORE_LABELS } from "@/lib/scores/labels";
 import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
 
 const railLabels: Record<string, string> = {
@@ -109,10 +110,14 @@ export function ListingsManager({
   locationId,
   publisherRows,
   auditRuns,
+  listingConsistencyScore = 0,
+  workspaceHealthTotal = 0,
 }: {
   locationId: string;
   publisherRows: PublisherRow[];
   auditRuns: AuditRunRow[];
+  listingConsistencyScore?: number;
+  workspaceHealthTotal?: number;
 }) {
   const router = useRouter();
   const [urls, setUrls] = useState<Record<string, string>>(
@@ -221,12 +226,29 @@ export function ListingsManager({
     });
   }
 
+  const completedAuditCount = auditRuns.filter(
+    (run) => run.status === "completed",
+  ).length;
+
   function runAudit() {
     startAuditTransition(async () => {
       try {
         toast.info("Audit started — crawling listings. This can take a minute.");
-        await startAuditAction(locationId);
-        toast.success("Audit complete");
+        const result = await startAuditAction(locationId);
+        const delta =
+          result.listingScoreDelta != null && result.listingScoreDelta !== 0
+            ? ` (${result.listingScoreDelta >= 0 ? "+" : ""}${result.listingScoreDelta} pts)`
+            : "";
+        toast.success(
+          `${SCORE_LABELS.listingConsistency}: ${result.score.auditScore}/50${delta} · ${SCORE_LABELS.workspaceHealth}: ${result.score.total}/100`,
+          {
+            action: {
+              label: "View score",
+              onClick: () =>
+                router.push(`/dashboard/locations/${locationId}/visibility`),
+            },
+          },
+        );
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Audit failed");
@@ -253,6 +275,38 @@ export function ListingsManager({
 
   return (
     <div className="relative space-y-6">
+      {configuredCount > 0 ? (
+        <Card
+          className={
+            listingConsistencyScore > 0
+              ? "localmap-card-glow border-emerald-500/30 bg-emerald-500/5"
+              : "localmap-card-glow border-amber-500/30 bg-amber-500/5"
+          }
+        >
+          <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">
+                {SCORE_LABELS.listingConsistency}: {listingConsistencyScore}/50
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {completedAuditCount === 0
+                  ? "Run a listing audit to unlock this half of workspace health."
+                  : listingConsistencyScore === 0
+                    ? "Findings found — fix NAP mismatches on directories, then re-run the audit."
+                    : `${SCORE_LABELS.workspaceHealth} total: ${workspaceHealthTotal}/100`}
+              </p>
+            </div>
+            {listingConsistencyScore > 0 ? (
+              <Button variant="outline" nativeButton={false} render={
+                <Link href={`/dashboard/locations/${locationId}/visibility`} />
+              }>
+                View breakdown
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="localmap-card-glow border-primary/20 bg-primary/5">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">

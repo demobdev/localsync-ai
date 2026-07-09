@@ -71,6 +71,7 @@ export function buildConnectionSteps(input: {
   googleCanImport: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
+  listingAuditScore?: number;
 }): SetupStep[] {
   const {
     locationId,
@@ -78,6 +79,7 @@ export function buildConnectionSteps(input: {
     googleCanImport,
     listingUrlsConfigured,
     auditRunsCompleted,
+    listingAuditScore = 0,
   } = input;
 
   return [
@@ -116,12 +118,17 @@ export function buildConnectionSteps(input: {
     {
       id: "first-audit",
       phase: "connect",
-      title: "Run your first listing audit",
-      description:
+      title:
         auditRunsCompleted > 0
-          ? `${auditRunsCompleted} audit${auditRunsCompleted === 1 ? "" : "s"} completed`
-          : "Crawl listings and compare against your master profile",
-      done: auditRunsCompleted > 0,
+          ? "Improve listing consistency"
+          : "Run your first listing audit",
+      description:
+        auditRunsCompleted === 0
+          ? "Crawl listings and compare against your master profile (unlocks up to 50 pts)"
+          : listingAuditScore > 0
+            ? `${listingAuditScore}/50 listing consistency — re-run after fixing findings`
+            : `${auditRunsCompleted} audit${auditRunsCompleted === 1 ? "" : "s"} done — fix mismatches and re-run to score`,
+      done: auditRunsCompleted > 0 && listingAuditScore > 0,
       href: `/dashboard/locations/${locationId}/listings`,
     },
   ];
@@ -234,6 +241,7 @@ export function buildLocationSetupProgress(input: {
   googleCanImport: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
+  listingAuditScore?: number;
   hasGeneratedPage: boolean;
   hasPublishedPage: boolean;
   reviewCount?: number;
@@ -279,6 +287,7 @@ export function buildLocationSetupProgress(input: {
       googleCanImport: input.googleCanImport,
       listingUrlsConfigured: input.listingUrlsConfigured,
       auditRunsCompleted: input.auditRunsCompleted,
+      listingAuditScore: input.listingAuditScore,
     }),
     ...buildVisibilitySteps({
       locationId: input.locationId,

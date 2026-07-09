@@ -12,6 +12,7 @@ import {
 import { compareListingToMaster, summarizeFindings } from "@/lib/audit/compare";
 import { extractListingData } from "@/lib/audit/extract";
 import { scrapeUrl } from "@/lib/firecrawl";
+import { revalidateLocationScorePaths } from "@/lib/visibility/revalidate-location-score";
 
 export type AuditTarget = {
   locationPublisherId: string;
@@ -167,6 +168,8 @@ export async function executeAuditRun(auditRunId: string): Promise<void> {
               )}`,
       })
       .where(eq(auditRuns.id, auditRunId));
+
+    revalidateLocationScorePaths(run.locationId);
   } catch (error) {
     await db
       .update(auditRuns)

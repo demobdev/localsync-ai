@@ -8,6 +8,7 @@ import { getLocationAction } from "@/app/actions/locations";
 import { UpgradeBanner } from "@/components/billing/upgrade-banner";
 import { ListingsManager } from "@/components/locations/listings-manager";
 import { getWorkspacePlan } from "@/lib/billing/plans";
+import { getLocationVisibilityScoreBreakdown } from "@/lib/visibility/location-score";
 
 export default async function LocationListingsPage({
   params,
@@ -15,11 +16,13 @@ export default async function LocationListingsPage({
   params: Promise<{ locationId: string }>;
 }) {
   const { locationId } = await params;
-  const [location, publisherRows, auditRuns, workspace] = await Promise.all([
+  const [location, publisherRows, auditRuns, workspace, scoreBreakdown] =
+    await Promise.all([
     getLocationAction(locationId),
     listLocationPublishersAction(locationId),
     listAuditRunsAction(locationId),
     getWorkspacePlan(),
+    getLocationVisibilityScoreBreakdown(locationId),
   ]);
 
   if (!location) {
@@ -40,6 +43,8 @@ export default async function LocationListingsPage({
         locationId={locationId}
         publisherRows={publisherRows}
         auditRuns={auditRuns}
+        listingConsistencyScore={scoreBreakdown?.auditScore ?? 0}
+        workspaceHealthTotal={scoreBreakdown?.total ?? 0}
       />
     </div>
   );

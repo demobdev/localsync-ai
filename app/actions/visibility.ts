@@ -25,6 +25,9 @@ import {
   computeVisibilityScore,
   type VisibilityScoreBreakdown,
 } from "@/lib/visibility/score";
+import {
+  getListingAuditCounts,
+} from "@/lib/visibility/location-score";
 
 function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3002").replace(
@@ -84,50 +87,7 @@ async function resolveTaxonomy(profile: {
 }
 
 async function getAuditCounts(locationId: string) {
-  const db = getDb();
-
-  const [latestRun] = await db
-    .select({ id: auditRuns.id })
-    .from(auditRuns)
-    .where(
-      and(
-        eq(auditRuns.locationId, locationId),
-        eq(auditRuns.status, "completed"),
-      ),
-    )
-    .orderBy(desc(auditRuns.createdAt))
-    .limit(1);
-
-  const [runCountRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(auditRuns)
-    .where(
-      and(
-        eq(auditRuns.locationId, locationId),
-        eq(auditRuns.status, "completed"),
-      ),
-    );
-
-  if (!latestRun) {
-    return {
-      runs: runCountRow?.count ?? 0,
-      critical: 0,
-      warning: 0,
-      info: 0,
-    };
-  }
-
-  const findings = await db
-    .select({ severity: auditFindings.severity })
-    .from(auditFindings)
-    .where(eq(auditFindings.auditRunId, latestRun.id));
-
-  return {
-    runs: runCountRow?.count ?? 0,
-    critical: findings.filter((f) => f.severity === "critical").length,
-    warning: findings.filter((f) => f.severity === "warning").length,
-    info: findings.filter((f) => f.severity === "info").length,
-  };
+  return getListingAuditCounts(locationId);
 }
 
 export async function getLocationVisibilityAction(locationId: string) {

@@ -147,6 +147,7 @@ export default async function DashboardPage({
 
   const hasData = locations.length > 0;
   const topLocation = visibility.locations[0];
+  const topListingRuns = topLocation?.score.auditSummary?.runs ?? 0;
   const profileComplete =
     (topLocation?.score.profileScore ?? 0) >= 35;
   const googleConnected = googleState.status === "connected";
@@ -257,7 +258,12 @@ export default async function DashboardPage({
             value: hasData
               ? `${topLocation?.score.auditScore ?? 0}/50`
               : "—",
-            hint: "Listing audit points (0–50). Run a listing audit to unlock this half of workspace health.",
+            hint:
+              topListingRuns === 0
+                ? "Run your first listing audit to unlock up to 50 pts."
+                : (topLocation?.score.auditScore ?? 0) === 0
+                  ? "Audit complete — fix directory mismatches, then re-run to score."
+                  : "Listing audit points toward workspace health. Click to review or re-audit.",
             icon: RadarIcon,
             tone: "text-chart-2",
             href: topLocation
@@ -444,11 +450,17 @@ export default async function DashboardPage({
               },
               {
                 title: "Run listing audits",
-                body: "Firecrawl + AI extraction vs master profile.",
+                body:
+                  topListingRuns === 0
+                    ? "Firecrawl + AI extraction vs master profile."
+                    : (topLocation?.score.auditScore ?? 0) === 0
+                      ? "Fix findings on directories, then re-run to raise listing consistency."
+                      : `${topLocation?.score.auditScore ?? 0}/50 listing consistency earned.`,
                 href: locations[0]
                   ? `/dashboard/locations/${locations[0].id}/listings`
                   : "/dashboard/locations",
-                done: (topLocation?.score.auditScore ?? 0) > 0,
+                done:
+                  topListingRuns > 0 && (topLocation?.score.auditScore ?? 0) > 0,
               },
             ].map((action) => (
               <Link

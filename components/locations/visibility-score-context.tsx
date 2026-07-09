@@ -116,6 +116,7 @@ export function VisibilityScoreContext({
             value={breakdown.auditScore}
             max={50}
             hint={SCORE_DESCRIPTIONS.listingConsistency}
+            href={`/dashboard/locations/${locationId}/listings`}
           />
           <ScoreRow
             label={SCORE_LABELS.reputation}

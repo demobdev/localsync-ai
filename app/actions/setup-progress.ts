@@ -18,6 +18,7 @@ import {
   type SetupProgress,
 } from "@/lib/profile/setup-workflow";
 import { getGraderAuditForLocation } from "@/lib/grader/location-audit-bridge";
+import { getLocationVisibilityScoreBreakdown } from "@/lib/visibility/location-score";
 import {
   countOpenGraderTasksForLocation,
 } from "@/lib/grader/seed-tasks-from-audit";
@@ -101,6 +102,7 @@ export async function getLocationSetupProgressAction(
     db,
     locationId,
   });
+  const visibilityScore = await getLocationVisibilityScoreBreakdown(locationId);
 
   return buildLocationSetupProgress({
     locationId,
@@ -112,6 +114,7 @@ export async function getLocationSetupProgressAction(
     googleCanImport,
     listingUrlsConfigured,
     auditRunsCompleted: auditRow[0]?.count ?? 0,
+    listingAuditScore: visibilityScore?.auditScore ?? 0,
     hasGeneratedPage: Boolean(page[0]),
     hasPublishedPage: page[0]?.status === "published",
     reviewCount: reviewTotalRow[0]?.count ?? 0,
