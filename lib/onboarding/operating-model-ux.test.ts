@@ -29,6 +29,28 @@ describe("googleConnectCopyForContext", () => {
     expect(copy.headline).toContain("optional");
     expect(copy.helper).toBeTruthy();
   });
+
+  it("mentions Ads credit opportunity when connected or quota pending", () => {
+    const connected = googleConnectCopyForContext({
+      context: null,
+      googleState: { status: "connected", locations: [] },
+    });
+    expect(connected.helper).toMatch(/\$500 Ads credit/i);
+
+    const quotaPending = googleConnectCopyForContext({
+      context: null,
+      googleState: {
+        status: "connected",
+        locations: [],
+        fetchError: {
+          code: "quota_exceeded",
+          message: "quota",
+        },
+      },
+    });
+    expect(quotaPending.helper).toMatch(/\$500 Ads credit/i);
+    expect(quotaPending.helper).toMatch(/audits manually/i);
+  });
 });
 
 describe("listingsDescriptionForModel", () => {

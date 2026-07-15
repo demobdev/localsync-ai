@@ -19,22 +19,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Reputation — LocalMap",
+  title: "Reputation | LocalMap",
   description:
-    "One review inbox for Google, Facebook, and Yelp with AI reply drafts you approve before anything publishes. Included with Pro Listings — no separate reputation SKU.",
+    "One review inbox for Google, Facebook, and Yelp with AI reply drafts you approve before anything publishes. Included with Pro Listings, no separate reputation SKU.",
 };
 
 const PROOF_POINTS = [
   {
     title: "One inbox, every platform",
-    body: "Reviews from Google, Facebook, Yelp, and your tracked directories land in a single queue — no more tab-hopping to find what needs a reply.",
+    body: "Reviews from Google, Facebook, Yelp, and your tracked directories land in a single queue. No more tab-hopping to find what needs a reply.",
   },
   {
     title: "AI drafts. You approve. Always.",
-    body: "Every reply is drafted in your voice and waits for your approval. Nothing auto-publishes — a bad AI reply on a 1-star review is worse than no reply.",
+    body: "Every reply is drafted in your voice and waits for your approval. Nothing auto-publishes. A bad AI reply on a 1-star review is worse than no reply.",
   },
   {
-    title: "Included with Pro — not an upsell",
+    title: "Included with Pro, not an upsell",
     body: "Reputation is folded into Pro Listings at $79/mo. Yext charges $999/yr for the tier that includes reviews.",
   },
 ];
@@ -50,25 +50,25 @@ const FEATURES = [
     category: "AI reply drafts",
     icon: PenLineIcon,
     title: "Replies drafted in your voice, ready in seconds",
-    body: "AI reads the review, your business profile, and your services, then drafts a specific, empathetic reply — not a template. Edit it, approve it, or throw it out. Three free drafts before Pro, so you can judge the quality yourself.",
+    body: "AI reads the review, your business profile, and your services, then drafts a specific, empathetic reply, not a template. Edit it, approve it, or throw it out. Three free drafts before Pro, so you can judge the quality yourself.",
   },
   {
     category: "Approve-first",
     icon: ShieldCheckIcon,
     title: "The guardrail that makes AI safe for your reputation",
-    body: "Auto-posted AI replies are how brands end up apologizing for their apology. On LocalMap the AI writes to drafts only — a human approves every word before it's published to the platform.",
+    body: "Auto-posted AI replies are how brands end up apologizing for their apology. On LocalMap the AI writes to drafts only. A human approves every word before it's published to the platform.",
   },
   {
     category: "Review signals",
     icon: TrendingUpIcon,
-    title: "Reviews are ranking fuel — treat them like it",
+    title: "Reviews are ranking fuel. Treat them like it",
     body: "Recency, volume, rating, and response rate all feed local rankings and AI-assistant recommendations. Your review score sits next to your visibility score, so reputation work shows up in the same dashboard as listings work.",
   },
   {
     category: "Sentiment",
     icon: MessageSquareTextIcon,
     title: "Know what customers keep saying",
-    body: "Recurring themes surface across reviews — the praised technician, the parking complaint — so you fix operational issues instead of just replying to them.",
+    body: "Recurring themes surface across reviews (the praised technician, the parking complaint) so you fix operational issues instead of just replying to them.",
   },
   {
     category: "Context",
@@ -81,11 +81,11 @@ const FEATURES = [
 const FAQS = [
   {
     q: "Do AI replies publish automatically?",
-    a: "No — and that's the point. Every AI draft waits in your queue until you approve it. You can edit before approving, or discard entirely. Auto-posting is how reputation tools damage reputations.",
+    a: "No, and that's the point. Every AI draft waits in your queue until you approve it. You can edit before approving, or discard entirely. Auto-posting is how reputation tools damage reputations.",
   },
   {
     q: "Which review platforms are supported?",
-    a: "Google, Facebook, and Yelp reviews flow into the inbox today, alongside review signals from your tracked directories. Publishing approved replies uses each platform's supported rail — labeled honestly like everything else in LocalMap.",
+    a: "Google, Facebook, and Yelp reviews flow into the inbox today, alongside review signals from your tracked directories. Publishing approved replies uses each platform's supported rail, labeled honestly like everything else in LocalMap.",
   },
   {
     q: "Why is Reputation part of Pro instead of a separate product?",
@@ -93,7 +93,7 @@ const FAQS = [
   },
   {
     q: "How is this different from Yext Reviews?",
-    a: "Yext's reputation tools live in its $999/yr Premium tier behind a sales demo. LocalMap includes reputation in Pro at $79/mo, month-to-month — and makes approve-before-publish the default rather than an optional workflow setting.",
+    a: "Yext's reputation tools live in its $999/yr Premium tier behind a sales demo. LocalMap includes reputation in Pro at $79/mo, month-to-month, and makes approve-before-publish the default rather than an optional workflow setting.",
   },
   {
     q: "Can I try the AI drafts before paying?",
@@ -101,7 +101,7 @@ const FAQS = [
   },
   {
     q: "Do reviews really affect AI search?",
-    a: "Yes. Assistants like ChatGPT and Gemini weigh review volume, rating, and recency when recommending local businesses — they cite the same public ecosystem Google reads. A well-managed review profile is a citation signal, not just social proof.",
+    a: "Yes. Assistants like ChatGPT and Gemini weigh review volume, rating, and recency when recommending local businesses. They cite the same public ecosystem Google reads. A well-managed review profile is a citation signal, not just social proof.",
   },
 ];
 
@@ -156,7 +156,7 @@ export default async function ReputationProductPage() {
                 </h1>
                 <p className="text-lg leading-relaxed text-muted-foreground sm:text-xl">
                   One inbox for Google, Facebook, and Yelp. AI drafts replies in
-                  your voice — you approve before anything goes live. Reply
+                  your voice. You approve before anything goes live. Reply
                   fatigue ends; reputation risk doesn&apos;t begin.
                 </p>
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
@@ -267,7 +267,7 @@ export default async function ReputationProductPage() {
               Reviews are ranking signals. Reply fatigue is real.
             </h2>
             <p className="mt-4 text-muted-foreground">
-              Unanswered reviews cost rankings and trust — but replying to
+              Unanswered reviews cost rankings and trust, but replying to
               every one is a part-time job. LocalMap turns it into a review →
               draft → approve loop you can clear in minutes.
             </p>
@@ -308,16 +308,16 @@ export default async function ReputationProductPage() {
                 <p className="mt-4 text-muted-foreground">
                   Yext gates review response and AI reputation tools behind its
                   $999/yr Premium tier. LocalMap folds reputation into Pro
-                  Listings at $79/mo — alongside analytics, duplicate
+                  Listings at $79/mo, alongside analytics, duplicate
                   detection, and the AI visibility layer.
                 </p>
               </div>
               <ul className="space-y-3 text-sm">
                 {[
-                  "Included with Pro ($79/mo) — Yext's reviews tier is $999/yr",
+                  "Included with Pro ($79/mo). Yext's reviews tier is $999/yr",
                   "Approve-before-publish is the default, not a workflow setting",
                   "3 free AI drafts to judge quality before you pay",
-                  "Same workspace as listings — fix the root cause, not just the reply",
+                  "Same workspace as listings. Fix the root cause, not just the reply",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <BadgeCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />

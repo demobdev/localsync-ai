@@ -14,16 +14,16 @@ import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { parseGraderModelParam } from "@/lib/onboarding/routing";
 
 export const metadata: Metadata = {
-  title: "Free Local Visibility Grader — LocalSync",
+  title: "Free Local Visibility Grader | LocalMap",
   description:
-    "See where customers are finding your competitors instead of you. Free local visibility & revenue leak audit — 44 factors, Google rankings, page speed, and your Business Profile.",
+    "See where customers are finding your competitors instead of you. Free local visibility & revenue leak audit: 44 factors, Google rankings, page speed, and your Business Profile.",
 };
 
 const PROOF_POINTS = [
   {
     icon: SearchCheckIcon,
     title: "44 factors reviewed",
-    body: "SEO, page speed, Google Business Profile, reviews, and local rankings — scored like Google sees them.",
+    body: "SEO, page speed, Google Business Profile, reviews, and local rankings, scored like Google sees them.",
   },
   {
     icon: MapPinIcon,
@@ -33,7 +33,7 @@ const PROOF_POINTS = [
   {
     icon: TrendingDownIcon,
     title: "Revenue leak estimate",
-    body: "A dollar figure on what invisible rankings cost you every month — and the plan to fix it.",
+    body: "A dollar figure on what invisible rankings cost you every month, and the plan to fix it.",
   },
 ];
 
@@ -79,7 +79,7 @@ export default async function GraderPage({
                 you.
               </h1>
               <p className="mx-auto max-w-xl text-lg text-zinc-600">
-                Search your business on Google — the same way customers find you
+                Search your business on Google, the same way customers find you
                 today. We&apos;ll grade your visibility and show where revenue
                 is leaking.
               </p>

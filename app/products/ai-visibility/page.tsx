@@ -20,19 +20,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "AI Visibility — LocalMap",
+  title: "AI Visibility | LocalMap",
   description:
-    "Get cited by ChatGPT, Gemini, and Perplexity. Hosted machine-readable profile pages, schema.org, llms.txt, and IndexNow — the AI citation network, included with Pro.",
+    "Get cited by ChatGPT, Gemini, and Perplexity. Hosted machine-readable profile pages, schema.org, llms.txt, and IndexNow: the AI citation network, included with Pro.",
 };
 
 const PROOF_POINTS = [
   {
     title: "AI has no dashboard to log into",
-    body: "ChatGPT and Gemini don't take profile edits — they cite the public web. The only way to manage what AI says about you is to publish accurate, structured facts where crawlers look.",
+    body: "ChatGPT and Gemini don't take profile edits. They cite the public web. The only way to manage what AI says about you is to publish accurate, structured facts where crawlers look.",
   },
   {
     title: "A citation source you actually control",
-    body: "Every location gets a hosted, machine-readable profile page — schema.org markup, clean facts, no ads — purpose-built for assistants to read and cite.",
+    body: "Every location gets a hosted, machine-readable profile page (schema.org markup, clean facts, no ads), purpose-built for assistants to read and cite.",
   },
   {
     title: "Measured, not assumed",
@@ -45,64 +45,64 @@ const FEATURES = [
     category: "Hosted profile pages",
     icon: GlobeIcon,
     title: "A public page built for machines and humans",
-    body: "Your master profile publishes to a hosted page (/l/your-business) with your name, hours, services, FAQs, and reviews — clean, fast, and structured so crawlers extract facts without guessing.",
+    body: "Your master profile publishes to a hosted page (/l/your-business) with your name, hours, services, FAQs, and reviews: clean, fast, and structured so crawlers extract facts without guessing.",
   },
   {
     category: "schema.org",
     icon: CodeIcon,
     title: "Structured data that removes ambiguity",
-    body: "LocalBusiness markup, service schemas, FAQ schemas — the vocabulary Google and LLM crawlers already trust, generated automatically from your profile. No hand-written JSON-LD.",
+    body: "LocalBusiness markup, service schemas, FAQ schemas: the vocabulary Google and LLM crawlers already trust, generated automatically from your profile. No hand-written JSON-LD.",
   },
   {
     category: "llms.txt",
     icon: FileTextIcon,
     title: "A plain-language brief for AI crawlers",
-    body: "An llms.txt file summarizes your business in the format LLM crawlers are adopting — so when an assistant fetches your page, the important facts are impossible to miss.",
+    body: "An llms.txt file summarizes your business in the format LLM crawlers are adopting, so when an assistant fetches your page, the important facts are impossible to miss.",
   },
   {
     category: "IndexNow",
     icon: SendIcon,
     title: "Updates pinged to search engines instantly",
-    body: "When your profile changes, IndexNow notifies participating search engines immediately — no waiting for a recrawl while your old hours keep circulating.",
+    body: "When your profile changes, IndexNow notifies participating search engines immediately. No waiting for a recrawl while your old hours keep circulating.",
   },
   {
     category: "Visibility scans",
     icon: RadarIcon,
     title: "See yourself the way AI sees you",
-    body: "Scans crawl your public presence and score how consistently and completely your business appears — with evidence for every finding and a history so you can track the trend.",
+    body: "Scans crawl your public presence and score how consistently and completely your business appears, with evidence for every finding and a history so you can track the trend.",
   },
   {
     category: "Crawler checks",
     icon: BotIcon,
     title: "Verify the crawlers are actually reading you",
-    body: "We check that your hosted page and structured data are reachable and parseable by the crawlers that feed AI answers — because a citation source nobody can crawl is just a webpage.",
+    body: "We check that your hosted page and structured data are reachable and parseable by the crawlers that feed AI answers, because a citation source nobody can crawl is just a webpage.",
   },
 ];
 
 const FAQS = [
   {
     q: "How do AI assistants decide which businesses to recommend?",
-    a: "They synthesize from public sources — listings, reviews, websites, and structured data. Consistency and completeness across those sources make your business a safe fact to cite; contradictions make assistants skip you or cite something stale.",
+    a: "They synthesize from public sources: listings, reviews, websites, and structured data. Consistency and completeness across those sources make your business a safe fact to cite; contradictions make assistants skip you or cite something stale.",
   },
   {
     q: "What exactly do I get with AI Visibility?",
-    a: "A hosted machine-readable profile page for each location, automatic schema.org markup, an llms.txt file, IndexNow pings on every update, visibility scans with history, and crawler reachability checks. It's included in Pro Listings — not a separate SKU.",
+    a: "A hosted machine-readable profile page for each location, automatic schema.org markup, an llms.txt file, IndexNow pings on every update, visibility scans with history, and crawler reachability checks. It's included in Pro Listings, not a separate SKU.",
   },
   {
     q: "Can't I just add schema to my own website?",
-    a: "You can, and you should. But hand-maintained markup drifts the moment your hours change. LocalMap generates it from the same master profile that feeds your listings, so your site, listings, and hosted page never disagree — which is the signal AI systems reward.",
+    a: "You can, and you should. But hand-maintained markup drifts the moment your hours change. LocalMap generates it from the same master profile that feeds your listings, so your site, listings, and hosted page never disagree, which is the signal AI systems reward.",
   },
   {
     q: "How is this different from Yext's AI story?",
-    a: "Yext structures your data for AI as part of its enterprise pitch, with Pages sold as a separate product behind a demo. LocalMap ships the whole citation layer — hosted pages, schema, llms.txt, IndexNow, scans — inside Pro at $79/mo, self-serve.",
+    a: "Yext structures your data for AI as part of its enterprise pitch, with Pages sold as a separate product behind a demo. LocalMap ships the whole citation layer (hosted pages, schema, llms.txt, IndexNow, scans) inside Pro at $79/mo, self-serve.",
   },
   {
     q: "How fast will I show up in ChatGPT answers?",
-    a: "Honestly: it depends, and anyone promising a timeline is guessing. AI systems refresh their sources on their own schedules. What we control is making your facts accurate, structured, and crawlable everywhere — and measuring the change with scans.",
+    a: "Honestly: it depends, and anyone promising a timeline is guessing. AI systems refresh their sources on their own schedules. What we control is making your facts accurate, structured, and crawlable everywhere, and measuring the change with scans.",
   },
   {
     q: "Do I need Pro for this?",
-    a: "The free scan works for everyone — run it anytime. The citation network itself (hosted pages, llms.txt, IndexNow, crawler checks) is a Pro feature at $79/location/mo.",
+    a: "The free scan works for everyone. Run it anytime. The citation network itself (hosted pages, llms.txt, IndexNow, crawler checks) is a Pro feature at $79/location/mo.",
   },
 ];
 
@@ -132,8 +132,8 @@ export default async function AiVisibilityProductPage() {
               </h1>
               <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
                 Discovery is moving from blue links to AI answers. LocalMap
-                publishes a machine-readable citation source for your business —
-                hosted pages, schema.org, llms.txt, IndexNow — and measures
+                publishes a machine-readable citation source for your business:
+                hosted pages, schema.org, llms.txt, IndexNow. It measures
                 whether it&apos;s working.
               </p>
               <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
@@ -181,7 +181,7 @@ export default async function AiVisibilityProductPage() {
             </h2>
             <p className="mt-4 text-muted-foreground">
               The same master profile that syncs your listings renders a
-              structured public page — and that page is what AI assistants can
+              structured public page, and that page is what AI assistants can
               fetch, parse, and cite.
             </p>
           </div>
@@ -236,14 +236,14 @@ export default async function AiVisibilityProductPage() {
               <p className="mt-4 text-muted-foreground">
                 Yext sells AI readiness across its top tiers and a separate
                 Pages product, quoted through sales. LocalMap ships the entire
-                citation layer inside Pro Listings — $79/location/mo,
+                citation layer inside Pro Listings at $79/location/mo,
                 self-serve, month-to-month.
               </p>
               <ul className="mt-6 space-y-3 text-sm">
                 {[
-                  "Hosted citation pages included — not a separate Pages product",
+                  "Hosted citation pages included, not a separate Pages product",
                   "llms.txt and IndexNow on by default, no configuration",
-                  "Free scan for anyone — measure before you spend a dollar",
+                  "Free scan for anyone. Measure before you spend a dollar",
                   "Honest about timelines: we control your facts, not AI's refresh cycle",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">

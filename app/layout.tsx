@@ -18,11 +18,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "LocalMap — Local Intelligence Platform",
+    default: "LocalMap | Get Found Online",
     template: "%s | LocalMap",
   },
   description:
-    "The operating system for local business identity, distribution, intelligence, and automation.",
+    "Local Map Co. helps local brands get found. One master profile, honest listings across Google, Apple, Yelp, and more, plus reputation and AI visibility.",
+  metadataBase: new URL("https://localmap.co"),
 };
 
 export default function RootLayout({

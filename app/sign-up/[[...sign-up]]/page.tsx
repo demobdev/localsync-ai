@@ -33,12 +33,12 @@ export default async function SignUpPage({
       <div className="flex flex-1 flex-col items-center justify-center gap-4 p-4 sm:p-6">
         {auditId ? (
           <p className="max-w-sm text-center text-sm text-muted-foreground">
-            Your audit report is saved — create an account and we&apos;ll
+            Your audit report is saved. Create an account and we&apos;ll
             pre-fill your business profile and start fixing the leaks it found.
           </p>
         ) : scanId ? (
           <p className="max-w-sm text-center text-sm text-muted-foreground">
-            Your scan results are saved — create an account and we&apos;ll
+            Your scan results are saved. Create an account and we&apos;ll
             pre-fill your business profile from them.
           </p>
         ) : null}

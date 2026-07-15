@@ -44,7 +44,7 @@ npm run db:seed
 npm run dev
 ```
 
-5. **Day 1 action:** submit the Google Business Profile API access request — see [docs/gbp-api-request.md](docs/gbp-api-request.md).
+5. **GBP API access:** submitted 2026-07-13 (Gift a Story dogfood, case `0-0182000041521`) — see [docs/gbp-api-request.md](docs/gbp-api-request.md). Pre-optimization snapshot: [docs/gift-a-story-baseline.md](docs/gift-a-story-baseline.md).
 
 ## Scripts
 

@@ -18,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Vertical Networks — LocalMap",
+  title: "Vertical Networks | LocalMap",
   description:
-    "Industry directory networks as $15/mo add-ons: Healthcare, Legal, Home Services, Restaurant, and Financial Services. Pay for the network your category needs — not a Yext bundle.",
+    "Industry directory networks as $15/mo add-ons: Healthcare, Legal, Home Services, Restaurant, and Financial Services. Pay for the network your category needs, not a Yext bundle.",
 };
 
 const VERTICALS = [
@@ -65,7 +65,7 @@ const VERTICALS = [
 const FAQS = [
   {
     q: "How do vertical add-ons work?",
-    a: "Each add-on is $15/location/mo on top of any listing tier. It extends your workspace with the industry directories that matter for your category — tracked, audited, and managed through the same honest rails as everything else.",
+    a: "Each add-on is $15/location/mo on top of any listing tier. It extends your workspace with the industry directories that matter for your category: tracked, audited, and managed through the same honest rails as everything else.",
   },
   {
     q: "Why not just bundle them like Yext does?",
@@ -73,19 +73,19 @@ const FAQS = [
   },
   {
     q: "Can I add more than one vertical?",
-    a: "Yes — add-ons stack. A med-spa might run Healthcare plus Restaurant-style booking rails; an agency can mix add-ons per client location. Each is $15/mo and can be dropped anytime.",
+    a: "Yes. Add-ons stack. A med-spa might run Healthcare plus Restaurant-style booking rails; an agency can mix add-ons per client location. Each is $15/mo and can be dropped anytime.",
   },
   {
     q: "Do vertical directories really matter for rankings?",
-    a: "For regulated and high-consideration categories, yes. Search engines and AI assistants weight category-authoritative sources — a dentist cited consistently on healthcare directories reads as more trustworthy than one who only exists on generic maps.",
+    a: "For regulated and high-consideration categories, yes. Search engines and AI assistants weight category-authoritative sources. A dentist cited consistently on healthcare directories reads as more trustworthy than one who only exists on generic maps.",
   },
   {
     q: "What do I need before adding a vertical?",
-    a: "Any listing tier works. Basic gets vertical tracking and guided checklists; Premium and Pro layer approve-first sync and the AI visibility stack on top. Most vertical directories use guided or manual rails today — labeled honestly, as always.",
+    a: "Any listing tier works. Basic gets vertical tracking and guided checklists; Premium and Pro layer approve-first sync and the AI visibility stack on top. Most vertical directories use guided or manual rails today, labeled honestly, as always.",
   },
   {
     q: "I'm an agency with clients in different industries. How does this price?",
-    a: "Per location, per add-on — so each client only carries the network their category needs. Volume discounts apply at 10 / 50 / 100+ locations across your workspace.",
+    a: "Per location, per add-on, so each client only carries the network their category needs. Volume discounts apply at 10 / 50 / 100+ locations across your workspace.",
   },
 ];
 
@@ -110,11 +110,11 @@ export default async function VerticalsProductPage() {
               Vertical networks · $15/mo add-ons
             </Badge>
             <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
-              The directories your industry trusts — à la carte
+              The directories your industry trusts, à la carte
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
               A dentist needs Healthgrades. A plumber needs Angi. Nobody needs
-              both — so we don&apos;t sell them as a bundle. Add the network
+              both, so we don&apos;t sell them as a bundle. Add the network
               your category needs for $15/location/mo.
             </p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -144,7 +144,7 @@ export default async function VerticalsProductPage() {
               <h2 className="font-semibold">Five networks, one price each</h2>
               <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 Healthcare, Legal, Home Services, Restaurant, and Financial
-                Services — each a flat $15/location/mo on any tier.
+                Services, each a flat $15/location/mo on any tier.
               </p>
             </div>
             <div>
@@ -234,13 +234,13 @@ export default async function VerticalsProductPage() {
                 </h2>
                 <p className="mt-4 text-muted-foreground">
                   Yext ties vertical networks to its top tiers and enterprise
-                  agreements — to get healthcare directories you often buy a
+                  agreements, to get healthcare directories you often buy a
                   $999/yr plan or a custom deal. LocalMap prices the network
                   itself: $15/mo on top of whatever tier you already run.
                 </p>
                 <ul className="mt-6 space-y-3 text-sm">
                   {[
-                    "Premium + Healthcare = $64/mo — vs Yext Premium at ~$83/mo",
+                    "Premium + Healthcare = $64/mo, vs Yext Premium at ~$83/mo",
                     "Add-ons stack and can be dropped anytime, per location",
                     "Same audits, evidence, and honest rail labels as core listings",
                     "Agencies mix add-ons across clients instead of upgrading everyone",
@@ -305,7 +305,7 @@ export default async function VerticalsProductPage() {
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
               The free scan checks your visibility across general and
-              industry surfaces — before you add anything.
+              industry surfaces, before you add anything.
             </p>
             <Button
               size="lg"

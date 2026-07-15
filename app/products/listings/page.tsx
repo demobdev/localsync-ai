@@ -24,15 +24,15 @@ import { LISTING_PLANS } from "@/lib/billing/plan-catalog";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Listings Management — LocalMap",
+  title: "Listings Management | LocalMap",
   description:
-    "One master profile, synced and verified across Google, Apple, Bing, Yelp, and 20+ directories. Approve-first sync, honest rails, and audits with evidence — from $19/location/mo.",
+    "One master profile, synced and verified across Google, Apple, Bing, Yelp, and 20+ directories. Approve-first sync, honest rails, and audits with evidence, from $19/location/mo.",
 };
 
 const PROOF_POINTS = [
   {
     title: "One profile. Every publisher.",
-    body: "A versioned master profile feeds Google, Apple, Bing, Facebook, Yelp, and the extended map graph — update once, distribute everywhere.",
+    body: "A versioned master profile feeds Google, Apple, Bing, Facebook, Yelp, and the extended map graph. Update once, distribute everywhere.",
   },
   {
     title: "Honest rails, not fake syndication",
@@ -40,7 +40,7 @@ const PROOF_POINTS = [
   },
   {
     title: "Evidence with every audit",
-    body: "Listing audits ship with screenshots and crawl data — when we say a listing is wrong, you can see exactly what customers see.",
+    body: "Listing audits ship with screenshots and crawl data. When we say a listing is wrong, you can see exactly what customers see.",
   },
 ];
 
@@ -49,7 +49,7 @@ const FEATURES = [
     category: "Identity",
     icon: HistoryIcon,
     title: "A master profile that never drifts",
-    body: "Name, address, phone, hours, services, photos, FAQs — held in one canonical, version-controlled profile. Every change is tracked, so you always know what the internet should say about your business.",
+    body: "Name, address, phone, hours, services, photos, and FAQs, held in one canonical, version-controlled profile. Every change is tracked, so you always know what the internet should say about your business.",
   },
   {
     category: "NAP consistency",
@@ -61,13 +61,13 @@ const FEATURES = [
     category: "Approve-first sync",
     icon: WorkflowIcon,
     title: "Nothing publishes without your approval",
-    body: "AI drafts profile updates; you review and approve; we execute. Premium unlocks direct API sync to the majors — always through the same approve-first gate. No surprise edits, ever.",
+    body: "AI drafts profile updates; you review and approve; we execute. Premium unlocks direct API sync to the majors, always through the same approve-first gate. No surprise edits, ever.",
   },
   {
     category: "Audits",
     icon: FileSearchIcon,
     title: "Audits with screenshots, not scores you have to trust",
-    body: "Every audit crawls your live listings and attaches what it found. Broken hours on Yelp, an old address on MapQuest — you see the actual page, then fix it with a guided checklist or one approved sync.",
+    body: "Every audit crawls your live listings and attaches what it found. Broken hours on Yelp, an old address on MapQuest: you see the actual page, then fix it with a guided checklist or one approved sync.",
   },
   {
     category: "Duplicates",
@@ -79,14 +79,14 @@ const FEATURES = [
     category: "AI readiness",
     icon: SparklesIcon,
     title: "Structured for the assistants shaping search",
-    body: "Your profile is formatted for Google and Apple today and machine-readable for ChatGPT and Gemini tomorrow — schema.org, hosted profile pages, and llms.txt come built into Pro.",
+    body: "Your profile is formatted for Google and Apple today and machine-readable for ChatGPT and Gemini tomorrow. Schema.org, hosted profile pages, and llms.txt come built into Pro.",
   },
 ];
 
 const FAQS = [
   {
     q: "What are business listings and why do they matter?",
-    a: "Listings are the profiles that show your name, address, phone, and hours across Google, Apple Maps, Yelp, and dozens of directories. Search engines cross-check them against each other — inconsistent data erodes trust and rankings, and AI assistants may cite outdated facts instead of yours.",
+    a: "Listings are the profiles that show your name, address, phone, and hours across Google, Apple Maps, Yelp, and dozens of directories. Search engines cross-check them against each other. Inconsistent data erodes trust and rankings, and AI assistants may cite outdated facts instead of yours.",
   },
   {
     q: "What does \"honest rails\" mean?",
@@ -94,19 +94,19 @@ const FAQS = [
   },
   {
     q: "How is this different from Yext Listings?",
-    a: "Yext sells bundled annual tiers ($199–$999/yr) funneled through a sales demo, and claims 200+ integrations without telling you which ones actually accept API writes. LocalMap is self-serve and month-to-month, labels every rail honestly, and includes audits with screenshot evidence on every tier — starting at $19/mo.",
+    a: "Yext sells bundled annual tiers ($199–$999/yr) funneled through a sales demo, and claims 200+ integrations without telling you which ones actually accept API writes. LocalMap is self-serve and month-to-month, labels every rail honestly, and includes audits with screenshot evidence on every tier, starting at $19/mo.",
   },
   {
     q: "Which publishers are covered?",
-    a: "Basic covers secondary and audit-only directories. Premium adds Google Business Profile, Apple, Bing, Facebook, Yelp, and the core map graph (Foursquare, MapQuest, and more). Pro expands the set further and adds duplicate detection. Vertical networks — Healthgrades, Avvo, Angi-class directories — are $15/mo add-ons.",
+    a: "Basic covers secondary and audit-only directories. Premium adds Google Business Profile, Apple, Bing, Facebook, Yelp, and the core map graph (Foursquare, MapQuest, and more). Pro expands the set further and adds duplicate detection. Vertical networks (Healthgrades, Avvo, Angi-class directories) are $15/mo add-ons.",
   },
   {
     q: "What happens to my listings if I cancel?",
-    a: "They stay live. We never held them hostage in the first place — you keep your master profile export and audit history, and the manual checklists work until the end of your billing period.",
+    a: "They stay live. We never held them hostage in the first place. You keep your master profile export and audit history, and the manual checklists work until the end of your billing period.",
   },
   {
     q: "Can I manage everything manually on the cheapest plan?",
-    a: "Yes. Basic includes the master profile, NAP tracking, audits, and per-publisher guided checklists. Upgrades buy automation — the manual path never disappears.",
+    a: "Yes. Basic includes the master profile, NAP tracking, audits, and per-publisher guided checklists. Upgrades buy automation. The manual path never disappears.",
   },
 ];
 
@@ -137,7 +137,7 @@ export default async function ListingsProductPage() {
                 </h1>
                 <p className="text-lg leading-relaxed text-muted-foreground sm:text-xl">
                   One master profile, synced and verified across Google, Apple,
-                  Bing, Yelp, and 20+ directories — with every publisher rail
+                  Bing, Yelp, and 20+ directories, with every publisher rail
                   honestly labeled and every change approved by you first.
                 </p>
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
@@ -282,7 +282,7 @@ export default async function ListingsProductPage() {
               <ArrowRightIcon className="size-4" />
             </Button>
             <p className="text-sm text-muted-foreground">
-              Yext&apos;s equivalent bundles run $199–$999/yr — annual only,
+              Yext&apos;s equivalent bundles run $199–$999/yr, annual only,
               demo required.
             </p>
           </div>
@@ -299,7 +299,7 @@ export default async function ListingsProductPage() {
                   Same architecture. Different honesty policy.
                 </h2>
                 <p className="mt-4 text-muted-foreground">
-                  Yext pioneered the master-profile model — we kept the
+                  Yext pioneered the master-profile model. We kept the
                   architecture and dropped the opacity. No aggregator claims
                   without rail labels, no pricing behind a demo, no annual
                   lock-in.
@@ -307,7 +307,7 @@ export default async function ListingsProductPage() {
               </div>
               <ul className="space-y-3 text-sm">
                 {[
-                  "Every publisher rail labeled — API, guided, manual, or audit-only",
+                  "Every publisher rail labeled: API, guided, manual, or audit-only",
                   "Month-to-month from $19; Yext starts at $199/yr for secondary directories only",
                   "Audits ship screenshot evidence, not just a verifier verdict",
                   "Approve-first sync on every automated change",
@@ -341,7 +341,7 @@ export default async function ListingsProductPage() {
               See what the internet says about your business
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Run the free scan — we&apos;ll show you every inconsistency we
+              Run the free scan. We&apos;ll show you every inconsistency we
               find, with evidence.
             </p>
             <Button

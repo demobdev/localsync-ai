@@ -26,7 +26,7 @@ const PRODUCT_LINKS = [
   {
     href: "/products/reputation",
     label: "Reputation",
-    note: "Reviews + AI drafts",
+    note: "Included in Pro",
   },
   {
     href: "/products/ai-visibility",
@@ -36,14 +36,18 @@ const PRODUCT_LINKS = [
   {
     href: "/products/verticals",
     label: "Vertical Networks",
-    note: "Industry add-ons",
+    note: "+$15/mo add-ons",
   },
 ];
 
 const MOBILE_NAV = [
-  { href: "/grader", label: "Free visibility audit" },
-  { href: "/platform/beacon", label: "Beacon agent" },
+  { href: "/products/listings", label: "Listings" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/grader", label: "Free visibility audit" },
+  { href: "/reviews", label: "Reviews" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+  { href: "/platform/beacon", label: "Beacon agent" },
 ];
 
 export function MarketingHeader({
@@ -60,6 +64,14 @@ export function MarketingHeader({
           <LocalMapLogo />
         </Link>
         <nav className="hidden items-center gap-1 md:flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/products/listings" />}
+          >
+            Listings
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="ghost" size="sm" />}
@@ -86,9 +98,25 @@ export function MarketingHeader({
             variant="ghost"
             size="sm"
             nativeButton={false}
-            render={<Link href="/platform/beacon" />}
+            render={<Link href="/pricing" />}
           >
-            Beacon
+            Pricing
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/about" />}
+          >
+            About
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href="/reviews" />}
+          >
+            Reviews
           </Button>
           <Button
             variant="default"
@@ -97,14 +125,6 @@ export function MarketingHeader({
             render={<Link href="/grader" />}
           >
             Free audit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/pricing" />}
-          >
-            Pricing
           </Button>
         </nav>
         <div className="flex items-center gap-1 sm:gap-2">

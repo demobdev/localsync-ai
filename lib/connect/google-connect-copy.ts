@@ -10,6 +10,9 @@ export type GoogleConnectCopy = {
   helper?: string;
 };
 
+const ADS_CREDIT_HELPER =
+  "Google’s Performance UI often shows a $500 Ads credit for new advertisers — check and claim there if eligible (not detected via API yet).";
+
 export function googleConnectCopyForContext(input: {
   context: LocationOperatingContext | null;
   googleState: GoogleImportState;
@@ -31,7 +34,7 @@ export function googleConnectCopyForContext(input: {
       description:
         "OAuth is linked. Full import/sync unlocks once Google approves your Business Profile API quota (see docs/gbp-api-request.md).",
       cta: "View connection status",
-      helper: "You can still add listing URLs and run audits manually meanwhile.",
+      helper: `You can still add listing URLs and run audits manually meanwhile. ${ADS_CREDIT_HELPER}`,
     };
   }
 
@@ -41,6 +44,7 @@ export function googleConnectCopyForContext(input: {
       description:
         "Import NAP, hours, and categories into your master profile — approve every field before it saves.",
       cta: "Manage import",
+      helper: ADS_CREDIT_HELPER,
     };
   }
 

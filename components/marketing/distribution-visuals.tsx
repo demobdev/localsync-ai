@@ -93,7 +93,7 @@ export function AiVisibilityShowcase() {
           ))}
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Structured NAP, hours, services, and FAQs — formatted for Maps and
+          Structured NAP, hours, services, and FAQs, formatted for Maps and
           Search.
         </p>
       </div>
@@ -116,7 +116,7 @@ export function AiVisibilityShowcase() {
           <ul className="space-y-1.5 text-muted-foreground">
             <li className="flex items-start gap-2">
               <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" />
-              Oceanview Wealth Management — fiduciary planning, verified listing
+              Oceanview Wealth Management: fiduciary planning, verified listing
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary/40" />

@@ -15,6 +15,7 @@ import {
   WorkflowIcon,
 } from "lucide-react";
 
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { PublisherNetworkGrid } from "@/components/marketing/publisher-network-grid";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +31,9 @@ import { LISTING_PLANS } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Pricing — LocalMap",
+  title: "Pricing | LocalMap",
   description:
-    "Modular listing packages. Pay for the tier and vertical networks you need — not a bundle you don't.",
+    "Modular listing packages. Pay for the tier and vertical networks you need, not a bundle you don't.",
 };
 
 const VERTICAL_ADDONS = [
@@ -174,7 +175,7 @@ const VALUE_PROPS = [
   {
     icon: WorkflowIcon,
     title: "Approve-first, always",
-    body: "AI drafts profile updates, FAQs, and review replies — nothing publishes until you approve it. No surprise edits to your listings.",
+    body: "AI drafts profile updates, FAQs, and review replies. Nothing publishes until you approve it. No surprise edits to your listings.",
   },
   {
     icon: RadarIcon,
@@ -200,15 +201,19 @@ const FAQS = [
   },
   {
     q: "What does \"approve-first sync\" mean?",
-    a: "Nothing publishes without your approval. AI drafts profile updates, FAQs, and review replies — you review, approve, and we execute. No surprise edits to your listings.",
+    a: "Nothing publishes without your approval. AI drafts profile updates, FAQs, and review replies. You review, approve, and we execute. No surprise edits to your listings.",
   },
   {
     q: "Can I do everything manually on Basic?",
-    a: "Yes. Basic gives you the master profile, audits, NAP tracking, and per-publisher checklists. Premium and Pro automate the same work — the manual path never disappears.",
+    a: "Yes. Basic gives you the master profile, audits, NAP tracking, and per-publisher checklists. Premium and Pro automate the same work. The manual path never disappears.",
   },
   {
     q: "What happens if I cancel?",
-    a: "Your listings stay live — we never held them hostage in the first place. You keep your master profile export and audit history. Automation stops; the manual checklists keep working until the end of your billing period.",
+    a: "Your listings stay live. We never held them hostage in the first place. You keep your master profile export and audit history. Automation stops; the manual checklists keep working until the end of your billing period.",
+  },
+  {
+    q: "Is Reputation a separate product?",
+    a: "No. Review inbox and AI reply drafts are included in Pro Listings, not sold as a standalone add-on. Vertical directory networks remain optional at +$15/mo each.",
   },
   {
     q: "Do you require an annual contract?",
@@ -259,7 +264,17 @@ export default async function PricingPage() {
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
               Every plan is per location, per month. Manual workflows are always
-              included — upgrades buy automation, not access.
+              included. Upgrades buy automation, not access. Reputation lives
+              in Pro; vertical networks are +$15/mo.
+            </p>
+            <p className="mx-auto mt-4 text-sm text-muted-foreground">
+              Trusted by local brands since 2016 ·{" "}
+              <Link
+                href="/reviews"
+                className="font-medium text-primary hover:underline"
+              >
+                See reviews &amp; case studies
+              </Link>
             </p>
           </div>
         </section>
@@ -316,6 +331,10 @@ export default async function PricingPage() {
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Premium and Pro include a 14-day free trial. Annual billing saves
             ~2 months.{" "}
+            <strong className="font-medium text-foreground">
+              Reputation (reviews + AI drafts) is included in Pro
+            </strong>
+            not sold separately. Vertical networks are +$15/mo.{" "}
             <Link
               href="/products/listings"
               className="font-medium text-primary hover:underline"
@@ -394,10 +413,10 @@ export default async function PricingPage() {
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <div className="mb-8 max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Vertical add-ons — $15/mo each
+              Vertical add-ons: $15/mo each
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Yext bundles these into $999/yr tiers. We sell them à la carte —
+              Yext bundles these into $999/yr tiers. We sell them à la carte.
               a dentist adds Healthcare, a plumber adds Home Services.{" "}
               <Link
                 href="/products/verticals"
@@ -458,7 +477,7 @@ export default async function PricingPage() {
                   Modular beats the bundle
                 </h2>
                 <p className="mt-4 text-muted-foreground">
-                  Yext&apos;s Premium tier runs $999/yr per location — and you
+                  Yext&apos;s Premium tier runs $999/yr per location, and you
                   pay for every vertical network whether your category needs it
                   or not. With LocalMap, a dentist pays for Premium plus
                   Healthcare. Nothing else.
@@ -483,7 +502,7 @@ export default async function PricingPage() {
                     <span>
                       <strong>AI visibility included in Pro.</strong> Hosted
                       machine-readable profiles that assistants can actually
-                      cite — not an enterprise upsell.
+                      cite, not an enterprise upsell.
                     </span>
                   </li>
                 </ul>
@@ -515,7 +534,7 @@ export default async function PricingPage() {
                   </div>
                 </div>
                 <div className="border-t bg-primary/5 px-4 py-3 text-center text-sm font-medium text-primary">
-                  ~23% less — and modular
+                  ~23% less, and modular
                 </div>
               </div>
             </div>
@@ -569,7 +588,7 @@ export default async function PricingPage() {
               Not sure which tier fits?
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Run the free AI visibility scan — we&apos;ll show you exactly
+              Run the free AI visibility scan. We&apos;ll show you exactly
               what&apos;s broken and which plan fixes it.
             </p>
             <Button
@@ -585,14 +604,7 @@ export default async function PricingPage() {
         </section>
       </main>
 
-      <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© {new Date().getFullYear()} LocalMap · Local Intelligence Platform</p>
-          <p>
-            Home services · Professional · Internet/SaaS · Healthcare · Retail
-          </p>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

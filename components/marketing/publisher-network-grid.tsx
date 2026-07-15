@@ -51,12 +51,12 @@ export function PublisherNetworkGrid() {
           Publisher network
         </p>
         <h2 className="mt-2 text-3xl font-bold tracking-tight">
-          Tracked everywhere customers search — honestly labeled
+          Tracked everywhere customers search, honestly labeled
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Every location auto-tracks 20+ directories. We label each rail —
-          API, guided import, manual, or audit-only — so you always know what
-          syncs vs what we verify.
+          Every location auto-tracks 20+ directories. We label each rail (API,
+          guided import, manual, or audit-only) so you always know what syncs
+          vs what we verify.
         </p>
       </div>
 

@@ -47,7 +47,7 @@ In **APIs & Services → Library**, enable:
 1. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
 2. Application type: **Web application**
 3. Authorized redirect URIs:
-   - `http://localhost:3000/api/connectors/google/callback` (dev)
+   - `http://localhost:3002/api/connectors/google/callback` (dev)
    - `https://YOUR_DOMAIN/api/connectors/google/callback` (prod)
 4. Save `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env.local`
 
@@ -62,66 +62,80 @@ This is a **separate form** — not Google Cloud Support Cases.
 
 #### Application copy (Gift a Story dogfood — July 2026)
 
-Use for project **`684836511110`** (GCP project tied to this submission).
+Use for project **`684836579110`** (GCP project **Gift A Story** / ID `gift-a-story` under org `wvfmlabs.com`).
 
 | Field | Value |
 |-------|-------|
-| **Google Cloud project number** | `684836511110` |
-| **Company website** | `https://gift-a-story-mvp.vercel.app/` |
+| **Google Cloud project number** | `684836579110` |
+| **Company website** | `https://giftastory.app` (fallback: `https://gift-a-story-mvp.vercel.app/`) |
 | **How did you hear about this API access form?** | Google Business Profile API documentation while setting up API access for our local business management platform. |
 | **What is the primary reason for seeking access?** | We are building LocalSync, an AI-powered local business management platform for agencies and small businesses. We need Google Business Profile API access to test and develop core workflows including syncing business profile data, managing location information, monitoring profile changes, creating posts/updates, and supporting review workflows. Initial use is for internal development and dogfooding with our own test accounts before onboarding customer accounts. |
 
-**Internal note (do not put in the form):**
+**Submitted:** 2026-07-13 · **Case ID:** `0-0182000041521` · Google said ~**7–10 business days**.
 
-- **Dogfood case study:** Gift a Story — AI book generation company; using LocalSync to build/monitor online presence while we develop the platform.
-- **Website:** Primary domain lapsed (renewal pending). Vercel staging URL is the active deployment for now. **TODO:** renew domain and update GBP + form/resubmit if Google asks for production URL later.
+**Internal note:**
+
+- **Dogfood case study:** Gift a Story — see [gift-a-story-baseline.md](./gift-a-story-baseline.md) for pre-LocalSync snapshot.
 - **Platform prod URL:** `https://localsync-ai.vercel.app` (LocalMap app); Gift a Story is the GBP-linked business for this application.
+- Find project number: [IAM & Admin → Settings](https://console.cloud.google.com/iam-admin/settings?project=gift-a-story) (not Manage resources name click).
 
 ### 6. Track status
 
 | Status | Action |
 |--------|--------|
-| Submitted | Note date in your project tracker |
+| Submitted | Case `0-0182000041521` (2026-07-13) |
 | Testing mode | Use test GBP accounts only |
 | Approved | Move OAuth app to **Production** and store approval email |
 | Rejected | Revise use case; emphasize read-only import + user-approved writes |
 
 #### How to check your Basic API Access request
 
-**Important:** GBP API access is **not** tracked in Google Cloud **Support → Cases**. That page is for paid technical support — your plan is Basic (billing-only), so it will stay empty. The Cloud Storage "Known Issue" in your console is unrelated.
+**Important:** GBP API access is **not** tracked in Google Cloud **Support → Cases** (billing-only Basic support). Your allowlist case ID from the form confirmation email / success page is the reference.
 
 Use these instead:
 
 1. **Check API quota (most reliable in-console signal)**
-   - [APIs & Services → Enabled APIs](https://console.cloud.google.com/apis/dashboard) for project **`localsync`**
+   - [APIs & Services → Enabled APIs](https://console.cloud.google.com/apis/dashboard?project=gift-a-story) for project **`gift-a-story`**
    - Open **Google My Business Account Management API**
    - Click **Quotas & System Limits** (or **IAM & Admin → Quotas**, filter `mybusiness`)
    - **0 QPM** = not approved yet
    - **300 QPM** = approved (Google's default Basic access)
 
-2. **Email confirmation**
-   After submitting the [GBP API contact form](https://support.google.com/business/contact/api_default), Google sends a confirmation to the email you used. Search inbox for "Business Profile API" or "Basic API Access". That email is your queue reference — it will **not** appear under Cloud Support → Cases.
+2. **Email / form confirmation**
+   Case ID **`0-0182000041521`**. Search inbox for "Business Profile API" or "Basic API Access".
 
 3. **Live test in LocalMap**
    Dashboard → Connections → Google Business Profile → Connect
    - OAuth succeeds + **"API quota pending"** → still waiting
    - Locations load with verification badges → quota is live
 
-4. **Prerequisites before applying** (Google auto-rejects if missing)
-   - Verified Google Business Profile, **active 60+ days**
+4. **Prerequisites** (Google auto-rejects if missing)
+   - Verified Google Business Profile, ideally **active 60+ days**
    - Website listed on that GBP
    - Submit as an email that is **owner/manager** on the profile
-   - Include **Project number** from Cloud Console (project `localsync`, ID `localsync-501521`)
+   - Correct **Project number** (`684836579110` for Gift A Story)
 
-**Should you submit now?**
+**While waiting (do these now):**
 
 | Action | Do it now? |
 |--------|------------|
-| Submit **Application for Basic API Access** form | **Yes**, if you haven't yet — [submit here](https://support.google.com/business/contact/api_default). Select that exact dropdown option. |
-| Enable APIs in GCP | **Mostly done** — Account Management, Business Information, Places enabled. Also enable **My Business Verifications API**. |
-| Check Support → Cases | **No** — wrong place; will stay empty on Basic support. |
-| Move OAuth consent to Production | **Wait** until quota shows 300 QPM. |
-| Connect Google in the app | **Yes** — validates OAuth now; import works when quota flips. |
+| Basic API Access form | **Done** — case `0-0182000041521` |
+| Enable APIs in GCP (`gift-a-story`) | **Yes** — Account Management, Business Information, Verifications, Places (New) |
+| OAuth consent + Web client (`localhost:3002` callback) | **Yes** — see below |
+| Move OAuth consent to Production | **Wait** until quota shows 300 QPM |
+| Connect Google in the app | **Yes** — validates OAuth; import when quota flips |
+
+### OAuth setup (Gift A Story project) — do while waiting
+
+1. Console project picker → **Gift A Story** (`gift-a-story`)
+2. **APIs & Services → Library** — enable Account Management, Business Information, Verifications, Places (New)
+3. **APIs & Services → OAuth consent screen** — External; app name `LocalSync AI`; add your Google user as **Test user**
+4. **Credentials → Create credentials → OAuth client ID → Web application**
+   - Authorized redirect URIs:
+     - `http://localhost:3002/api/connectors/google/callback`
+     - `https://localsync-ai.vercel.app/api/connectors/google/callback`
+5. Paste Client ID + Secret into `.env.local` as `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+6. Restart `npm run dev` → Connect Google with the account that manages Gift a Story GBP
 
 ## What we can build before approval
 
@@ -144,9 +158,10 @@ GOOGLE_CLIENT_SECRET=
 
 ## Checklist
 
-- [x] Google Cloud project created (`localsync` / `localsync-501521`)
+- [x] Google Cloud project created (`Gift A Story` / `gift-a-story` / `684836579110`)
 - [ ] GBP-related APIs enabled (including **Verifications API**)
 - [ ] OAuth consent screen configured
-- [ ] OAuth client created with callback URLs
-- [ ] Quota / access request submitted via GBP contact form (Gift a Story / project `684836511110`, July 2026)
+- [ ] OAuth client created with callback URLs (`localhost:3002`)
+- [x] Quota / access request submitted (case `0-0182000041521`, July 2026)
 - [ ] Approval date tracked (target: before Phase 2 Sprint 4)
+- [x] Pre-optimization baseline captured — [gift-a-story-baseline.md](./gift-a-story-baseline.md)

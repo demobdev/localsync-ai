@@ -204,4 +204,120 @@
     opacity: 0;
     animation: grader-theme-in 0.45s ease-out forwards;
   }
+
+  /* Marketing surface texture */
+  .localmap-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 180px 180px;
+  }
+
+  @keyframes localmap-kenburns {
+    from {
+      transform: scale(1.02) translate3d(0, 0, 0);
+    }
+    to {
+      transform: scale(1.08) translate3d(-0.8%, 0.6%, 0);
+    }
+  }
+
+  .localmap-kenburns {
+    animation: localmap-kenburns 28s ease-in-out alternate infinite;
+    will-change: transform;
+  }
+
+  @keyframes localmap-marquee {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  .localmap-marquee {
+    animation: localmap-marquee 55s linear infinite;
+  }
+
+  .localmap-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .localmap-marquee-mask {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 6%,
+      black 94%,
+      transparent
+    );
+  }
+
+  @keyframes localmap-hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .localmap-hero-rise {
+    animation: localmap-hero-rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes localmap-float-a {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -10px, 0);
+    }
+  }
+
+  @keyframes localmap-float-b {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, 8px, 0);
+    }
+  }
+
+  @keyframes localmap-float-c {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(4px, -6px, 0);
+    }
+  }
+
+  .localmap-float-a {
+    animation: localmap-float-a 7s ease-in-out infinite;
+  }
+
+  .localmap-float-b {
+    animation: localmap-float-b 8.5s ease-in-out infinite 0.4s;
+  }
+
+  .localmap-float-c {
+    animation: localmap-float-c 6.5s ease-in-out infinite 0.8s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .localmap-kenburns,
+    .localmap-marquee,
+    .localmap-hero-rise,
+    .localmap-float-a,
+    .localmap-float-b,
+    .localmap-float-c {
+      animation: none !important;
+    }
+  }
 }

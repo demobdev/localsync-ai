@@ -13,9 +13,9 @@ import { resolveGraderDashboardHref } from "@/lib/onboarding/grader-entry";
 import type { AuditReport, GraderStatusResponse } from "@/lib/grader/types";
 
 export const metadata: Metadata = {
-  title: "Your Local Visibility Report — LocalSync Grader",
+  title: "Your Local Visibility Report | LocalMap Grader",
   description:
-    "Your full local visibility & revenue leak audit: Google rankings, website experience, and local listings — scored across 44 factors.",
+    "Your full local visibility & revenue leak audit: Google rankings, website experience, and local listings, scored across 44 factors.",
   robots: { index: false },
 };
 

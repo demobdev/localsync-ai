@@ -29,26 +29,26 @@ import {
 } from "@/components/ui/card";
 
 export const metadata: Metadata = {
-  title: "Beacon — AI Visibility Agent | LocalMap",
+  title: "Beacon | AI Visibility Agent | LocalMap",
   description:
-    "Beacon is LocalMap's AI visibility agent. Agent-crawled visibility scoring across ChatGPT, Gemini, Perplexity, and Google — with an approve-first action plan that closes the gaps.",
+    "Beacon is LocalMap's AI visibility agent. Agent-crawled visibility scoring across ChatGPT, Gemini, Perplexity, and Google, with an approve-first action plan that closes the gaps.",
 };
 
 const whyPillars = [
   {
     icon: RadarIcon,
     title: "Diagnose why you win or lose in AI",
-    body: "Beacon doesn't stop at brand-level dashboards. It crawls what AI engines actually read about each location — your site, listings, and structured data — and shows the exact facts they can and can't see.",
+    body: "Beacon doesn't stop at brand-level dashboards. It crawls what AI engines actually read about each location (your site, listings, and structured data) and shows the exact facts they can and can't see.",
   },
   {
     icon: WorkflowIcon,
     title: "Agentic execution, human approval",
-    body: "Every gap becomes a prioritized action. AI drafts the fix — profile fields, FAQs, review replies — and nothing publishes until you approve it. Automation you can trust.",
+    body: "Every gap becomes a prioritized action. AI drafts the fix (profile fields, FAQs, review replies) and nothing publishes until you approve it. Automation you can trust.",
   },
   {
     icon: NetworkIcon,
     title: "Built on your master profile",
-    body: "Beacon executes from verified business data in your LocalMap master profile — not generic LLM guesses. One source of truth drives every page, listing, and AI-readable asset.",
+    body: "Beacon executes from verified business data in your LocalMap master profile, not generic LLM guesses. One source of truth drives every page, listing, and AI-readable asset.",
   },
 ];
 
@@ -61,7 +61,7 @@ const dimensions = [
   {
     icon: NetworkIcon,
     title: "Structured distribution",
-    body: "Schema.org JSON-LD, hosted visibility pages, and llms.txt — the machine-readable formats AI engines cite. Published from your profile with IndexNow pings on every update.",
+    body: "Schema.org JSON-LD, hosted visibility pages, and llms.txt: the machine-readable formats AI engines cite. Published from your profile with IndexNow pings on every update.",
   },
   {
     icon: MapPinIcon,
@@ -82,7 +82,7 @@ const actionPlanSteps = [
   },
   {
     step: "Recommend",
-    body: "Every gap becomes a ranked action — scored by impact on your visibility.",
+    body: "Every gap becomes a ranked action, scored by impact on your visibility.",
   },
   {
     step: "Approve",
@@ -105,7 +105,7 @@ const faqs = [
   },
   {
     q: "How is this different from a rank tracker?",
-    a: "Rank trackers tell you where you appear. Beacon tells you why — by auditing the underlying facts AI engines read, then executing fixes from your verified master profile. Diagnosis and treatment, not just a symptom report.",
+    a: "Rank trackers tell you where you appear. Beacon tells you why by auditing the underlying facts AI engines read, then executing fixes from your verified master profile. Diagnosis and treatment, not just a symptom report.",
   },
   {
     q: "What does the free scan include?",
@@ -113,11 +113,11 @@ const faqs = [
   },
   {
     q: "Does Beacon change things without asking?",
-    a: "No. Every AI-generated fix — profile updates, FAQs, review replies — goes through explicit approval before publishing. That's a core LocalMap principle: notice, recommend, approve, execute.",
+    a: "No. Every AI-generated fix (profile updates, FAQs, review replies) goes through explicit approval before publishing. That's a core LocalMap principle: notice, recommend, approve, execute.",
   },
   {
     q: "Can agencies use Beacon across clients?",
-    a: "Yes. Agency workspaces get Beacon across every client location — per-location scores, roll-up reporting, and a unified action queue for your team.",
+    a: "Yes. Agency workspaces get Beacon across every client location: per-location scores, roll-up reporting, and a unified action queue for your team.",
   },
 ];
 
@@ -146,8 +146,8 @@ export default async function BeaconPage() {
                   Optimize your visibility in AI search
                 </h1>
                 <p className="text-lg leading-relaxed text-muted-foreground">
-                  AI is rewriting discovery. Beacon — LocalMap&apos;s AI
-                  visibility agent — crawls what ChatGPT, Gemini, Perplexity,
+                  AI is rewriting discovery. Beacon, LocalMap&apos;s AI
+                  visibility agent, crawls what ChatGPT, Gemini, Perplexity,
                   and Google actually read about your business, then tells you
                   exactly what to fix and drafts the work for your approval.
                 </p>
@@ -191,7 +191,7 @@ export default async function BeaconPage() {
               Why AI chooses some businesses over others
             </p>
             <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              Diagnose. Prioritize. Execute — with approval.
+              Diagnose. Prioritize. Execute, with approval.
             </h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
@@ -223,7 +223,7 @@ export default async function BeaconPage() {
               </h2>
               <p className="mt-3 text-muted-foreground">
                 Visibility isn&apos;t one number from a black box. Beacon
-                measures the facts underneath — so every point on your score
+                measures the facts underneath, so every point on your score
                 maps to something you can fix.
               </p>
             </div>
@@ -294,12 +294,12 @@ export default async function BeaconPage() {
                 <p className="text-muted-foreground">
                   Every location gets a 0–100 score built from profile
                   completeness, structured data, listing accuracy, published AI
-                  pages, and review health. It moves when you fix things — and
+                  pages, and review health. It moves when you fix things, and
                   we show you exactly which fix moves it most.
                 </p>
                 <ul className="space-y-2">
                   {[
-                    "Profile completeness — the facts AI needs",
+                    "Profile completeness: the facts AI needs",
                     "Schema.org page + llms.txt published & crawlable",
                     "Listing consistency across 20+ directories",
                     "Review recency and response rate",
@@ -361,7 +361,7 @@ export default async function BeaconPage() {
           <div className="mx-auto max-w-4xl px-4 py-14 text-center sm:px-6">
             <BotIcon className="mx-auto mb-4 size-8" />
             <h2 className="text-3xl font-bold tracking-tight">
-              See exactly how AI sees your business — free
+              See exactly how AI sees your business, free
             </h2>
             <p className="mx-auto mt-3 max-w-xl opacity-90">
               20-second agent scan. No signup required. Don&apos;t let AI

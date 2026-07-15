@@ -63,7 +63,9 @@
 
 Google API access requires a **verified Business Profile** where your Google account is owner/manager, active 60+ days, with a website listed.
 
-**Recommendation:** Create a LocalMap agency GBP (or use an existing LocalMap client listing) with `demo@blockbusters.tech` as manager — **not** Tim’s Restore account. Tim stays a future HVAC use case only.
+**Current dogfood:** Gift a Story (managed GBP + GCP project `gift-a-story`). Baseline: [gift-a-story-baseline.md](./gift-a-story-baseline.md). API allowlist case `0-0182000041521` (submitted 2026-07-13).
+
+**Also fine:** LocalMap agency GBP or One Dessert Place — **not** Tim’s Restore account. Tim stays a future HVAC use case only.
 
 ---
 
