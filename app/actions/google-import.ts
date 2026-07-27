@@ -16,8 +16,6 @@ import {
   type GbpFetchErrorCode,
   type GbpLocation,
 } from "@/lib/connectors/google";
-import { patchGbpLocationSafe } from "@/lib/connectors/google-write";
-import { getWorkspacePlan } from "@/lib/billing/plans";
 import {
   diffLocationProfiles,
   summarizeProfileDiff,
@@ -199,96 +197,26 @@ export async function pushGbpFieldsAction(input: {
   locationId: string;
   fields: GbpFieldKey[];
 }) {
-  const { orgId } = await requireOrgAuth();
-  const db = getDb();
-
-  const workspace = await getWorkspacePlan();
-  if (!workspace.features.apiSync) {
-    throw new Error(
-      "API listing sync is a Premium feature. Upgrade at /dashboard/billing to push changes to Google automatically.",
-    );
-  }
-
   if (input.fields.length === 0) {
     throw new Error("Select at least one field to push");
   }
 
-  const [location] = await db
-    .select()
-    .from(locations)
-    .where(
-      and(
-        eq(locations.id, input.locationId),
-        eq(locations.organizationId, orgId),
-      ),
-    )
-    .limit(1);
+  // Route through the sync job framework so "Live and synced" requires verification.
+  const { requestPublisherSyncAction } = await import("@/app/actions/sync");
+  const result = await requestPublisherSyncAction({
+    locationId: input.locationId,
+    publisherSlug: "google-business-profile",
+    fieldKeys: input.fields,
+  });
 
-  if (!location) {
-    throw new Error("Location not found");
-  }
-
-  const [googlePublisher] = await db
-    .select({ id: publishers.id })
-    .from(publishers)
-    .where(eq(publishers.slug, "google-business-profile"))
-    .limit(1);
-
-  if (!googlePublisher) {
-    throw new Error("Google Business Profile publisher is not configured");
-  }
-
-  const [link] = await db
-    .select({ externalId: locationPublishers.externalId })
-    .from(locationPublishers)
-    .where(
-      and(
-        eq(locationPublishers.locationId, location.id),
-        eq(locationPublishers.publisherId, googlePublisher.id),
-      ),
-    )
-    .limit(1);
-
-  if (!link?.externalId) {
-    throw new Error(
-      "Link this location to Google first by importing from Google Business Profile.",
-    );
-  }
-
-  const accessToken = await getValidGoogleAccessToken(orgId);
-
-  if (!accessToken) {
-    throw new Error("Google is not connected. Reconnect from Connections.");
-  }
-
-  const result = await patchGbpLocationSafe(
-    accessToken,
-    link.externalId,
-    location.profile,
-    input.fields,
-  );
-
-  if (!result.ok) {
-    throw new Error(result.error.message);
-  }
-
-  await db
-    .update(locationPublishers)
-    .set({
-      status: "synced",
-      lastCheckedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(locationPublishers.locationId, location.id),
-        eq(locationPublishers.publisherId, googlePublisher.id),
-      ),
-    );
-
-  revalidatePath(`/dashboard/locations/${location.id}`);
+  revalidatePath(`/dashboard/locations/${input.locationId}`);
   revalidatePath("/dashboard/connect/google");
   revalidatePath("/dashboard/connect");
 
-  return { pushed: true, fieldCount: result.updatedFields.length };
+  return {
+    pushed: true,
+    fieldCount: input.fields.length,
+    syncJobId: result.syncJobId,
+    status: result.status,
+  };
 }

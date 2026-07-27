@@ -11,6 +11,7 @@ import {
   locations,
   publishers,
 } from "@/db/schema";
+import { logActivityEvent } from "@/lib/activity/log";
 import { executeAuditRun } from "@/lib/audit/run";
 import { requireOrgAuth } from "@/lib/auth/org";
 import { inngest } from "@/lib/inngest/client";
@@ -85,6 +86,10 @@ export async function listLocationPublishersAction(locationId: string) {
       isHomeServices: publishers.isHomeServices,
       status: locationPublishers.status,
       listingUrl: locationPublishers.listingUrl,
+      externalId: locationPublishers.externalId,
+      matchConfidence: locationPublishers.matchConfidence,
+      lastSyncedAt: locationPublishers.lastSyncedAt,
+      lastVerifiedAt: locationPublishers.lastVerifiedAt,
       lastCheckedAt: locationPublishers.lastCheckedAt,
       sortOrder: publishers.sortOrder,
     })
@@ -98,9 +103,24 @@ export async function updateListingUrlAction(input: {
   locationId: string;
   locationPublisherId: string;
   listingUrl: string;
-  status?: "synced" | "pending" | "manual" | "unknown";
+  status?:
+    | "synced"
+    | "pending"
+    | "manual"
+    | "unknown"
+    | "audit_only"
+    | "live_synced"
+    | "changes_pending"
+    | "syncing"
+    | "needs_connection"
+    | "needs_verification"
+    | "match_requires_approval"
+    | "duplicate_detected"
+    | "rejected"
+    | "auth_expired"
+    | "unsupported";
 }) {
-  const { orgId } = await requireOrgAuth();
+  const { orgId, userId } = await requireOrgAuth();
   await assertLocationInOrg(input.locationId, orgId);
   const db = getDb();
 
@@ -110,11 +130,15 @@ export async function updateListingUrlAction(input: {
     throw new Error("Listing URL must start with http:// or https://");
   }
 
+  // Manual URLs are audit-only fallback — never imply Live and synced.
+  const nextStatus =
+    input.status ?? (trimmed ? ("audit_only" as const) : ("unknown" as const));
+
   await db
     .update(locationPublishers)
     .set({
       listingUrl: trimmed || null,
-      ...(input.status ? { status: input.status } : {}),
+      status: nextStatus,
       updatedAt: new Date(),
     })
     .where(
@@ -123,6 +147,19 @@ export async function updateListingUrlAction(input: {
         eq(locationPublishers.locationId, input.locationId),
       ),
     );
+
+  await logActivityEvent({
+    organizationId: orgId,
+    locationId: input.locationId,
+    actorUserId: userId,
+    action: trimmed ? "listing.audit_url_saved" : "listing.audit_url_cleared",
+    entityType: "location_publisher",
+    entityId: input.locationPublisherId,
+    summary: trimmed
+      ? "Saved audit-only listing URL"
+      : "Cleared audit-only listing URL",
+    metadata: { listingUrl: trimmed || null, status: nextStatus },
+  });
 
   revalidateLocationScorePaths(input.locationId);
 }

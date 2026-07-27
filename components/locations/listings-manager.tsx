@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { ClipboardPasteIcon, RadarIcon, SearchIcon } from "lucide-react";
+import {
+  ClipboardPasteIcon,
+  Link2Icon,
+  RadarIcon,
+  RefreshCwIcon,
+  SearchIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
   startAuditAction,
   updateListingUrlAction,
 } from "@/app/actions/audits";
+import { requestPublisherSyncAction } from "@/app/actions/sync";
 import { createChecklistTasksAction } from "@/app/actions/tasks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,22 +29,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SCORE_LABELS } from "@/lib/scores/labels";
 import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
-
-const railLabels: Record<string, string> = {
-  api: "API",
-  guided_import: "Guided import",
-  manual: "Manual",
-  audit_only: "Audit only",
-};
-
-const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  synced: "default",
-  pending: "secondary",
-  manual: "outline",
-  unknown: "outline",
-};
+import { SCORE_LABELS } from "@/lib/scores/labels";
+import {
+  isErrorStatus,
+  isNeedsActionStatus,
+  presentIntegrationTier,
+  presentListingStatus,
+} from "@/lib/sync/statuses";
 
 type PublisherRow = {
   id: string;
@@ -48,6 +47,10 @@ type PublisherRow = {
   isCore: boolean;
   status: string;
   listingUrl: string | null;
+  externalId: string | null;
+  matchConfidence: number | null;
+  lastSyncedAt: Date | null;
+  lastVerifiedAt: Date | null;
   lastCheckedAt: Date | null;
 };
 
@@ -59,7 +62,26 @@ type AuditRunRow = {
   completedAt: Date | null;
 };
 
-type FilterMode = "core" | "configured" | "all";
+type SyncJobRow = {
+  id: string;
+  status: string;
+  fieldKeys: string[];
+  errorMessage: string | null;
+  createdAt: Date;
+  completedAt: Date | null;
+  publisherName: string;
+  publisherSlug: string;
+};
+
+type FilterMode =
+  | "all"
+  | "connected"
+  | "live"
+  | "syncing"
+  | "needs_action"
+  | "errors"
+  | "audit_only"
+  | "not_configured";
 
 const GENERIC_NAME_WORDS = new Set([
   "business",
@@ -106,16 +128,60 @@ function detectPublisher(
   return null;
 }
 
+function badgeVariantForTone(
+  tone: ReturnType<typeof presentListingStatus>["tone"],
+): "default" | "secondary" | "outline" | "destructive" {
+  switch (tone) {
+    case "success":
+      return "default";
+    case "danger":
+      return "destructive";
+    case "warning":
+    case "info":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
+
+function rowMatchesFilter(row: PublisherRow, filter: FilterMode): boolean {
+  const connected = Boolean(row.externalId);
+  const hasAuditUrl = Boolean((row.listingUrl ?? "").trim());
+
+  switch (filter) {
+    case "connected":
+      return connected;
+    case "live":
+      return row.status === "live_synced";
+    case "syncing":
+      return row.status === "syncing";
+    case "needs_action":
+      return isNeedsActionStatus(row.status);
+    case "errors":
+      return isErrorStatus(row.status);
+    case "audit_only":
+      return row.rail === "audit_only" || row.status === "audit_only" || (hasAuditUrl && !connected);
+    case "not_configured":
+      return !connected && !hasAuditUrl;
+    default:
+      return true;
+  }
+}
+
 export function ListingsManager({
   locationId,
   publisherRows,
   auditRuns,
+  syncJobs = [],
+  canSync = false,
   listingConsistencyScore = 0,
   workspaceHealthTotal = 0,
 }: {
   locationId: string;
   publisherRows: PublisherRow[];
   auditRuns: AuditRunRow[];
+  syncJobs?: SyncJobRow[];
+  canSync?: boolean;
   listingConsistencyScore?: number;
   workspaceHealthTotal?: number;
 }) {
@@ -123,11 +189,24 @@ export function ListingsManager({
   const [urls, setUrls] = useState<Record<string, string>>(
     Object.fromEntries(publisherRows.map((row) => [row.id, row.listingUrl ?? ""])),
   );
-  const [filter, setFilter] = useState<FilterMode>("core");
+  const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
   const [quickPaste, setQuickPaste] = useState("");
+  const [showAuditFallback, setShowAuditFallback] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [auditPending, startAuditTransition] = useTransition();
+
+  const googleRow = publisherRows.find(
+    (row) => row.publisherSlug === "google-business-profile",
+  );
+  const connectedCount = publisherRows.filter((row) => row.externalId).length;
+  const liveCount = publisherRows.filter((row) => row.status === "live_synced").length;
+  const needsActionCount = publisherRows.filter((row) =>
+    isNeedsActionStatus(row.status),
+  ).length;
+  const configuredCount = publisherRows.filter((row) =>
+    (urls[row.id] ?? "").trim(),
+  ).length;
 
   function quickAdd() {
     const entries = quickPaste
@@ -171,7 +250,7 @@ export function ListingsManager({
 
       if (saved > 0) {
         toast.success(
-          `Matched and saved ${saved} listing URL${saved === 1 ? "" : "s"}`,
+          `Saved ${saved} audit-only listing URL${saved === 1 ? "" : "s"}`,
         );
         setQuickPaste(unmatched.join("\n"));
         router.refresh();
@@ -185,18 +264,8 @@ export function ListingsManager({
     });
   }
 
-  const configuredCount = publisherRows.filter((row) =>
-    (urls[row.id] ?? "").trim(),
-  ).length;
-
   const visibleRows = useMemo(() => {
-    let rows = publisherRows;
-
-    if (filter === "core") {
-      rows = rows.filter((row) => row.isCore);
-    } else if (filter === "configured") {
-      rows = rows.filter((row) => (urls[row.id] ?? "").trim());
-    }
+    let rows = publisherRows.filter((row) => rowMatchesFilter(row, filter));
 
     const query = search.trim().toLowerCase();
     if (query) {
@@ -206,7 +275,7 @@ export function ListingsManager({
     }
 
     return rows;
-  }, [filter, publisherRows, search, urls]);
+  }, [filter, publisherRows, search]);
 
   function saveUrl(row: PublisherRow) {
     startTransition(async () => {
@@ -216,7 +285,7 @@ export function ListingsManager({
           locationPublisherId: row.id,
           listingUrl: urls[row.id] ?? "",
         });
-        toast.success(`${row.publisherName} listing URL saved`);
+        toast.success(`${row.publisherName} audit-only URL saved`);
         router.refresh();
       } catch (error) {
         toast.error(
@@ -273,8 +342,118 @@ export function ListingsManager({
     });
   }
 
+  function syncGoogle() {
+    startTransition(async () => {
+      try {
+        toast.info("Queuing Google sync job…");
+        const result = await requestPublisherSyncAction({
+          locationId,
+          publisherSlug: "google-business-profile",
+        });
+        toast.success(
+          `Sync job queued (${result.syncJobId.slice(0, 8)}…). Live and synced only after verification.`,
+        );
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Sync failed");
+      }
+    });
+  }
+
+  const filters: Array<[FilterMode, string]> = [
+    ["all", "All"],
+    ["connected", "Connected"],
+    ["live", "Live"],
+    ["syncing", "Syncing"],
+    ["needs_action", "Needs action"],
+    ["errors", "Errors"],
+    ["audit_only", "Audit-only"],
+    ["not_configured", "Not configured"],
+  ];
+
   return (
     <div className="relative space-y-6">
+      <Card className="localmap-card-glow border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-base">Publisher coverage</CardTitle>
+          <CardDescription>
+            Connect accounts, discover listings, sync approved Master Profile
+            changes, and verify live publisher state. Manual URLs are audit-only
+            fallback.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Button
+            variant="outline"
+            className="h-auto flex-col items-start gap-1 px-4 py-3 text-left"
+            nativeButton={false}
+            render={<Link href="/dashboard/connect" />}
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <Link2Icon className="size-4" />
+              Connect accounts
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              Authorize LocalMap to find, update, and monitor listings.
+            </span>
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-auto flex-col items-start gap-1 px-4 py-3 text-left"
+            nativeButton={false}
+            render={<Link href="/dashboard/import/google" />}
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <SearchIcon className="size-4" />
+              Find my listings
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              Import authorized Google locations and match external IDs.
+            </span>
+          </Button>
+
+          <Button
+            variant="default"
+            className="h-auto flex-col items-start gap-1 px-4 py-3 text-left"
+            disabled={isPending || !canSync || !googleRow?.externalId}
+            onClick={syncGoogle}
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <RefreshCwIcon className="size-4" />
+              Sync all changes
+            </span>
+            <span className="text-xs font-normal opacity-90">
+              {!canSync
+                ? "Premium required for direct sync."
+                : !googleRow?.externalId
+                  ? "Match Google first, then sync."
+                  : "Queue verified write + re-read for Google."}
+            </span>
+          </Button>
+
+          <Button
+            variant="outline"
+            className="h-auto flex-col items-start gap-1 px-4 py-3 text-left"
+            onClick={() => setShowAuditFallback((value) => !value)}
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <ClipboardPasteIcon className="size-4" />
+              Add audit-only listing
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              Add a URL that can be monitored but not directly synchronized.
+            </span>
+          </Button>
+        </CardContent>
+        <CardContent className="flex flex-wrap gap-3 border-t pt-4 text-sm text-muted-foreground">
+          <span>{connectedCount} connected</span>
+          <span>{liveCount} live and synced</span>
+          <span>{needsActionCount} need action</span>
+          <span>{configuredCount} audit URLs</span>
+        </CardContent>
+      </Card>
+
       {configuredCount > 0 ? (
         <Card
           className={
@@ -296,81 +475,73 @@ export function ListingsManager({
                     : `${SCORE_LABELS.workspaceHealth} total: ${workspaceHealthTotal}/100`}
               </p>
             </div>
-            {listingConsistencyScore > 0 ? (
-              <Button variant="outline" nativeButton={false} render={
-                <Link href={`/dashboard/locations/${locationId}/visibility`} />
-              }>
-                View breakdown
+            <div className="flex gap-2">
+              <Button
+                onClick={runAudit}
+                disabled={auditPending || configuredCount === 0}
+              >
+                {auditPending ? "Auditing…" : "Run audit"}
               </Button>
-            ) : null}
+              {listingConsistencyScore > 0 ? (
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={
+                    <Link href={`/dashboard/locations/${locationId}/visibility`} />
+                  }
+                >
+                  View breakdown
+                </Button>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       ) : null}
 
-      <Card className="localmap-card-glow border-primary/20 bg-primary/5">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <RadarIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-            <div>
-              <p className="text-sm font-medium">Demo tip</p>
-              <p className="text-sm text-muted-foreground">
-                Start with <strong>Yelp</strong> and <strong>BBB</strong> — paste
-                listing URLs, save, then run audit.
-              </p>
+      {showAuditFallback ? (
+        <Card className="localmap-card-glow border-dashed">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ClipboardPasteIcon className="size-4 text-muted-foreground" />
+              <CardTitle className="text-base">
+                Audit-only fallback — paste listing links
+              </CardTitle>
             </div>
-          </div>
-          <Button
-            onClick={runAudit}
-            disabled={auditPending || configuredCount === 0}
-            className="shrink-0"
-          >
-            {auditPending
-              ? "Auditing…"
-              : `Run audit (${configuredCount} URL${configuredCount === 1 ? "" : "s"})`}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card className="localmap-card-glow border-primary/20">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <ClipboardPasteIcon className="size-4 text-primary" />
-            <CardTitle className="text-base">Quick add — paste any listing links</CardTitle>
-          </div>
-          <CardDescription>
-            Paste one or more URLs (Yelp, BBB, Facebook, Google Maps…) — we
-            match each to the right publisher automatically.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            placeholder="https://www.yelp.com/biz/your-business  https://www.bbb.org/…"
-            value={quickPaste}
-            onChange={(event) => setQuickPaste(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                quickAdd();
-              }
-            }}
-            className="flex-1"
-          />
-          <Button onClick={quickAdd} disabled={isPending}>
-            {isPending ? "Matching…" : "Add listings"}
-          </Button>
-        </CardContent>
-      </Card>
+            <CardDescription>
+              These URLs are monitored, not synchronized. Saving a URL never
+              marks a publisher Live and synced.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              placeholder="https://www.yelp.com/biz/your-business  https://www.bbb.org/…"
+              value={quickPaste}
+              onChange={(event) => setQuickPaste(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  quickAdd();
+                }
+              }}
+              className="flex-1"
+            />
+            <Button onClick={quickAdd} disabled={isPending}>
+              {isPending ? "Matching…" : "Add audit URLs"}
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="localmap-card-glow relative overflow-hidden">
         <CardHeader>
-          <CardTitle>Listing URLs</CardTitle>
+          <CardTitle>Publishers</CardTitle>
           <CardDescription>
-            Add known listing URLs. The audit engine crawls each one and compares
-            it to your master profile.
+            Connection, match, sync, and verification state per publisher.
+            Direct sync currently ships for Google Business Profile.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div className="relative flex-1">
               <SearchIcon className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -381,13 +552,7 @@ export function ListingsManager({
               />
             </div>
             <div className="flex flex-wrap gap-1 rounded-lg border bg-muted/30 p-1">
-              {(
-                [
-                  ["core", "Core"],
-                  ["configured", "Configured"],
-                  ["all", "All"],
-                ] as const
-              ).map(([value, label]) => (
+              {filters.map(([value, label]) => (
                 <Button
                   key={value}
                   type="button"
@@ -406,67 +571,183 @@ export function ListingsManager({
               No publishers match this filter. Try &quot;All&quot; or clear search.
             </div>
           ) : (
-            <div className="space-y-3">
-              {visibleRows.map((row) => (
-                <div
-                  key={row.id}
-                  className="space-y-3 rounded-xl border p-3 sm:p-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium">{row.publisherName}</p>
-                        {row.isCore ? (
-                          <Badge variant="secondary" className="text-[10px]">
-                            Core
+            <div className="overflow-x-auto rounded-xl border">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Publisher</th>
+                    <th className="px-3 py-2 font-medium">Type</th>
+                    <th className="px-3 py-2 font-medium">Status</th>
+                    <th className="px-3 py-2 font-medium">External ID / URL</th>
+                    <th className="px-3 py-2 font-medium">Last verified</th>
+                    <th className="px-3 py-2 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.map((row) => {
+                    const status = presentListingStatus(row.status);
+                    const tier = presentIntegrationTier(row.rail);
+
+                    return (
+                      <tr key={row.id} className="border-b last:border-0">
+                        <td className="px-3 py-3 align-top">
+                          <div className="font-medium">{row.publisherName}</div>
+                          {row.isCore ? (
+                            <Badge variant="secondary" className="mt-1 text-[10px]">
+                              Core
+                            </Badge>
+                          ) : null}
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          <Badge variant="outline">{tier}</Badge>
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          <Badge variant={badgeVariantForTone(status.tone)}>
+                            {status.label}
                           </Badge>
-                        ) : null}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        <Badge variant="outline">{railLabels[row.rail] ?? row.rail}</Badge>
-                        <Badge variant={statusVariants[row.status] ?? "outline"}>
-                          {row.status}
-                        </Badge>
-                      </div>
-                      {row.lastCheckedAt ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Checked {new Date(row.lastCheckedAt).toLocaleString()}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-                    <div className="space-y-1">
-                      <Label className="sr-only">Listing URL for {row.publisherName}</Label>
-                      <Input
-                        placeholder="https://..."
-                        value={urls[row.id] ?? ""}
-                        onChange={(event) =>
-                          setUrls((current) => ({
-                            ...current,
-                            [row.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </div>
-                    <Button
-                      variant="outline"
-                      disabled={isPending}
-                      onClick={() => saveUrl(row)}
-                    >
-                      Save
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={isPending}
-                      onClick={() => addChecklist(row)}
-                    >
-                      Tasks
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                          <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
+                            {status.description}
+                          </p>
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          {row.externalId ? (
+                            <p className="font-mono text-xs break-all">
+                              {row.externalId}
+                            </p>
+                          ) : null}
+                          {showAuditFallback || row.listingUrl ? (
+                            <div className="mt-2 space-y-1">
+                              <Label className="sr-only">
+                                Listing URL for {row.publisherName}
+                              </Label>
+                              <Input
+                                placeholder="Audit-only https://..."
+                                value={urls[row.id] ?? ""}
+                                onChange={(event) =>
+                                  setUrls((current) => ({
+                                    ...current,
+                                    [row.id]: event.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              {row.rail === "api"
+                                ? "Connect account to import ID"
+                                : "No listing linked"}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 align-top text-xs text-muted-foreground">
+                          {row.lastVerifiedAt
+                            ? new Date(row.lastVerifiedAt).toLocaleString()
+                            : row.lastSyncedAt
+                              ? `Accepted ${new Date(row.lastSyncedAt).toLocaleString()}`
+                              : row.lastCheckedAt
+                                ? `Checked ${new Date(row.lastCheckedAt).toLocaleString()}`
+                                : "—"}
+                        </td>
+                        <td className="px-3 py-3 align-top">
+                          <div className="flex flex-wrap gap-1">
+                            {row.publisherSlug === "google-business-profile" &&
+                            row.externalId &&
+                            canSync ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isPending}
+                                onClick={syncGoogle}
+                              >
+                                Force sync
+                              </Button>
+                            ) : null}
+                            {row.publisherSlug === "google-business-profile" &&
+                            !row.externalId ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                nativeButton={false}
+                                render={<Link href="/dashboard/import/google" />}
+                              >
+                                Match
+                              </Button>
+                            ) : null}
+                            {(showAuditFallback || row.listingUrl) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isPending}
+                                onClick={() => saveUrl(row)}
+                              >
+                                Save URL
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={isPending}
+                              onClick={() => addChecklist(row)}
+                            >
+                              Tasks
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="localmap-card-glow">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <RadarIcon className="size-4 text-primary" />
+            <CardTitle>Sync jobs</CardTitle>
+          </div>
+          <CardDescription>
+            Asynchronous publisher writes. Accepted is not Live and synced until
+            LocalMap re-reads the publisher.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {syncJobs.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+              No sync jobs yet. Connect Google, match a listing, then sync
+              approved changes.
+            </div>
+          ) : (
+            syncJobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex items-center justify-between rounded-xl border px-4 py-3"
+              >
+                <div>
+                  <p className="font-medium">
+                    {job.publisherName} · {new Date(job.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {job.errorMessage ??
+                      `${job.fieldKeys.length} field${job.fieldKeys.length === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+                <Badge
+                  variant={
+                    job.status === "live"
+                      ? "default"
+                      : job.status === "failed" || job.status === "rejected"
+                        ? "destructive"
+                        : "secondary"
+                  }
+                >
+                  {job.status === "live" ? "live (verified)" : job.status}
+                </Badge>
+              </div>
+            ))
           )}
         </CardContent>
       </Card>
@@ -475,7 +756,7 @@ export function ListingsManager({
         <CardHeader>
           <CardTitle>Audit history</CardTitle>
           <CardDescription>
-            Every run stores findings plus crawl evidence for transparency.
+            Crawl-based audits remain available for audit-only publishers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -483,7 +764,8 @@ export function ListingsManager({
             <div className="rounded-xl border border-dashed bg-muted/20 px-4 py-8 text-center">
               <p className="text-sm font-medium">No audits yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add listing URLs above and run your first audit.
+                Add audit-only URLs and run an audit, or sync a connected
+                publisher.
               </p>
             </div>
           ) : (
@@ -517,6 +799,7 @@ export function ListingsManager({
           )}
         </CardContent>
       </Card>
+
       <ActionLoadingOverlay
         active={auditPending}
         label="Running listing audit — crawling URLs…"

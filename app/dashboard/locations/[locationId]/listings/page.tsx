@@ -5,6 +5,7 @@ import {
   listLocationPublishersAction,
 } from "@/app/actions/audits";
 import { getLocationAction } from "@/app/actions/locations";
+import { listLocationSyncJobsAction } from "@/app/actions/sync";
 import { UpgradeBanner } from "@/components/billing/upgrade-banner";
 import { ListingsManager } from "@/components/locations/listings-manager";
 import { getWorkspacePlan } from "@/lib/billing/plans";
@@ -16,14 +17,15 @@ export default async function LocationListingsPage({
   params: Promise<{ locationId: string }>;
 }) {
   const { locationId } = await params;
-  const [location, publisherRows, auditRuns, workspace, scoreBreakdown] =
+  const [location, publisherRows, auditRuns, syncJobs, workspace, scoreBreakdown] =
     await Promise.all([
-    getLocationAction(locationId),
-    listLocationPublishersAction(locationId),
-    listAuditRunsAction(locationId),
-    getWorkspacePlan(),
-    getLocationVisibilityScoreBreakdown(locationId),
-  ]);
+      getLocationAction(locationId),
+      listLocationPublishersAction(locationId),
+      listAuditRunsAction(locationId),
+      listLocationSyncJobsAction(locationId),
+      getWorkspacePlan(),
+      getLocationVisibilityScoreBreakdown(locationId),
+    ]);
 
   if (!location) {
     notFound();
@@ -35,7 +37,7 @@ export default async function LocationListingsPage({
         <UpgradeBanner
           badge="Listing packages"
           title="Skip the copy-paste — sync the majors automatically"
-          description="You can manage every listing manually on Basic. Premium pushes Google, Apple, Bing, Facebook & Yelp from one master profile with approve-first sync."
+          description="You can manage every listing manually on Basic. Premium pushes Google from one master profile with approve-first sync and post-write verification."
           ctaLabel="View listing packages"
         />
       ) : null}
@@ -43,6 +45,8 @@ export default async function LocationListingsPage({
         locationId={locationId}
         publisherRows={publisherRows}
         auditRuns={auditRuns}
+        syncJobs={syncJobs}
+        canSync={workspace.features.apiSync}
         listingConsistencyScore={scoreBreakdown?.auditScore ?? 0}
         workspaceHealthTotal={scoreBreakdown?.total ?? 0}
       />

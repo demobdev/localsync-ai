@@ -55,6 +55,42 @@ export const locationPublisherStatusEnum = pgEnum("location_publisher_status", [
   "pending",
   "manual",
   "unknown",
+  "live_synced",
+  "changes_pending",
+  "syncing",
+  "needs_connection",
+  "needs_verification",
+  "match_requires_approval",
+  "duplicate_detected",
+  "rejected",
+  "auth_expired",
+  "audit_only",
+  "unsupported",
+]);
+
+export const syncJobStatusEnum = pgEnum("sync_job_status", [
+  "queued",
+  "validating",
+  "sent",
+  "accepted_by_publisher",
+  "processing",
+  "live",
+  "rejected",
+  "partially_applied",
+  "verification_required",
+  "authentication_required",
+  "rate_limited",
+  "failed",
+]);
+
+export const syncJobItemStatusEnum = pgEnum("sync_job_item_status", [
+  "queued",
+  "sent",
+  "accepted",
+  "live",
+  "rejected",
+  "unsupported",
+  "failed",
 ]);
 
 export const manualTaskStatusEnum = pgEnum("manual_task_status", [
@@ -305,6 +341,9 @@ export const locationPublishers = pgTable(
     status: locationPublisherStatusEnum("status").notNull().default("unknown"),
     listingUrl: text("listing_url"),
     externalId: text("external_id"),
+    matchConfidence: integer("match_confidence"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    lastVerifiedAt: timestamp("last_verified_at", { withTimezone: true }),
     lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -321,6 +360,103 @@ export const locationPublishers = pgTable(
       table.locationId,
       table.publisherId,
     ),
+  ],
+);
+
+export const syncJobs = pgTable(
+  "sync_jobs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: text("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    publisherId: uuid("publisher_id")
+      .references(() => publishers.id, { onDelete: "cascade" })
+      .notNull(),
+    locationVersionId: uuid("location_version_id").references(
+      () => locationVersions.id,
+      { onDelete: "set null" },
+    ),
+    status: syncJobStatusEnum("status").notNull().default("queued"),
+    requestedByUserId: text("requested_by_user_id"),
+    idempotencyKey: text("idempotency_key").notNull(),
+    fieldKeys: jsonb("field_keys").$type<string[]>().notNull(),
+    externalJobId: text("external_job_id"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    publisherResponse: jsonb("publisher_response").$type<Record<string, unknown>>(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("sync_jobs_organization_id_idx").on(table.organizationId),
+    index("sync_jobs_location_id_idx").on(table.locationId),
+    index("sync_jobs_publisher_id_idx").on(table.publisherId),
+    index("sync_jobs_status_idx").on(table.status),
+    uniqueIndex("sync_jobs_idempotency_key_idx").on(table.idempotencyKey),
+  ],
+);
+
+export const syncJobItems = pgTable(
+  "sync_job_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    syncJobId: uuid("sync_job_id")
+      .references(() => syncJobs.id, { onDelete: "cascade" })
+      .notNull(),
+    fieldKey: text("field_key").notNull(),
+    status: syncJobItemStatusEnum("status").notNull().default("queued"),
+    masterValue: text("master_value"),
+    publisherValue: text("publisher_value"),
+    verifiedValue: text("verified_value"),
+    errorMessage: text("error_message"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("sync_job_items_sync_job_id_idx").on(table.syncJobId),
+    index("sync_job_items_field_key_idx").on(table.fieldKey),
+  ],
+);
+
+export const activityEvents = pgTable(
+  "activity_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: text("organization_id")
+      .references(() => organizations.id, { onDelete: "cascade" })
+      .notNull(),
+    locationId: uuid("location_id").references(() => locations.id, {
+      onDelete: "cascade",
+    }),
+    actorUserId: text("actor_user_id"),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: text("entity_id"),
+    summary: text("summary").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("activity_events_organization_id_idx").on(table.organizationId),
+    index("activity_events_location_id_idx").on(table.locationId),
+    index("activity_events_created_at_idx").on(table.createdAt),
+    index("activity_events_action_idx").on(table.action),
   ],
 );
 
