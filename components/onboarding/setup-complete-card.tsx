@@ -1,31 +1,22 @@
 import {
   ArrowRightIcon,
-  BuildingIcon,
   CheckCircle2Icon,
-  ExternalLinkIcon,
-  FileBarChart2Icon,
-  GlobeIcon,
-  RadarIcon,
-  UserPlusIcon,
+  CircleIcon,
+  ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react";
 
 import { GoToDashboardButton } from "@/components/onboarding/go-to-dashboard-button";
 import { OrgAwareNavButton } from "@/components/navigation/org-aware-nav-button";
 import type { OrganizationType } from "@/lib/auth/organizations";
-import { modelLabel, resolvePostSetupRoute } from "@/lib/onboarding/routing";
-import { SCORE_LABELS } from "@/lib/scores/labels";
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
-import { Button } from "@/components/ui/button";
 
 export function SetupCompleteCard({
   locationId,
-  publishersTracked,
   accountType = "business",
   auditId = null,
   scanId = null,
   organizationId = null,
-  operatingContext = null,
 }: {
   locationId: string;
   publishersTracked: number;
@@ -36,207 +27,123 @@ export function SetupCompleteCard({
   operatingContext?: LocationOperatingContext | null;
 }) {
   const isAgency = accountType === "agency";
-  const context =
-    operatingContext ??
-    ({
-      operatingModel: "storefront",
-      auditTier: "full_local",
-      gbpLinkedAtAudit: true,
-      serviceAreaCities: null,
-      onboardingIntent: null,
-      graderAuditId: null,
-    } satisfies LocationOperatingContext);
-
-  const route = resolvePostSetupRoute({
-    locationId,
-    context,
-    auditId,
-    isAgency,
-  });
+  const steps = [
+    {
+      label: "Master Profile",
+      description: "Core business facts saved",
+      done: true,
+      current: false,
+    },
+    {
+      label: "Connect Google",
+      description: "Authorize the manager account",
+      done: false,
+      current: true,
+    },
+    {
+      label: "Confirm listing",
+      description: "Choose the correct publisher record",
+      done: false,
+      current: false,
+    },
+    {
+      label: "Approve & verify",
+      description: "Review every difference before sync",
+      done: false,
+      current: false,
+    },
+  ];
 
   return (
-    <div className="localmap-card-glow rounded-2xl border bg-card">
-      <div className="space-y-1.5 p-6 pb-4">
-        <div
-          className={`mb-2 flex size-12 items-center justify-center rounded-2xl ${
-            isAgency
-              ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-              : "bg-primary/10 text-primary"
-          }`}
-        >
-          <CheckCircle2Icon className="size-6" />
+    <div className="localmap-card-glow overflow-hidden rounded-[1.75rem] border bg-card">
+      <div className="border-b bg-[#102d32] px-6 py-7 text-white sm:px-8 sm:py-8">
+        <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-emerald-300 uppercase">
+          <CheckCircle2Icon className="size-4" />
+          Step 1 complete
         </div>
-        <h2 className="text-xl font-semibold">
-          {isAgency ? "Your agency workspace is ready" : "You're set up!"}
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+          Your Master Profile is ready.
         </h2>
-        {!isAgency && operatingContext ? (
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {modelLabel(context.operatingModel)} path
-          </p>
-        ) : null}
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/65">
           {isAgency
-            ? "Your first client is live. Here's what we set up:"
-            : "Here's what we just did behind the scenes:"}
+            ? "Your agency workspace and first client profile are ready. Next, connect the account that manages this client’s Google listing."
+            : "This is now the source of truth for your business. Next, connect the account that manages your Google listing."}
         </p>
       </div>
-      <div className="space-y-4 px-6 pb-6">
-        <ul className="space-y-3 text-sm">
-          {isAgency ? (
-            <>
-              <li className="flex items-start gap-3">
-                <UsersIcon className="mt-0.5 size-4 shrink-0 text-violet-600 dark:text-violet-400" />
-                <span>
-                  Created your <strong>agency workspace</strong> and a{" "}
-                  <strong>client record</strong> for your first end-customer —
-                  ready for more clients from the Clients page.
-                </span>
-              </li>
-              <li className="flex items-start gap-3">
-                <BuildingIcon className="mt-0.5 size-4 shrink-0 text-violet-600 dark:text-violet-400" />
-                <span>
-                  Built a <strong>master business profile</strong> for this
-                  client — name, phone, address, hours, and services in one
-                  place.
-                </span>
-              </li>
-            </>
-          ) : (
-            <li className="flex items-start gap-3">
-              <BuildingIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-              <span>
-                Created your workspace and a{" "}
-                <strong>master business profile</strong> — the single source of
-                truth for your name, phone, address, hours, and services.
-              </span>
-            </li>
-          )}
-          <li className="flex items-start gap-3">
-            <RadarIcon
-              className={`mt-0.5 size-4 shrink-0 ${
-                isAgency
-                  ? "text-violet-600 dark:text-violet-400"
-                  : "text-primary"
-              }`}
-            />
-            <span>
-              Started tracking <strong>{publishersTracked} publishers</strong> —
-              directories like Google, Yelp, Angi, and BBB where{" "}
-              {isAgency ? "this client" : "your business"} should be consistent.
-              We&apos;ll audit them as you add listing URLs.
-            </span>
-          </li>
-          <li className="flex items-start gap-3">
-            <GlobeIcon
-              className={`mt-0.5 size-4 shrink-0 ${
-                isAgency
-                  ? "text-violet-600 dark:text-violet-400"
-                  : "text-primary"
-              }`}
-            />
-            <span>
-              Computed the first{" "}
-              <strong>{SCORE_LABELS.workspaceHealthShort.toLowerCase()}</strong>.
-              It goes up as
-              you complete the profile and fix listing inconsistencies.
-            </span>
-          </li>
-        </ul>
 
-        {!isAgency ? (
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <p className="text-sm font-semibold">{route.headline}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{route.subline}</p>
+      <div className="space-y-6 p-6 sm:p-8">
+        <ol className="grid gap-3 sm:grid-cols-2">
+          {steps.map((step, index) => (
+            <li
+              key={step.label}
+              className={`flex items-start gap-3 rounded-2xl border p-4 ${
+                step.current ? "border-primary/35 bg-primary/5" : "bg-muted/15"
+              }`}
+            >
+              <span
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full ${
+                  step.done
+                    ? "bg-emerald-600 text-white"
+                    : step.current
+                      ? "bg-primary text-primary-foreground"
+                      : "border bg-background text-muted-foreground"
+                }`}
+              >
+                {step.done ? (
+                  <CheckCircle2Icon className="size-4" />
+                ) : step.current ? (
+                  <span className="text-xs font-bold">{index + 1}</span>
+                ) : (
+                  <CircleIcon className="size-3" />
+                )}
+              </span>
+              <div>
+                <p className="text-sm font-semibold">{step.label}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                  {step.description}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <ShieldCheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Nothing publishes automatically</p>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              You will see the field-by-field comparison and approve the direction
+              of every change. LocalMap verifies the publisher state before it
+              says Live &amp; synced.
+            </p>
           </div>
-        ) : null}
+        </div>
 
         <div className="flex flex-col gap-2">
+          <OrgAwareNavButton
+            href={`/dashboard/locations/${locationId}/listings`}
+            organizationId={organizationId}
+            className="w-full"
+          >
+            Continue to publisher setup
+            <ArrowRightIcon className="size-4" />
+          </OrgAwareNavButton>
           <GoToDashboardButton
             organizationId={organizationId}
             auditId={auditId}
             scanId={scanId}
+            variant="outline"
           />
-
-          {route.primary.external ? (
-            <Button
-              variant="default"
-              className="w-full"
-              nativeButton={false}
-              render={
-                <a
-                  href={route.primary.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                />
-              }
-            >
-              {route.primary.label}
-              <ExternalLinkIcon className="size-4" />
-            </Button>
-          ) : (
-            <OrgAwareNavButton
-              href={route.primary.href}
-              organizationId={organizationId}
-            >
-              {route.primary.label}
-              <ArrowRightIcon className="size-4" />
-            </OrgAwareNavButton>
-          )}
-
-          {route.secondary.map((action) =>
-            action.external ? (
-              <Button
-                key={action.id}
-                variant="outline"
-                className="w-full"
-                nativeButton={false}
-                render={
-                  <a
-                    href={action.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  />
-                }
-              >
-                {action.label}
-                <ExternalLinkIcon className="size-3.5" />
-              </Button>
-            ) : (
-              <OrgAwareNavButton
-                key={action.id}
-                href={action.href}
-                organizationId={organizationId}
-                variant="outline"
-              >
-                {action.id === "audit" ? (
-                  <FileBarChart2Icon className="size-4" />
-                ) : null}
-                {action.label}
-                {action.id !== "audit" ? (
-                  <ArrowRightIcon className="size-4" />
-                ) : null}
-              </OrgAwareNavButton>
-            ),
-          )}
-
           {isAgency ? (
-            <>
-              <OrgAwareNavButton
-                href="/dashboard/team"
-                organizationId={organizationId}
-                variant="outline"
-              >
-                <UserPlusIcon className="size-4" />
-                Invite your team
-              </OrgAwareNavButton>
-              <OrgAwareNavButton
-                href="/dashboard/clients"
-                organizationId={organizationId}
-                variant="outline"
-              >
-                Manage clients
-              </OrgAwareNavButton>
-            </>
+            <OrgAwareNavButton
+              href="/dashboard/clients"
+              organizationId={organizationId}
+              variant="ghost"
+              className="w-full"
+            >
+              <UsersIcon className="size-4" />
+              Manage clients instead
+            </OrgAwareNavButton>
           ) : null}
         </div>
       </div>

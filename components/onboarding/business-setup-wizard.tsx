@@ -33,31 +33,31 @@ export type BusinessSetupMode =
 
 const copyByMode = {
   "initial-business": {
-    title: "Tell us about your business",
+    title: "Core business facts",
     description:
-      "One form — we'll set up your workspace, master profile, and directory tracking automatically.",
+      "These approved facts become the source of truth for every connected publisher.",
     nameLabel: "Business name *",
     namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
-    submitIdle: "Create my workspace",
-    submitWithWorkspace: "Add this business",
+    submitIdle: "Save Master Profile",
+    submitWithWorkspace: "Save Master Profile",
   },
   "agency-client": {
-    title: "Your first client business",
+    title: "Client’s core business facts",
     description:
-      "We create a client record and master profile under your agency workspace.",
+      "Create one approved Master Profile under your agency workspace.",
     nameLabel: "Client business name *",
     namePlaceholder: "e.g. Smith Heating & Cooling",
-    submitIdle: "Add first client",
-    submitWithWorkspace: "Add this client",
+    submitIdle: "Save client profile",
+    submitWithWorkspace: "Save client profile",
   },
   "add-business": {
-    title: "Tell us about your business",
+    title: "Core business facts",
     description:
-      "Each business gets its own client record, profile, and directory tracking.",
+      "Create one source of truth before connecting a publisher account.",
     nameLabel: "Business name *",
     namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
-    submitIdle: "Add this business",
-    submitWithWorkspace: "Add this business",
+    submitIdle: "Save Master Profile",
+    submitWithWorkspace: "Save Master Profile",
   },
 } as const;
 
@@ -235,7 +235,7 @@ export function BusinessSetupWizard({
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending
-              ? "Setting everything up…"
+              ? "Saving Master Profile…"
               : hasWorkspace
                 ? copy.submitWithWorkspace
                 : copy.submitIdle}

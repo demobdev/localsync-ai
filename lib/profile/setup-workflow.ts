@@ -89,16 +89,16 @@ export function buildConnectionSteps(input: {
       title: "Connect Google Business Profile",
       description: googleConnected
         ? "Google account linked to this workspace"
-        : "OAuth link — read-only until API quota is approved",
+        : "Authorize the account that owns or manages the listing",
       done: googleConnected,
       href: "/dashboard/connect/google",
     },
     {
       id: "import-google",
       phase: "connect",
-      title: "Import fields from Google",
+      title: "Confirm listing and review differences",
       description: googleCanImport
-        ? "Merge GBP data into your master profile"
+        ? "Choose the correct record and approve each field direction"
         : "Available once Google API quota is approved",
       done: false,
       href: "/dashboard/connect/google",
@@ -107,29 +107,31 @@ export function buildConnectionSteps(input: {
     {
       id: "listing-urls",
       phase: "connect",
-      title: "Add listing URLs",
+      title: "Add an audit-only listing",
       description:
         listingUrlsConfigured > 0
-          ? `${listingUrlsConfigured} publisher URL${listingUrlsConfigured === 1 ? "" : "s"} saved`
-          : "Paste Yelp, BBB, or other directory links to audit",
+          ? `${listingUrlsConfigured} audit-only URL${listingUrlsConfigured === 1 ? "" : "s"} saved`
+          : "Optional fallback for publishers LocalMap cannot write to",
       done: listingUrlsConfigured > 0,
       href: `/dashboard/locations/${locationId}/listings`,
+      optional: true,
     },
     {
       id: "first-audit",
       phase: "connect",
       title:
         auditRunsCompleted > 0
-          ? "Improve listing consistency"
-          : "Run your first listing audit",
+          ? "Recheck audit-only listings"
+          : "Check audit-only listings",
       description:
         auditRunsCompleted === 0
-          ? "Crawl listings and compare against your master profile (unlocks up to 50 pts)"
+          ? "Compare saved public URLs against the Master Profile"
           : listingAuditScore > 0
             ? `${listingAuditScore}/50 listing consistency — re-run after fixing findings`
             : `${auditRunsCompleted} audit${auditRunsCompleted === 1 ? "" : "s"} done — fix mismatches and re-run to score`,
       done: auditRunsCompleted > 0 && listingAuditScore > 0,
       href: `/dashboard/locations/${locationId}/listings`,
+      optional: listingUrlsConfigured === 0,
     },
   ];
 }

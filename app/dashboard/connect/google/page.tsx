@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
 import { getLocationAction, listLocationsAction } from "@/app/actions/locations";
 import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
+import { getWorkspacePlan } from "@/lib/billing/plans";
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { GoogleConnectionStatus } from "@/components/import/google-connection-status";
@@ -20,9 +21,11 @@ import Link from "next/link";
 async function GoogleConnectContent({
   error,
   operatingContext,
+  canPush,
 }: {
   error?: string;
   operatingContext: LocationOperatingContext | null;
+  canPush: boolean;
 }) {
   const state = await getGoogleImportStateAction();
 
@@ -96,6 +99,7 @@ async function GoogleConnectContent({
         <GoogleImportFlow
           gbpLocations={state.locations}
           targetLocations={targetLocations}
+          canPush={canPush}
         />
       ) : null}
     </>
@@ -107,8 +111,9 @@ export default async function ConnectGooglePage({
 }: {
   searchParams: Promise<{ error?: string; connected?: string }>;
 }) {
-  const [{ operatingContext }, params] = await Promise.all([
+  const [{ operatingContext }, workspace, params] = await Promise.all([
     getPrimaryLocationSetupAction(),
+    getWorkspacePlan(),
     searchParams,
   ]);
   const { error } = params;
@@ -132,15 +137,19 @@ export default async function ConnectGooglePage({
               Google Business Profile
             </h1>
             <p className="text-muted-foreground">
-              Read-only OAuth import with field-level diff and merge into your master
-              profile.
+              Connect once, compare every supported field, and approve the
+              direction of each change.
             </p>
           </div>
         </div>
       </div>
 
       <Suspense fallback={<ConnectGoogleSkeleton />}>
-        <GoogleConnectContent error={error} operatingContext={operatingContext} />
+        <GoogleConnectContent
+          error={error}
+          operatingContext={operatingContext}
+          canPush={workspace.features.apiSync}
+        />
       </Suspense>
     </div>
   );

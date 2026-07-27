@@ -23,7 +23,6 @@ import {
 } from "@/app/actions/visibility";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
 import { OperatingModelDashboardBanner } from "@/components/dashboard/operating-model-banner";
-import { AuditNewBusinessCard } from "@/components/dashboard/audit-new-business-card";
 import { RecentMarketingInsightCard } from "@/components/dashboard/recent-marketing-insight-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
-import { getOrganization } from "@/lib/auth/organizations";
 import { countOrgLocations } from "@/lib/org/locations";
 
 const UUID_RE =
@@ -74,9 +72,6 @@ export default async function DashboardPage({
     params.audit && UUID_RE.test(params.audit) ? params.audit : null;
   const highlightScanId =
     params.scan && UUID_RE.test(params.scan) ? params.scan : null;
-
-  const organization = await getOrganization(session.orgId);
-  const isAgency = organization?.type === "agency";
 
   const [locations, visibility, googleState, primarySetup, reviews, recentInsight, graderSummary, locationGraderScores] =
     await Promise.all([
@@ -151,6 +146,7 @@ export default async function DashboardPage({
   const profileComplete =
     (topLocation?.score.profileScore ?? 0) >= 35;
   const googleConnected = googleState.status === "connected";
+  const primaryLocationId = primarySetup.locationId ?? locations[0]?.id ?? null;
 
   return (
     <div className="space-y-6 pb-8 md:space-y-8">
@@ -160,46 +156,52 @@ export default async function DashboardPage({
             variant="secondary"
             className="rounded-full border border-primary/20 bg-primary/10 text-primary"
           >
-            Local Intelligence · Sprint 4
+            Automated listings
           </Badge>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Your local presence command center
+            Keep every listing accurate from one profile.
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Master profiles, publisher registry, listing audits, and Google import
-            — the engine behind LocalMap agency services.
+            Finish the next required step, approve publisher changes, and see
+            exactly what is connected, pending, or verified.
           </p>
           <div className="flex flex-wrap gap-2 pt-1">
             <Button
               size="sm"
               nativeButton={false}
-              render={<Link href="/grader" />}
+              render={
+                <Link
+                  href={
+                    primaryLocationId
+                      ? `/dashboard/locations/${primaryLocationId}/listings`
+                      : "/dashboard/locations"
+                  }
+                />
+              }
             >
-              <FileBarChart2Icon className="size-4" />
-              New visibility audit
+              <RadarIcon className="size-4" />
+              Open listing workflow
             </Button>
             <Button
               size="sm"
               variant="outline"
               nativeButton={false}
-              render={<Link href="/dashboard/locations" />}
+              render={
+                <Link
+                  href={
+                    primaryLocationId
+                      ? `/dashboard/locations/${primaryLocationId}`
+                      : "/dashboard/locations"
+                  }
+                />
+              }
             >
               <MapPinIcon className="size-4" />
-              Manage locations
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              nativeButton={false}
-              render={<Link href="/dashboard/connect" />}
-            >
-              Connect sources
+              Master Profile
             </Button>
           </div>
         </div>
       </div>
-
-      <AuditNewBusinessCard isAgency={isAgency} />
 
       {primarySetup.operatingContext && primarySetup.locationId ? (
         <OperatingModelDashboardBanner

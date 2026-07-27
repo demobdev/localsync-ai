@@ -4,9 +4,9 @@ export const SCORE_LABELS = {
   /** External market audit from /grader (rankings, site, GBP signals). */
   marketAudit: "Market visibility audit",
   marketAuditShort: "Market audit",
-  /** In-app 0–100: profile completeness + listing consistency. */
-  workspaceHealth: "Workspace health",
-  workspaceHealthShort: "Workspace health",
+  /** In-app 0–100: Master Profile completeness + listing consistency. */
+  workspaceHealth: "Listing health",
+  workspaceHealthShort: "Listing health",
   /** First 50 pts of workspace health. */
   profileCompleteness: "Profile completeness",
   /** Second 50 pts of workspace health (Firecrawl listing audit). */
@@ -19,7 +19,7 @@ export const SCORE_DESCRIPTIONS = {
   marketAudit:
     "How you appear in search and AI today — rankings, website, and public listing signals. Run from the free grader.",
   workspaceHealth:
-    "How complete and consistent your LocalSync workspace is. Profile data plus listing checks you run here.",
+    "How complete and consistent your listing data is. Master Profile readiness plus verified listing checks.",
   profileCompleteness:
     "Business profile fields, services, hours, and setup steps filled in inside LocalSync.",
   listingConsistency:

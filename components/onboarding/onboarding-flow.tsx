@@ -98,17 +98,17 @@ export function OnboardingFlow({
   const heading = (() => {
     if (addingAnother) {
       return {
-        title: "Add another business",
+        title: "Create another Master Profile",
         description:
-          "Each business gets its own profile and directory tracking.",
+          "Each business gets one approved source of truth before any publisher is connected.",
       };
     }
 
     if (step === "choose") {
       return {
-        title: "How will you use LocalSync?",
+        title: "Who are you setting up?",
         description:
-          "Pick the path that matches how you manage local listings. You can always add more businesses later.",
+          "We’ll tailor the workspace without changing the core workflow: profile, connect, confirm, verify.",
       };
     }
 
@@ -130,9 +130,9 @@ export function OnboardingFlow({
     }
 
     return {
-      title: "Let's get your business found",
+      title: "Create your Master Profile",
       description:
-        "Takes about a minute. We handle the workspace, profile, and directory tracking for you.",
+        "Start with the facts customers see most. You can add richer content after the core listing is connected.",
     };
   })();
 
@@ -149,6 +149,29 @@ export function OnboardingFlow({
 
   return (
     <>
+      <div className="rounded-2xl border bg-card/75 p-3 localmap-card-glow">
+        <ol className="grid grid-cols-3 gap-2" aria-label="Setup progress">
+          {[
+            ["1", "Master Profile", "Current"],
+            ["2", "Connect", "Next"],
+            ["3", "Approve & verify", "Then"],
+          ].map(([number, label, state], index) => (
+            <li
+              key={label}
+              className={`rounded-xl px-3 py-2.5 ${
+                index === 0 ? "bg-primary text-primary-foreground" : "bg-muted/60"
+              }`}
+            >
+              <p className="text-[10px] font-semibold tracking-wide uppercase opacity-70">
+                {state} · {number}
+              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold sm:text-sm">
+                {label}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </div>
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {heading.title}

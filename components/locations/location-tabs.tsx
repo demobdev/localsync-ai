@@ -10,15 +10,20 @@ export function LocationTabs({ locationId }: { locationId: string }) {
   const base = `/dashboard/locations/${locationId}`;
 
   const tabs = [
-    { label: "Profile", shortLabel: "Profile", href: base, exact: true },
     {
-      label: "Listings & Audits",
+      label: "Master Profile",
+      shortLabel: "Profile",
+      href: base,
+      exact: true,
+    },
+    {
+      label: "Listings",
       shortLabel: "Listings",
       href: `${base}/listings`,
       exact: false,
     },
     {
-      label: "AI Visibility",
+      label: "AI presence",
       shortLabel: "Visibility",
       href: `${base}/visibility`,
       exact: false,

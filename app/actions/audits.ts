@@ -13,7 +13,13 @@ import {
 } from "@/db/schema";
 import { executeAuditRun } from "@/lib/audit/run";
 import { requireOrgAuth } from "@/lib/auth/org";
+import { scrapeUrlFull } from "@/lib/firecrawl";
 import { inngest } from "@/lib/inngest/client";
+import {
+  extractCandidateUrls,
+  matchListingUrlsToPublishers,
+  normalizeListingUrl,
+} from "@/lib/publishers/detect-listing-url";
 import {
   getLocationVisibilityScoreBreakdown,
 } from "@/lib/visibility/location-score";
@@ -85,6 +91,7 @@ export async function listLocationPublishersAction(locationId: string) {
       isHomeServices: publishers.isHomeServices,
       status: locationPublishers.status,
       listingUrl: locationPublishers.listingUrl,
+      externalId: locationPublishers.externalId,
       lastCheckedAt: locationPublishers.lastCheckedAt,
       sortOrder: publishers.sortOrder,
     })
@@ -105,15 +112,18 @@ export async function updateListingUrlAction(input: {
   const db = getDb();
 
   const trimmed = input.listingUrl.trim();
+  const normalized =
+    trimmed && !/^https?:\/\//i.test(trimmed) ? `https://${trimmed}` : trimmed;
+  const canonical = normalized ? normalizeListingUrl(normalized) : null;
 
-  if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-    throw new Error("Listing URL must start with http:// or https://");
+  if (trimmed && !canonical) {
+    throw new Error("Listing URL must be a valid http:// or https:// link");
   }
 
   await db
     .update(locationPublishers)
     .set({
-      listingUrl: trimmed || null,
+      listingUrl: canonical,
       ...(input.status ? { status: input.status } : {}),
       updatedAt: new Date(),
     })
@@ -125,6 +135,124 @@ export async function updateListingUrlAction(input: {
     );
 
   revalidateLocationScorePaths(input.locationId);
+}
+
+export type DiscoverListingUrlsResult = {
+  scannedWebsite: string | null;
+  filled: Array<{ publisherSlug: string; publisherName: string; url: string }>;
+  skippedExisting: number;
+  unmatchedCandidates: number;
+};
+
+/**
+ * Crawl the location website (+ profile sameAs) and auto-fill empty
+ * location_publishers.listing_url fields when Facebook/Yelp/etc. links are found.
+ */
+export async function discoverListingUrlsAction(
+  locationId: string,
+): Promise<DiscoverListingUrlsResult> {
+  const { orgId } = await requireOrgAuth();
+  const location = await assertLocationInOrg(locationId, orgId);
+  const db = getDb();
+
+  const profile = location.profile;
+  const website =
+    profile.website?.trim() ||
+    (typeof profile.attributes?.websiteUrl === "string"
+      ? profile.attributes.websiteUrl
+      : null);
+
+  const sameAs = Array.isArray(profile.sameAs) ? profile.sameAs : [];
+
+  let html = "";
+  let markdown = "";
+  if (website) {
+    try {
+      const scraped = await scrapeUrlFull(
+        /^https?:\/\//i.test(website) ? website : `https://${website}`,
+      );
+      html = scraped.rawHtml;
+      markdown = scraped.markdown;
+    } catch (error) {
+      console.error("discoverListingUrls scrape failed", {
+        locationId,
+        website,
+        error: error instanceof Error ? error.message : error,
+      });
+      // Continue with sameAs-only discovery.
+    }
+  }
+
+  const candidates = extractCandidateUrls(html, markdown, ...sameAs);
+  const matched = matchListingUrlsToPublishers(candidates);
+
+  const rows = await db
+    .select({
+      id: locationPublishers.id,
+      listingUrl: locationPublishers.listingUrl,
+      publisherSlug: publishers.slug,
+      publisherName: publishers.name,
+    })
+    .from(locationPublishers)
+    .innerJoin(publishers, eq(publishers.id, locationPublishers.publisherId))
+    .where(eq(locationPublishers.locationId, locationId));
+
+  const bySlug = new Map(rows.map((row) => [row.publisherSlug, row]));
+  const filled: DiscoverListingUrlsResult["filled"] = [];
+  let skippedExisting = 0;
+
+  for (const link of matched) {
+    const row = bySlug.get(link.publisherSlug);
+    if (!row) continue;
+
+    const existingNormalized = row.listingUrl?.trim()
+      ? normalizeListingUrl(row.listingUrl)
+      : null;
+
+    // Already have the same canonical URL
+    if (existingNormalized && existingNormalized === link.url) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    // Upgrade legacy Facebook /people/… URLs to profile.php?id=
+    const shouldUpgrade =
+      Boolean(existingNormalized) &&
+      link.publisherSlug === "facebook" &&
+      link.url.includes("profile.php?id=") &&
+      existingNormalized !== link.url;
+
+    if (row.listingUrl?.trim() && !shouldUpgrade) {
+      skippedExisting += 1;
+      continue;
+    }
+
+    await db
+      .update(locationPublishers)
+      .set({
+        listingUrl: link.url,
+        status: "pending",
+        updatedAt: new Date(),
+      })
+      .where(eq(locationPublishers.id, row.id));
+
+    filled.push({
+      publisherSlug: link.publisherSlug,
+      publisherName: row.publisherName,
+      url: link.url,
+    });
+  }
+
+  if (filled.length > 0) {
+    revalidateLocationScorePaths(locationId);
+  }
+
+  return {
+    scannedWebsite: website,
+    filled,
+    skippedExisting,
+    unmatchedCandidates: Math.max(0, candidates.length - matched.length),
+  };
 }
 
 export async function startAuditAction(
