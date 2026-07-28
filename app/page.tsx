@@ -14,23 +14,9 @@ import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { Button } from "@/components/ui/button";
 import { HOMEPAGE_REVIEWS, SOCIAL_PRESENCE } from "@/lib/brand/external-reviews";
+import { CLIENT_ARCHIVE_WORK } from "@/lib/brand/texture-assets";
 
 const productionHero = "/marketing/localmap-signal-main-street-hero.png";
-
-const clientWork = [
-  ["Video", "Swamp Rabbit Moving", "/reviews/video-swamp-rabbit.png"],
-  ["Video", "Wiz Team", "/reviews/video-wiz-team.png"],
-  ["Video", "Mr. Seafood", "/reviews/video-mr-seafood.png"],
-  ["Campaign", "Trial Masters", "/reviews/creative-ad-trial-masters.jpg"],
-  ["Website", "Modern Chiropractic", "/reviews/case-modern-chiropractic.png"],
-  ["Website", "Tesla Electric", "/reviews/case-tesla-electric.png"],
-  ["Website", "Stoney Craven", "/reviews/case-stoney-craven.png"],
-  ["Website", "Disability HC", "/reviews/case-disability-hc.png"],
-  ["Website", "Masstar Signs", "/reviews/case-masstar-signs.png"],
-  ["Video", "Sofrito", "/reviews/video-sofrito.png"],
-  ["Video", "Andy Thomas", "/reviews/video-andy-thomas.png"],
-  ["Video", "Local Fig", "/reviews/video-local-fig.png"],
-] as const;
 
 const workflow = [
   {
@@ -216,7 +202,7 @@ export default async function HomePage() {
         <section className="border-b bg-[#071f26] py-12 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200 uppercase">
-              Client work · archive
+              Client work · recent + archive
             </p>
             <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <div>
@@ -224,24 +210,40 @@ export default async function HomePage() {
                   The work that built the playbook.
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/50">
-                  Selected client projects from our earlier agency years—not a
-                  claim of recent production. The lessons behind them now shape
-                  the LocalMap product.
+                  Recent launches lead the reel, followed by selected projects
+                  from our earlier agency years. Every project adds something to
+                  the LocalMap playbook.
                 </p>
               </div>
               <p className="text-xs text-white/35">Swipe to explore client work</p>
             </div>
-            <div className="mt-8 flex snap-x gap-4 overflow-x-auto pb-4">
-              {clientWork.map(([type, name, src]) => (
+            <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:mx-0 xl:px-0">
+              {CLIENT_ARCHIVE_WORK.map((work) => (
                 <article
-                  key={name}
-                  className="group relative aspect-[4/3] min-w-[260px] snap-start overflow-hidden rounded-2xl border border-white/10 sm:min-w-[320px]"
+                  key={work.src}
+                  className="group relative aspect-[4/3] w-[82vw] max-w-[390px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 sm:w-[320px] xl:w-[calc((100%-3rem)/4)] xl:max-w-none"
                 >
-                  <Image src={src} alt="" fill sizes="320px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image
+                    src={work.src}
+                    alt={work.alt}
+                    fill
+                    sizes="(max-width: 640px) 82vw, (max-width: 1279px) 320px, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                  {"era" in work && work.era === "Recent" ? (
+                    <span className="absolute top-4 right-4 rounded-full border border-white/30 bg-lime-300 px-2.5 py-1 text-[0.62rem] font-bold tracking-[0.14em] text-[#062f3a] uppercase shadow-sm">
+                      Recent
+                    </span>
+                  ) : null}
                   <div className="absolute inset-x-0 bottom-0 p-5">
-                    <p className="text-[0.65rem] font-bold tracking-[0.16em] text-cyan-200 uppercase">{type}</p>
-                    <h3 className="mt-1 text-lg font-semibold">{name}</h3>
+                    <p className="text-[0.65rem] font-bold tracking-[0.16em] text-cyan-200 uppercase">
+                      {work.kind}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold">{work.client}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/60">
+                      {work.caption}
+                    </p>
                   </div>
                 </article>
               ))}
