@@ -12,6 +12,8 @@ import {
 import type { LocationProfileSnapshot, RegularHours } from "@/lib/types/location-profile";
 
 const GBP_SCOPE = "https://www.googleapis.com/auth/business.manage";
+export const SEARCH_CONSOLE_SCOPE =
+  "https://www.googleapis.com/auth/webmasters.readonly";
 
 export function isGoogleConfigured(): boolean {
   return Boolean(
@@ -25,12 +27,15 @@ function getRedirectUri(): string {
   return `${base.replace(/\/$/, "")}/api/connectors/google/callback`;
 }
 
-export function getGoogleAuthUrl(state: string): string {
+export function getGoogleAuthUrl(
+  state: string,
+  scopes: string[] = [GBP_SCOPE],
+): string {
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: getRedirectUri(),
     response_type: "code",
-    scope: GBP_SCOPE,
+    scope: scopes.join(" "),
     access_type: "offline",
     prompt: "consent",
     state,

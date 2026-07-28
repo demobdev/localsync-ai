@@ -29,6 +29,12 @@ export function LocationTabs({ locationId }: { locationId: string }) {
       exact: false,
     },
     {
+      label: "Search Intelligence",
+      shortLabel: "Search",
+      href: `${base}/search`,
+      exact: false,
+    },
+    {
       label: "Reviews",
       shortLabel: "Reviews",
       href: `${base}/reviews`,

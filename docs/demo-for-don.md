@@ -53,6 +53,7 @@
 | Publisher registry (~20, honest rails) | Review monitoring + AI replies |
 | Firecrawl listing audits | CallRail / CRM learning loop |
 | AI visibility pages + scores + llms.txt | Agency bulk onboarding |
+| Search Intelligence website audits | Cross-client search opportunity queue |
 | FAQ drafts with approve-before-publish | IndexNow (set `INDEXNOW_KEY` in prod) |
 | Google OAuth import scaffold | |
 | Solo onboarding + smart routing | |

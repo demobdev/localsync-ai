@@ -96,6 +96,20 @@ export const crawlerCheckStatusEnum = pgEnum("crawler_check_status", [
   "failed",
 ]);
 
+export const websiteAuditStatusEnum = pgEnum("website_audit_status", [
+  "queued",
+  "running",
+  "completed",
+  "failed",
+]);
+
+export const websiteFindingSeverityEnum = pgEnum("website_finding_severity", [
+  "critical",
+  "warning",
+  "info",
+  "passed",
+]);
+
 export const reviewSourceEnum = pgEnum("review_source", [
   "google",
   "yelp",
@@ -553,6 +567,153 @@ export const crawlerChecks = pgTable(
   (table) => [
     index("crawler_checks_location_id_idx").on(table.locationId),
     index("crawler_checks_status_idx").on(table.status),
+  ],
+);
+
+/** Selected Google Search Console property for a location website. */
+export const searchConsoleConnections = pgTable(
+  "search_console_connections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    propertyUrl: text("property_url").notNull(),
+    permissionLevel: text("permission_level"),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("search_console_connections_location_idx").on(table.locationId),
+  ],
+);
+
+/** Search Console rows retain their complete query/page/device/country grain. */
+export const searchPerformanceDaily = pgTable(
+  "search_performance_daily",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    day: text("day").notNull(),
+    query: text("query").notNull(),
+    page: text("page").notNull().default(""),
+    device: text("device").notNull().default(""),
+    country: text("country").notNull().default(""),
+    clicks: integer("clicks").notNull().default(0),
+    impressions: integer("impressions").notNull().default(0),
+    ctrMicros: integer("ctr_micros").notNull().default(0),
+    positionMicros: integer("position_micros").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("search_performance_daily_grain_idx").on(
+      table.locationId,
+      table.day,
+      table.query,
+      table.page,
+      table.device,
+      table.country,
+    ),
+    index("search_performance_daily_location_day_idx").on(
+      table.locationId,
+      table.day,
+    ),
+  ],
+);
+
+export const websiteAuditRuns = pgTable(
+  "website_audit_runs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    status: websiteAuditStatusEnum("status").notNull().default("queued"),
+    targetUrl: text("target_url").notNull(),
+    score: integer("score"),
+    pagesFound: integer("pages_found").notNull().default(0),
+    issuesFound: integer("issues_found").notNull().default(0),
+    triggeredByUserId: text("triggered_by_user_id"),
+    errorMessage: text("error_message"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("website_audit_runs_location_idx").on(
+      table.locationId,
+      table.createdAt,
+    ),
+    index("website_audit_runs_status_idx").on(table.status),
+  ],
+);
+
+export const websiteAuditPages = pgTable(
+  "website_audit_pages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    auditRunId: uuid("audit_run_id")
+      .references(() => websiteAuditRuns.id, { onDelete: "cascade" })
+      .notNull(),
+    url: text("url").notNull(),
+    statusCode: integer("status_code").notNull(),
+    title: text("title"),
+    description: text("description"),
+    h1Count: integer("h1_count").notNull().default(0),
+    canonical: text("canonical"),
+    wordCount: integer("word_count").notNull().default(0),
+    hasLocalBusinessSchema: boolean("has_local_business_schema")
+      .notNull()
+      .default(false),
+    responseTimeMs: integer("response_time_ms").notNull().default(0),
+    extractedPhone: text("extracted_phone"),
+    extractedAddress: text("extracted_address"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("website_audit_pages_run_url_idx").on(table.auditRunId, table.url),
+  ],
+);
+
+export const websiteFindings = pgTable(
+  "website_findings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    auditRunId: uuid("audit_run_id")
+      .references(() => websiteAuditRuns.id, { onDelete: "cascade" })
+      .notNull(),
+    type: text("type").notNull(),
+    severity: websiteFindingSeverityEnum("severity").notNull(),
+    url: text("url").notNull(),
+    title: text("title").notNull(),
+    evidence: text("evidence"),
+    remediation: text("remediation"),
+    status: text("status").notNull().default("open"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("website_findings_run_severity_idx").on(
+      table.auditRunId,
+      table.severity,
+    ),
   ],
 );
 
