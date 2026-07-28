@@ -27,7 +27,7 @@ const baseDashboardNav: DashboardNavItem[] = [
     icon: MapPin,
   },
   {
-    title: "Tasks",
+    title: "Fix queue",
     href: "/dashboard/tasks",
     icon: ClipboardList,
   },

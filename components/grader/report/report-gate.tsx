@@ -5,9 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { BriefReveal } from "@/components/grader/brief-reveal";
 import type { AuditReport } from "@/lib/grader/types";
 
+import type { WorkspaceAction } from "./ctas";
 import { GraderReport } from "./report-view";
 
 const REVEAL_STORAGE_PREFIX = "grader-revealed:";
+
+export type { WorkspaceAction };
 
 /**
  * Plays the Visibility Brief once before the locked report when the user
@@ -19,14 +22,19 @@ export function GraderReportGate({
   signedIn,
   dashboardHref,
   fixHref,
+  workspaceAction = "signup",
+  businessName,
 }: {
   report: AuditReport;
   signedIn: boolean;
   dashboardHref: string;
   fixHref: string;
+  workspaceAction?: WorkspaceAction;
+  businessName?: string;
 }) {
   const [showBrief, setShowBrief] = useState(false);
-  const locked = !report.leadCaptured;
+  // Guests stay locked until lead capture; signed-in reports are unlocked.
+  const locked = !report.leadCaptured && !signedIn;
   const hasSnapshot = Boolean(
     report.scanSnapshot &&
       (report.scanSnapshot.place ||
@@ -38,6 +46,7 @@ export function GraderReportGate({
     if (!locked || !hasSnapshot) return;
     try {
       if (sessionStorage.getItem(`${REVEAL_STORAGE_PREFIX}${report.id}`)) return;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reveal depends on client-only sessionStorage state
       setShowBrief(true);
     } catch {
       // sessionStorage unavailable — show report directly.
@@ -81,6 +90,8 @@ export function GraderReportGate({
       signedIn={signedIn}
       dashboardHref={dashboardHref}
       fixHref={fixHref}
+      workspaceAction={workspaceAction}
+      businessName={businessName ?? report.businessName}
     />
   );
 }

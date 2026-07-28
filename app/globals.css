@@ -253,6 +253,15 @@
     );
   }
 
+  .localmap-client-scroll {
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+
+  .localmap-client-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
   @keyframes localmap-hero-rise {
     from {
       opacity: 0;

@@ -27,6 +27,7 @@ import {
 import { seedGraderFixTasksForLocation } from "@/lib/grader/seed-tasks-from-audit";
 import type { GraderAuditTier, GraderOperatingModel } from "@/lib/grader/types";
 import { requireOrgAuth } from "@/lib/auth/org";
+import { seedGoogleProfileIntakeFix } from "@/lib/onboarding/google-profile-intake";
 import { isIncompleteOrganization } from "@/lib/org/onboarding-state";
 import {
   withLocationOperatingContext,
@@ -357,6 +358,14 @@ export async function quickSetupBusinessAction(input: {
     );
   }
 
+  // Turn discovery into the first automation action immediately. A failed
+  // Google request becomes a blocked system fix, never a false "not found".
+  await seedGoogleProfileIntakeFix({
+    db,
+    locationId: location.id,
+    lookup: audit?.progress?.evidence.gbpLookup ?? null,
+  });
+
   // 5. Claim the grader audit or free scan that led here.
   let claimedAuditId: string | null = null;
   if (audit) {
@@ -487,6 +496,12 @@ export async function linkGraderAuditToLocationAction(input: {
     auditId: audit.id,
   });
 
+  const googleIntake = await seedGoogleProfileIntakeFix({
+    db,
+    locationId: location.id,
+    lookup: audit.progress?.evidence.gbpLookup ?? null,
+  });
+
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/locations");
   revalidatePath("/dashboard/tasks");
@@ -494,6 +509,6 @@ export async function linkGraderAuditToLocationAction(input: {
   return {
     locationId: location.id,
     claimedAuditId: audit.id,
-    tasksSeeded,
+    tasksSeeded: tasksSeeded + (googleIntake.seeded ? 1 : 0),
   };
 }

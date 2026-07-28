@@ -10,6 +10,7 @@ import {
   RadarIcon,
   SearchIcon,
   StoreIcon,
+  TriangleAlertIcon,
   TruckIcon,
   XCircleIcon,
 } from "lucide-react";
@@ -27,6 +28,10 @@ import {
   buildSearchVariants,
   scorePlaceMatch,
 } from "@/lib/grader/place-search";
+import {
+  googlePlacesUserMessage,
+  parseGooglePlacesResponse,
+} from "@/lib/grader/places-api";
 import type { GraderOperatingModel } from "@/lib/grader/types";
 import { cn } from "@/lib/utils";
 
@@ -136,9 +141,7 @@ async function fetchAutocomplete(
       body: JSON.stringify(body),
     },
   );
-  if (!response.ok) return [];
-
-  const payload = (await response.json()) as {
+  const payload = await parseGooglePlacesResponse<{
     suggestions?: Array<{
       placePrediction?: {
         placeId?: string;
@@ -149,7 +152,7 @@ async function fetchAutocomplete(
         text?: { text?: string };
       };
     }>;
-  };
+  }>(response);
 
   return (payload.suggestions ?? [])
     .map((s) => s.placePrediction)
@@ -177,15 +180,13 @@ async function fetchTextSearch(query: string): Promise<Suggestion[]> {
       body: JSON.stringify({ textQuery: query, maxResultCount: 8 }),
     },
   );
-  if (!response.ok) return [];
-
-  const payload = (await response.json()) as {
+  const payload = await parseGooglePlacesResponse<{
     places?: Array<{
       id?: string;
       displayName?: { text?: string };
       formattedAddress?: string;
     }>;
-  };
+  }>(response);
 
   return (payload.places ?? [])
     .filter((place) => place.id)
@@ -231,7 +232,10 @@ async function fetchRankedSuggestions(
     ranked = [...merged.values()].sort((a, b) => b.score - a.score);
   }
 
-  return ranked.slice(0, 6);
+  // Showing weak Google candidates is worse than a clean recovery path: it can
+  // create or connect the wrong profile. Low-confidence results stay "not found"
+  // until the customer adds a city, ZIP, phone, or exact name.
+  return ranked.filter((suggestion) => suggestion.score >= 50).slice(0, 6);
 }
 
 async function fetchPlaceDetails(
@@ -259,9 +263,7 @@ async function fetchPlaceDetails(
       },
     },
   );
-  if (!response.ok) return null;
-
-  const place = (await response.json()) as {
+  const place = await parseGooglePlacesResponse<{
     displayName?: { text?: string };
     formattedAddress?: string;
     nationalPhoneNumber?: string;
@@ -277,7 +279,7 @@ async function fetchPlaceDetails(
       authorAttribution?: { displayName?: string };
       relativePublishTimeDescription?: string;
     }>;
-  };
+  }>(response);
 
   const photoUrls = (place.photos ?? [])
     .slice(0, 6)
@@ -343,14 +345,13 @@ async function resolveUrlToPlace(
         body: JSON.stringify({ textQuery, maxResultCount: 8 }),
       },
     );
-    if (!response.ok) return [];
-    const payload = (await response.json()) as {
+    const payload = await parseGooglePlacesResponse<{
       places?: Array<{
         id?: string;
         displayName?: { text?: string };
         websiteUri?: string;
       }>;
-    };
+    }>(response);
     return payload.places ?? [];
   }
 
@@ -385,8 +386,11 @@ async function resolveUrlToPlace(
 
 export function GraderStart({
   initialModel = "storefront",
+  addBusiness = false,
 }: {
   initialModel?: GraderOperatingModel;
+  /** From dashboard "Run visibility audit" — claim creates a new location. */
+  addBusiness?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -404,6 +408,8 @@ export function GraderStart({
     null,
   );
   const [notFound, setNotFound] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
   const [locationBias, setLocationBias] = useState<LocationBias | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const requestSeq = useRef(0);
@@ -443,9 +449,11 @@ export function GraderStart({
     if (!mapsEnabled) return;
 
     if (isUrlMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale name-search UI before the debounced URL lookup begins
       setSuggestions([]);
       setDropdownOpen(false);
       setSearching(false);
+      setLookupError(null);
 
       const trimmed = query.trim();
       if (trimmed.length < 4) {
@@ -457,6 +465,7 @@ export function GraderStart({
       const seq = ++urlResolveSeq.current;
       setResolvingUrl(true);
       setNotFound(false);
+      setLookupError(null);
       setSelectedPlace(null);
 
       const timer = setTimeout(async () => {
@@ -470,10 +479,11 @@ export function GraderStart({
             setSelectedPlace(null);
             setNotFound(true);
           }
-        } catch {
+        } catch (error) {
           if (urlResolveSeq.current === seq) {
             setSelectedPlace(null);
-            setNotFound(true);
+            setNotFound(false);
+            setLookupError(googlePlacesUserMessage(error));
           }
         } finally {
           if (urlResolveSeq.current === seq) setResolvingUrl(false);
@@ -488,12 +498,14 @@ export function GraderStart({
       setDropdownOpen(false);
       setSearching(false);
       setNotFound(false);
+      setLookupError(null);
       return;
     }
 
     const seq = ++requestSeq.current;
     setSearching(true);
     setNotFound(false);
+    setLookupError(null);
 
     const timer = setTimeout(async () => {
       try {
@@ -505,15 +517,18 @@ export function GraderStart({
         setSuggestions(results);
         setDropdownOpen(results.length > 0);
         if (results.length === 0) setNotFound(true);
-      } catch {
-        if (requestSeq.current === seq) setNotFound(true);
+      } catch (error) {
+        if (requestSeq.current === seq) {
+          setNotFound(false);
+          setLookupError(googlePlacesUserMessage(error));
+        }
       } finally {
         if (requestSeq.current === seq) setSearching(false);
       }
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [query, mapsEnabled, isUrlMode, locationBias]);
+  }, [query, mapsEnabled, isUrlMode, locationBias, retryToken]);
 
   useEffect(() => {
     function onPointerDown(event: PointerEvent) {
@@ -529,6 +544,7 @@ export function GraderStart({
     setDropdownOpen(false);
     setQuery(label);
     setNotFound(false);
+    setLookupError(null);
     setSearching(true);
     try {
       const place = await fetchPlaceDetails(placeId);
@@ -539,6 +555,12 @@ export function GraderStart({
         return;
       }
       setSelectedPlace(place);
+    } catch (error) {
+      setSelectedPlace(null);
+      setNotFound(false);
+      const message = googlePlacesUserMessage(error);
+      setLookupError(message);
+      toast.error(message);
     } finally {
       setSearching(false);
     }
@@ -565,7 +587,9 @@ export function GraderStart({
             selectedPlace?.websiteUri ??
             (looksLikeUrl(trimmed) ? trimmed : undefined),
         });
-        router.push(`/grader/${auditId}`);
+        router.push(
+          addBusiness ? `/grader/${auditId}?add=1` : `/grader/${auditId}`,
+        );
       } catch (error) {
         toast.error(
           error instanceof Error ? error.message : "Audit failed — try again",
@@ -577,6 +601,7 @@ export function GraderStart({
   function clearSelection() {
     setSelectedPlace(null);
     setNotFound(false);
+    setLookupError(null);
     setQuery("");
     setSuggestions([]);
   }
@@ -608,6 +633,7 @@ export function GraderStart({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              setLookupError(null);
               if (selectedPlace && e.target.value !== selectedPlace.name) {
                 setSelectedPlace(null);
               }
@@ -664,6 +690,8 @@ export function GraderStart({
 
           {!dropdownOpen &&
           !selectedPlace &&
+          !lookupError &&
+          !notFound &&
           query.trim().length >= 2 &&
           !isUrlMode &&
           suggestions.length === 0 &&
@@ -712,6 +740,7 @@ export function GraderStart({
                         setOperatingModel(option.id);
                         setSelectedPlace(null);
                         setNotFound(false);
+                        setLookupError(null);
                       }}
                       className={cn(
                         "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
@@ -732,6 +761,7 @@ export function GraderStart({
                   setShowModelOptions(false);
                   setSelectedPlace(null);
                   setNotFound(false);
+                  setLookupError(null);
                 }}
                 className={cn(
                   "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
@@ -784,8 +814,29 @@ export function GraderStart({
         </div>
       ) : null}
 
+      {lookupError && !selectedPlace && !searching && !resolvingUrl ? (
+        <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <TriangleAlertIcon className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Google search needs attention</p>
+            <p className="mt-1 text-amber-900/90">{lookupError}</p>
+            <button
+              type="button"
+              className="mt-2 font-semibold underline underline-offset-2"
+              onClick={() => {
+                setLookupError(null);
+                setRetryToken((value) => value + 1);
+              }}
+            >
+              Retry Google search
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {notFound &&
       !selectedPlace &&
+      !lookupError &&
       !searching &&
       !resolvingUrl &&
       query.trim().length >= 2 ? (

@@ -1,26 +1,25 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import {
+  AlertTriangleIcon,
   ArrowRightIcon,
+  CheckCircle2Icon,
   FileBarChart2Icon,
-  GlobeIcon,
+  ListChecksIcon,
   MapPinIcon,
-  MessageSquareIcon,
   RadarIcon,
 } from "lucide-react";
 import { redirect } from "next/navigation";
 
-import { getOrgReviewSummaryAction } from "@/app/actions/reviews";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
+import { listTasksAction } from "@/app/actions/tasks";
 import { getRecentMarketingInsightAction, getOrgGraderAuditSummaryAction, getLocationGraderScoresAction } from "@/app/actions/marketing-insights";
 import { getPrimaryLocationSetupAction } from "@/app/actions/setup-progress";
 import {
   listLocationsAction,
 } from "@/app/actions/locations";
-import {
-  getOrgVisibilityHistoryAction,
-  getOrgVisibilitySummaryAction,
-} from "@/app/actions/visibility";
+import { getOrgVisibilitySummaryAction } from "@/app/actions/visibility";
+import { FixQueuePreview } from "@/components/dashboard/fix-queue-preview";
 import { SetupGuideCompact } from "@/components/locations/profile-setup-guide";
 import { OperatingModelDashboardBanner } from "@/components/dashboard/operating-model-banner";
 import { RecentMarketingInsightCard } from "@/components/dashboard/recent-marketing-insight-card";
@@ -38,6 +37,10 @@ import {
 import { cn } from "@/lib/utils";
 import { GraderScoreDelta } from "@/components/grader/grader-score-delta";
 import { countOrgLocations } from "@/lib/org/locations";
+import {
+  fixQueuePriority,
+  sortFixQueueTasks,
+} from "@/lib/tasks/fix-queue";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -73,7 +76,7 @@ export default async function DashboardPage({
   const highlightScanId =
     params.scan && UUID_RE.test(params.scan) ? params.scan : null;
 
-  const [locations, visibility, googleState, primarySetup, reviews, recentInsight, graderSummary, locationGraderScores] =
+  const [locations, visibility, googleState, primarySetup, recentInsight, graderSummary, locationGraderScores, tasks] =
     await Promise.all([
       safe("listLocations", () => listLocationsAction(), []),
       safe(
@@ -95,16 +98,6 @@ export default async function DashboardPage({
         "setupProgress",
         () => getPrimaryLocationSetupAction(),
         { progress: null, locationId: null, operatingContext: null },
-      ),
-      safe(
-        "reviews",
-        () => getOrgReviewSummaryAction(),
-        {
-          totalReviews: 0,
-          unrepliedCount: 0,
-          averageScore: 0,
-          topLocation: null,
-        },
       ),
       safe(
         "marketingInsight",
@@ -132,73 +125,150 @@ export default async function DashboardPage({
         () => getLocationGraderScoresAction(),
         {},
       ),
+      safe("tasks", () => listTasksAction(), []),
     ]);
-
-  const history = await safe(
-    "visibilityHistory",
-    () => getOrgVisibilityHistoryAction({ days: 90 }),
-    [],
-  );
 
   const hasData = locations.length > 0;
   const topLocation = visibility.locations[0];
   const topListingRuns = topLocation?.score.auditSummary?.runs ?? 0;
-  const profileComplete =
-    (topLocation?.score.profileScore ?? 0) >= 35;
   const googleConnected = googleState.status === "connected";
   const primaryLocationId = primarySetup.locationId ?? locations[0]?.id ?? null;
+  const openFixTasks = sortFixQueueTasks(tasks).filter(
+    (task) => task.status !== "done",
+  );
+  const urgentFixCount = openFixTasks.filter(
+    (task) => fixQueuePriority(task) === "urgent",
+  ).length;
 
   return (
     <div className="space-y-6 pb-8 md:space-y-8">
-      <div className="localmap-mesh relative overflow-hidden rounded-2xl border bg-card p-6 sm:p-8">
-        <div className="relative max-w-2xl space-y-3">
-          <Badge
-            variant="secondary"
-            className="rounded-full border border-primary/20 bg-primary/10 text-primary"
-          >
-            Automated listings
-          </Badge>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Keep every listing accurate from one profile.
-          </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Finish the next required step, approve publisher changes, and see
-            exactly what is connected, pending, or verified.
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button
-              size="sm"
-              nativeButton={false}
-              render={
-                <Link
-                  href={
-                    primaryLocationId
-                      ? `/dashboard/locations/${primaryLocationId}/listings`
-                      : "/dashboard/locations"
-                  }
-                />
-              }
-            >
-              <RadarIcon className="size-4" />
-              Open listing workflow
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              nativeButton={false}
-              render={
-                <Link
-                  href={
-                    primaryLocationId
-                      ? `/dashboard/locations/${primaryLocationId}`
-                      : "/dashboard/locations"
-                  }
-                />
-              }
-            >
-              <MapPinIcon className="size-4" />
-              Master Profile
-            </Button>
+      <div className="relative overflow-hidden rounded-3xl bg-[#082b3a] text-white shadow-[0_24px_70px_rgba(5,38,50,0.16)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_15%,rgba(32,201,181,0.22),transparent_34%),radial-gradient(circle_at_88%_85%,rgba(241,194,125,0.14),transparent_34%)]" />
+        <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:42px_42px]" />
+        <div className="relative grid gap-8 p-6 sm:p-8 lg:grid-cols-[1fr_0.8fr] lg:items-center">
+          <div className="max-w-2xl">
+            <Badge className="border-[#65dfd0]/35 bg-[#65dfd0]/12 text-[#9ff3e8]">
+              Automated listings command center
+            </Badge>
+            <h1 className="mt-5 text-3xl font-semibold tracking-[-0.035em] sm:text-4xl">
+              {urgentFixCount > 0
+                ? urgentFixCount +
+                  (urgentFixCount === 1
+                    ? " high-priority fix needs you."
+                    : " high-priority fixes need you.")
+                : openFixTasks.length > 0
+                  ? openFixTasks.length +
+                    (openFixTasks.length === 1
+                      ? " fix is ready for review."
+                      : " fixes are ready for review.")
+                  : "Your listings are under control."}
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">
+              LocalMap tracks connected and audited publishers, verifies what
+              is live, and brings you only the decisions or publisher steps it
+              cannot safely finish alone.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                className="bg-[#67e3d5] text-[#062b31] hover:bg-[#91eee4]"
+                nativeButton={false}
+                render={
+                  <Link
+                    href={
+                      openFixTasks.length > 0
+                        ? "/dashboard/tasks"
+                        : primaryLocationId
+                          ? "/dashboard/locations/" +
+                            primaryLocationId +
+                            "/listings"
+                          : "/dashboard/locations"
+                    }
+                  />
+                }
+              >
+                {openFixTasks.length > 0
+                  ? "Open fix queue"
+                  : "Open listing workflow"}
+                <ArrowRightIcon className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                nativeButton={false}
+                render={
+                  <Link
+                    href={
+                      primaryLocationId
+                        ? "/dashboard/locations/" + primaryLocationId
+                        : "/dashboard/locations"
+                    }
+                  />
+                }
+              >
+                <MapPinIcon className="size-4" />
+                Master Profile
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/12 bg-white/[0.07] p-4 backdrop-blur-sm sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7de8da]">
+                  System pulse
+                </p>
+                <p className="mt-1 text-sm text-white/55">
+                  Current workspace state
+                </p>
+              </div>
+              <span className="relative flex size-3">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#67e3d5] opacity-50" />
+                <span className="relative inline-flex size-3 rounded-full bg-[#67e3d5]" />
+              </span>
+            </div>
+            <div className="mt-5 space-y-2">
+              {[
+                {
+                  label: "Google connection",
+                  value: googleConnected ? "Connected" : "Needs connection",
+                  ok: googleConnected,
+                },
+                {
+                  label: "Listing verification",
+                  value:
+                    topListingRuns > 0
+                      ? topListingRuns +
+                        (topListingRuns === 1 ? " audit run" : " audit runs")
+                      : "No audit yet",
+                  ok: topListingRuns > 0,
+                },
+                {
+                  label: "Human action",
+                  value:
+                    urgentFixCount > 0
+                      ? urgentFixCount + " urgent"
+                      : openFixTasks.length + " open",
+                  ok: openFixTasks.length === 0,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between gap-3 rounded-xl bg-[#061f2b]/60 px-3.5 py-3"
+                >
+                  <span className="text-sm text-white/62">{item.label}</span>
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {item.ok ? (
+                      <CheckCircle2Icon className="size-4 text-[#67e3d5]" />
+                    ) : (
+                      <AlertTriangleIcon className="size-4 text-[#f1c27d]" />
+                    )}
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -241,19 +311,21 @@ export default async function DashboardPage({
             trend: graderSummary.scoreTrend,
           },
           {
-            label: SCORE_LABELS.workspaceHealth,
-            value: hasData ? `${visibility.averageScore}` : "—",
-            hint: hasData
-              ? history.length > 1
-                ? `${history[history.length - 1]!.score - history[0]!.score >= 0 ? "+" : ""}${history[history.length - 1]!.score - history[0]!.score} over ${history.length} days tracked.`
-                : "Profile completeness + listing consistency in LocalSync. Click to improve."
-              : "Add a business to get your first workspace health score.",
-            icon: GlobeIcon,
-            tone: "text-primary",
-            href: topLocation
-              ? `/dashboard/locations/${topLocation.id}/visibility`
-              : "/dashboard/locations",
-            trend: history.map((point) => point.score),
+            label: "Fix queue",
+            value: String(openFixTasks.length),
+            hint:
+              urgentFixCount > 0
+                ? urgentFixCount +
+                  (urgentFixCount === 1
+                    ? " urgent exception needs attention."
+                    : " urgent exceptions need attention.")
+                : openFixTasks.length > 0
+                  ? "Prioritized human actions across every location."
+                  : "No publisher or audit work needs you right now.",
+            icon: ListChecksIcon,
+            tone:
+              urgentFixCount > 0 ? "text-rose-600" : "text-primary",
+            href: "/dashboard/tasks",
           },
           {
             label: SCORE_LABELS.listingConsistency,
@@ -280,29 +352,11 @@ export default async function DashboardPage({
             tone: "text-chart-3",
             href: "/dashboard/locations",
           },
-          {
-            label: "Reviews needing reply",
-            value:
-              reviews.totalReviews > 0
-                ? String(reviews.unrepliedCount)
-                : "—",
-            hint:
-              reviews.totalReviews > 0
-                ? "AI drafts replies — you approve before saving."
-                : "Load demo reviews or sync from Google to start.",
-            icon: MessageSquareIcon,
-            tone: "text-chart-5",
-            href: reviews.topLocation
-              ? `/dashboard/locations/${reviews.topLocation.id}/reviews`
-              : topLocation
-                ? `/dashboard/locations/${topLocation.id}/reviews`
-                : "/dashboard/locations",
-          },
         ].map((stat: {
           label: string;
           value: string;
           hint: string;
-          icon: typeof GlobeIcon;
+          icon: typeof FileBarChart2Icon;
           tone: string;
           href: string;
           trend?: number[];
@@ -408,79 +462,7 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
 
-        <Card className="localmap-card-glow lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Next actions</CardTitle>
-            <CardDescription>
-              The agency flywheel — notice, recommend, approve, execute.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {[
-              {
-                title: "Set up master profile",
-                body: "Canonical NAP, hours, services, photos.",
-                href: topLocation
-                  ? `/dashboard/locations/${topLocation.id}`
-                  : "/dashboard/locations",
-                done: profileComplete,
-              },
-              {
-                title: "Connect Google Business Profile",
-                body: "OAuth import with field-by-field merge.",
-                href: "/dashboard/connect/google",
-                done: googleConnected,
-              },
-              {
-                title: "Generate AI visibility page",
-                body: "Schema.org JSON-LD, hosted page, llms.txt.",
-                href: topLocation
-                  ? `/dashboard/locations/${topLocation.id}/visibility`
-                  : "/dashboard/locations",
-                done: visibility.hasPublishedPage,
-              },
-              {
-                title: "Reply to customer reviews",
-                body: "Ingest reviews, AI-draft replies, approve before save.",
-                href: reviews.topLocation
-                  ? `/dashboard/locations/${reviews.topLocation.id}/reviews`
-                  : topLocation
-                    ? `/dashboard/locations/${topLocation.id}/reviews`
-                    : "/dashboard/locations",
-                done:
-                  reviews.totalReviews > 0 && reviews.unrepliedCount === 0,
-              },
-              {
-                title: "Run listing audits",
-                body:
-                  topListingRuns === 0
-                    ? "Firecrawl + AI extraction vs master profile."
-                    : (topLocation?.score.auditScore ?? 0) === 0
-                      ? "Fix findings on directories, then re-run to raise listing consistency."
-                      : `${topLocation?.score.auditScore ?? 0}/50 listing consistency earned.`,
-                href: locations[0]
-                  ? `/dashboard/locations/${locations[0].id}/listings`
-                  : "/dashboard/locations",
-                done:
-                  topListingRuns > 0 && (topLocation?.score.auditScore ?? 0) > 0,
-              },
-            ].map((action) => (
-              <Link
-                key={action.title}
-                href={action.href}
-                className="block rounded-xl border px-4 py-3 transition-colors hover:bg-muted/50"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium">{action.title}</p>
-                  <Badge variant={action.done ? "default" : "secondary"}>
-                    {action.done ? "Done" : "Next"}
-                  </Badge>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{action.body}</p>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
+        <FixQueuePreview tasks={tasks} className="lg:col-span-2" />
       </div>
     </div>
   );

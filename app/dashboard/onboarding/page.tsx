@@ -165,6 +165,7 @@ export default async function DashboardOnboardingPage({
               organizationType={organization?.type ?? null}
               organizationName={organization?.name ?? null}
               onboardingIntent={onboardingIntent}
+              preferCreateNew={addingAnother}
             />
           ) : entryRoute.type === "already_claimed" && claimContext ? (
             <GraderClaimOnboarding
@@ -177,6 +178,7 @@ export default async function DashboardOnboardingPage({
               organizationType={organization?.type ?? null}
               organizationName={organization?.name ?? null}
               onboardingIntent={onboardingIntent}
+              preferCreateNew={addingAnother}
             />
           ) : (
             <>

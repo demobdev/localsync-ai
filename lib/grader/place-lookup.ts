@@ -4,6 +4,10 @@
  */
 
 import type { GraderPlaceInput } from "@/lib/grader/place";
+import {
+  googlePlacesUserMessage,
+  parseGooglePlacesResponse,
+} from "@/lib/grader/places-api";
 
 function mapsApiKey(): string | null {
   return (
@@ -156,18 +160,9 @@ async function searchPlaces(textQuery: string): Promise<PlacesSearchPlace[]> {
     },
   );
 
-  if (!response.ok) {
-    const body = await response.text();
-    console.warn("[grader] Places searchText failed", response.status, body);
-    if (response.status === 400 || response.status === 403) {
-      throw new Error(
-        "Google Places API rejected the server key — use business name search or enable Places API on a server key.",
-      );
-    }
-    return [];
-  }
-
-  const payload = (await response.json()) as { places?: PlacesSearchPlace[] };
+  const payload = await parseGooglePlacesResponse<{
+    places?: PlacesSearchPlace[];
+  }>(response);
   return payload.places ?? [];
 }
 
@@ -226,12 +221,7 @@ export async function lookupPlaceByWebsite(
 
     return { status: "not_found", searchedAs: brandQuery };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Google Places lookup failed";
-    if (message.includes("server key")) {
-      return { status: "error", message };
-    }
-    return { status: "error", message };
+    return { status: "error", message: googlePlacesUserMessage(error) };
   }
 }
 
@@ -316,8 +306,6 @@ export async function lookupPlaceByText(
 
     return { status: "not_found", searchedAs: query };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Google Places lookup failed";
-    return { status: "error", message };
+    return { status: "error", message: googlePlacesUserMessage(error) };
   }
 }

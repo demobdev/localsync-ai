@@ -33,7 +33,7 @@ export function AuditNewBusinessCard({ isAgency = false }: { isAgency?: boolean 
           <Button
             size="sm"
             nativeButton={false}
-            render={<Link href="/grader" />}
+            render={<Link href="/grader?add=1" />}
             className="w-full sm:w-auto"
           >
             <PlusIcon className="size-4" />

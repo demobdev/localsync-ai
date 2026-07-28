@@ -29,20 +29,16 @@ import {
 } from "@/components/ui/card";
 import { LISTING_PLANS } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
+import {
+  CATEGORY_PACK_PRICE_MONTHLY,
+  CATEGORY_PACKS,
+} from "@/lib/verticals/category-pack-catalog";
 
 export const metadata: Metadata = {
   title: "Pricing | LocalMap",
   description:
-    "Modular listing packages. Pay for the tier and vertical networks you need, not a bundle you don't.",
+    "Modular listing plans and category packs. Pay for the workflow your location needs, not an oversized directory bundle.",
 };
-
-const VERTICAL_ADDONS = [
-  { name: "Healthcare", note: "Healthgrades, WebMD, Zocdoc-class directories" },
-  { name: "Legal", note: "Avvo, FindLaw, Justia-class directories" },
-  { name: "Home Services", note: "Angi, HomeAdvisor, Thumbtack-class directories" },
-  { name: "Restaurant", note: "Menus, reservations, delivery platform links" },
-  { name: "Financial Services", note: "Advisor & branch directories" },
-];
 
 type MatrixValue = boolean | string;
 
@@ -162,7 +158,7 @@ const COMPARISON_MATRIX: MatrixGroup[] = [
     group: "Add-ons",
     rows: [
       {
-        feature: "Vertical directory networks",
+        feature: "Category Packs",
         basic: "+$15/mo",
         premium: "+$15/mo",
         pro: "+$15/mo",
@@ -197,7 +193,7 @@ const VALUE_PROPS = [
 const FAQS = [
   {
     q: "Why is LocalMap cheaper than Yext?",
-    a: "Yext bundles vertical networks into $999/yr tiers. We sell modular: pick a listing tier, add only the vertical network your category needs. A contractor doesn't pay for healthcare directories.",
+    a: "LocalMap separates the core listing workflow from optional Category Packs. Each location adds only the industry-specific fields, publishers, checks, and tasks it can actually use.",
   },
   {
     q: "What does \"approve-first sync\" mean?",
@@ -213,7 +209,7 @@ const FAQS = [
   },
   {
     q: "Is Reputation a separate product?",
-    a: "No. Review inbox and AI reply drafts are included in Pro Listings, not sold as a standalone add-on. Vertical directory networks remain optional at +$15/mo each.",
+    a: "No. Review inbox and AI reply drafts are included in Pro Listings, not sold as a standalone add-on. Category Packs remain optional at +$15 per location each month.",
   },
   {
     q: "Do you require an annual contract?",
@@ -265,7 +261,7 @@ export default async function PricingPage() {
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
               Every plan is per location, per month. Manual workflows are always
               included. Upgrades buy automation, not access. Reputation lives
-              in Pro; vertical networks are +$15/mo.
+              in Pro; Category Packs are +$15/location/mo.
             </p>
             <p className="mx-auto mt-4 text-sm text-muted-foreground">
               Trusted by local brands since 2016 ·{" "}
@@ -413,33 +409,36 @@ export default async function PricingPage() {
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
           <div className="mb-8 max-w-2xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              Vertical add-ons: $15/mo each
+              Category Packs: {"$"}
+              {CATEGORY_PACK_PRICE_MONTHLY}/mo each
             </h2>
             <p className="mt-2 text-muted-foreground">
-              Yext bundles these into $999/yr tiers. We sell them à la carte.
-              a dentist adds Healthcare, a plumber adds Home Services.{" "}
+              Add the industry fields, publishers, checks, and tasks this
+              location needs. A dentist adds Healthcare; a plumber adds Home
+              services.{" "}
               <Link
                 href="/products/verticals"
                 className="font-medium text-primary hover:underline"
               >
-                Explore vertical networks →
+                Explore Category Packs →
               </Link>
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {VERTICAL_ADDONS.map((addon) => (
+            {CATEGORY_PACKS.map((pack) => (
               <div
-                key={addon.name}
+                key={pack.slug}
                 className="localmap-card-glow flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold">{addon.name}</p>
+                  <p className="text-sm font-semibold">{pack.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {addon.note}
+                    {pack.audience}
                   </p>
                 </div>
                 <Badge variant="outline" className="shrink-0">
-                  +$15/mo
+                  +{"$"}
+                  {CATEGORY_PACK_PRICE_MONTHLY}/mo
                 </Badge>
               </div>
             ))}
@@ -471,16 +470,16 @@ export default async function PricingPage() {
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  The math vs Yext
+                  Modular by design
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
                   Modular beats the bundle
                 </h2>
                 <p className="mt-4 text-muted-foreground">
-                  Yext&apos;s Premium tier runs $999/yr per location, and you
-                  pay for every vertical network whether your category needs it
-                  or not. With LocalMap, a dentist pays for Premium plus
-                  Healthcare. Nothing else.
+                  Large publisher bundles sell network size. LocalMap sells
+                  relevant work. A dentist can pay for Premium plus Healthcare;
+                  a plumber can choose Home services. Neither funds the
+                  other&apos;s category workflow.
                 </p>
                 <ul className="mt-6 space-y-3 text-sm">
                   <li className="flex items-start gap-2">
@@ -510,31 +509,31 @@ export default async function PricingPage() {
 
               <div className="localmap-card-glow overflow-hidden rounded-2xl border bg-card">
                 <div className="grid grid-cols-2 border-b bg-muted/40 text-sm font-semibold">
-                  <div className="px-4 py-3">Yext Premium</div>
+                  <div className="px-4 py-3">Typical bundle</div>
                   <div className="border-l px-4 py-3 text-primary">
-                    LocalMap Premium + 1 vertical
+                    LocalMap Premium + 1 pack
                   </div>
                 </div>
                 <div className="grid grid-cols-2 text-sm">
                   <div className="space-y-2 px-4 py-4 text-muted-foreground">
-                    <p className="text-2xl font-bold text-foreground">
-                      $999<span className="text-sm font-normal">/yr</span>
+                    <p className="text-lg font-bold text-foreground">
+                      One large network
                     </p>
-                    <p>≈ $83/mo per location</p>
-                    <p>All verticals bundled, needed or not</p>
-                    <p>Annual contract</p>
+                    <p>Category publishers grouped into the tier</p>
+                    <p>Irrelevant verticals can come along for the ride</p>
+                    <p>Delivery methods may be hard to distinguish</p>
                   </div>
                   <div className="space-y-2 border-l px-4 py-4 text-muted-foreground">
                     <p className="text-2xl font-bold text-foreground">
                       $64<span className="text-sm font-normal">/mo</span>
                     </p>
-                    <p>$49 Premium + $15 add-on</p>
-                    <p>Only the vertical you need</p>
+                    <p>$49 Premium + $15 Category Pack</p>
+                    <p>Only the category workflow you need</p>
                     <p>Month-to-month, 14-day trial</p>
                   </div>
                 </div>
                 <div className="border-t bg-primary/5 px-4 py-3 text-center text-sm font-medium text-primary">
-                  ~23% less, and modular
+                  Relevant, legible, and modular
                 </div>
               </div>
             </div>

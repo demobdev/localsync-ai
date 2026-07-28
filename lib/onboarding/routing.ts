@@ -85,26 +85,42 @@ export function buildSignupUrl(auditId: string): string {
 export function buildFixOnboardingUrl(input: {
   auditId: string;
   intent?: OnboardingIntent;
+  /** Prefer creating a new location (from "Run visibility audit" / add flow). */
+  add?: boolean;
 }): string {
   const params = new URLSearchParams({
     auditId: input.auditId,
     intent: input.intent ?? "fix",
   });
+  if (input.add) {
+    params.set("add", "1");
+  }
   return `/dashboard/onboarding?${params.toString()}`;
 }
 
 export function buildGraderFixHref(input: {
   auditId: string;
   signedIn: boolean;
+  add?: boolean;
 }): string {
   return input.signedIn
-    ? buildFixOnboardingUrl({ auditId: input.auditId, intent: "fix" })
+    ? buildFixOnboardingUrl({
+        auditId: input.auditId,
+        intent: "fix",
+        add: input.add,
+      })
     : buildSignupUrl(input.auditId);
 }
 
-export function buildGraderEntryUrl(model?: GraderOperatingModel): string {
-  if (!model) return "/grader";
-  return `/grader?model=${encodeURIComponent(model)}`;
+export function buildGraderEntryUrl(
+  model?: GraderOperatingModel,
+  options?: { add?: boolean },
+): string {
+  const params = new URLSearchParams();
+  if (model) params.set("model", model);
+  if (options?.add) params.set("add", "1");
+  const query = params.toString();
+  return query ? `/grader?${query}` : "/grader";
 }
 
 /** Primary + secondary actions after onboarding completes. */

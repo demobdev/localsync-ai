@@ -16,6 +16,7 @@ import {
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { ProductFamilyNav } from "@/components/marketing/product-family-nav";
 import { DistributionFlowVisual } from "@/components/marketing/distribution-visuals";
 import { PublisherNetworkGrid } from "@/components/marketing/publisher-network-grid";
 import { Badge } from "@/components/ui/badge";
@@ -26,13 +27,13 @@ import { cn } from "@/lib/utils";
 export const metadata: Metadata = {
   title: "Listings Management | LocalMap",
   description:
-    "One master profile, synced and verified across Google, Apple, Bing, Yelp, and 20+ directories. Approve-first sync, honest rails, and audits with evidence, from $19/location/mo.",
+    "One master profile, a direct Google connection, and evidence-backed workflows across the publishers that shape local discovery.",
 };
 
 const PROOF_POINTS = [
   {
     title: "One profile. Every publisher.",
-    body: "A versioned master profile feeds Google, Apple, Bing, Facebook, Yelp, and the extended map graph. Update once, distribute everywhere.",
+    body: "A versioned master profile is the source of truth for Google and every guided, manual, or audit-only publisher workflow.",
   },
   {
     title: "Honest rails, not fake syndication",
@@ -118,16 +119,18 @@ export default async function ListingsProductPage() {
   return (
     <div className="flex min-h-full flex-col">
       <MarketingHeader signedIn={signedIn} />
+      <ProductFamilyNav active="listings" />
 
       <main className="flex-1">
-        <section className="localmap-mesh relative overflow-hidden border-b">
-          <div className="localmap-grid absolute inset-0 opacity-40" />
+        <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(32,201,181,0.20),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(89,153,255,0.14),transparent_30%)]" />
+          <div className="localmap-grid absolute inset-0 opacity-[0.07]" />
           <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="max-w-xl space-y-6">
                 <Badge
                   variant="secondary"
-                  className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary"
+                  className="rounded-full border border-[#65dfd0]/35 bg-[#65dfd0]/12 px-3 py-1 text-[#9ff3e8]"
                 >
                   <GlobeIcon className="mr-1.5 inline size-3.5" />
                   Listings · the core product
@@ -135,14 +138,15 @@ export default async function ListingsProductPage() {
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
                   Listings management with nothing to hide
                 </h1>
-                <p className="text-lg leading-relaxed text-muted-foreground sm:text-xl">
-                  One master profile, synced and verified across Google, Apple,
-                  Bing, Yelp, and 20+ directories, with every publisher rail
-                  honestly labeled and every change approved by you first.
+                <p className="text-lg leading-relaxed text-white/68 sm:text-xl">
+                  One master profile, a direct Google connection, and a clear
+                  workflow for every other publisher—with the delivery rail
+                  labeled before the work begins.
                 </p>
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <Button
                     size="lg"
+                    className="bg-[#67e3d5] text-[#062b31] hover:bg-[#91eee4]"
                     nativeButton={false}
                     render={<Link href={primaryHref} />}
                   >
@@ -152,13 +156,14 @@ export default async function ListingsProductPage() {
                   <Button
                     size="lg"
                     variant="outline"
+                    className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                     nativeButton={false}
                     render={<Link href="/grader" />}
                   >
                     Scan your listings free
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/48">
                   From $19/location/mo · month-to-month · manual path always
                   included
                 </p>

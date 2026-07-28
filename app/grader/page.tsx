@@ -40,10 +40,11 @@ const PROOF_POINTS = [
 export default async function GraderPage({
   searchParams,
 }: {
-  searchParams: Promise<{ model?: string }>;
+  searchParams: Promise<{ model?: string; add?: string }>;
 }) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const initialModel = parseGraderModelParam(params.model) ?? "storefront";
+  const addBusiness = params.add === "1";
 
   return (
     <div className="flex min-h-full flex-col bg-[#faf7ef]">
@@ -85,7 +86,7 @@ export default async function GraderPage({
               </p>
             </div>
 
-            <GraderStart initialModel={initialModel} />
+            <GraderStart initialModel={initialModel} addBusiness={addBusiness} />
           </div>
         </section>
 

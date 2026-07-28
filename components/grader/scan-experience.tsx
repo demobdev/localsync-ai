@@ -767,6 +767,22 @@ function SpeedScene({ evidence }: { evidence: GraderProgressEvidence }) {
   );
 }
 
+function humanizeFailureReason(reason?: string): string {
+  if (!reason) {
+    return "We couldn't complete the scan. The website may have blocked our crawler, or the request timed out. PageSpeed quota limits only affect the speed section, not the whole audit.";
+  }
+
+  if (/FIRECRAWL_API_KEY is not configured/i.test(reason)) {
+    return "Website crawl is unavailable because FIRECRAWL_API_KEY is missing or empty in .env.local. Add your Firecrawl key, restart the dev server, then retry.";
+  }
+
+  if (/API_KEY_HTTP_REFERRER_BLOCKED|Places searchText failed 403/i.test(reason)) {
+    return "Google Places blocked this server request (API key referrer rules). Use a server key without HTTP-referrer restrictions for Places, or allow server calls.";
+  }
+
+  return reason;
+}
+
 function ScanFailed({
   reason,
   onRetry,
@@ -785,8 +801,7 @@ function ScanFailed({
         This audit didn&apos;t finish
       </h1>
       <p className="max-w-md text-sm text-zinc-600">
-        {reason ??
-          "We couldn't complete the scan — the website may have blocked our crawler or the request timed out. PageSpeed quota limits only affect the speed section, not the whole audit."}
+        {humanizeFailureReason(reason)}
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <button

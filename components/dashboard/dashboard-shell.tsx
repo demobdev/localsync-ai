@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import type { LucideIcon } from "lucide-react";
-import { MenuIcon } from "lucide-react";
+import { Building2Icon, MenuIcon } from "lucide-react";
 import { useState } from "react";
 
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
@@ -73,7 +73,29 @@ function SidebarContent({
   workspaceImageUrl?: string | null;
   businesses: SwitcherBusiness[];
 }) {
+  const pathname = usePathname();
   const navItems = getDashboardNav(isAgency);
+  const utilityItems = navItems.filter(
+    (item) =>
+      item.href === "/dashboard/team" || item.href === "/dashboard/billing",
+  );
+  const primaryItems = navItems.filter(
+    (item) =>
+      item.href !== "/dashboard/team" && item.href !== "/dashboard/billing",
+  );
+  const activeBusiness = businesses.find((business) =>
+    pathname.startsWith(`/dashboard/locations/${business.id}`),
+  );
+  const headerTitle = activeBusiness?.name ?? workspaceName;
+  const headerSubtitle = activeBusiness
+    ? activeBusiness.city
+      ? `${activeBusiness.city} · ${workspaceName}`
+      : workspaceName
+    : businesses.length > 1
+      ? `${businesses.length} businesses`
+      : isAgency
+        ? "Agency workspace"
+        : "Workspace";
 
   return (
     <>
@@ -87,10 +109,19 @@ function SidebarContent({
               alt=""
               className="size-5 shrink-0 rounded-md object-cover"
             />
-          ) : null}
-          <p className="min-w-0 truncate text-sm text-muted-foreground">
-            {workspaceName}
-          </p>
+          ) : (
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-violet-500/15 text-violet-600 dark:text-violet-400">
+              <Building2Icon className="size-3" />
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-foreground">
+              {headerTitle}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {headerSubtitle}
+            </p>
+          </div>
           {isAgency ? (
             <span className="shrink-0 rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold text-violet-600 dark:text-violet-400">
               Agency
@@ -101,12 +132,17 @@ function SidebarContent({
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
-        {navItems.map((item) => (
+        {primaryItems.map((item) => (
           <NavLink key={item.href} {...item} onNavigate={onNavigate} />
         ))}
       </nav>
 
       <div className="mt-6 space-y-3 border-t pt-4">
+        <nav aria-label="Workspace settings" className="space-y-1">
+          {utilityItems.map((item) => (
+            <NavLink key={item.href} {...item} onNavigate={onNavigate} />
+          ))}
+        </nav>
         <WorkspaceSwitcher />
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Account</span>

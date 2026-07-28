@@ -54,8 +54,6 @@ export const AI_PLATFORM_BRANDS: BrandDisplay[] = [
   {
     id: "chatgpt",
     label: "ChatGPT",
-    fallbackClass: "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900",
-    fallbackLetter: "✦",
   },
   { id: "apple", label: "Apple Maps", icon: siApple },
   {
@@ -77,10 +75,6 @@ export const FEATURED_PUBLISHER_SLUGS = [
   "bing-places",
   "nextdoor",
   "bbb",
-  "angi",
-  "homeadvisor",
-  "thumbtack",
-  "houzz",
   "foursquare",
 ] as const;
 

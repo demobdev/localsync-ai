@@ -1,6 +1,7 @@
 import type { SimpleIcon } from "simple-icons";
 
 import { GoogleLogo } from "@/components/brand/google-logo";
+import { OpenAiLogo } from "@/components/brand/openai-logo";
 import { cn } from "@/lib/utils";
 
 import type { BrandDisplay } from "@/lib/publishers/brand-icons";
@@ -28,6 +29,10 @@ export function BrandIcon({
 }) {
   if (brand.multicolor) {
     return <GoogleLogo size={size} className={className} />;
+  }
+
+  if (brand.id === "chatgpt") {
+    return <OpenAiLogo size={size} className={className} />;
   }
 
   if (brand.icon) {

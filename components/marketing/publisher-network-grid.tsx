@@ -36,10 +36,6 @@ const FEATURED_META: Record<
   yelp: { rail: "audit_only", shortName: "Yelp" },
   nextdoor: { rail: "manual", shortName: "Nextdoor" },
   bbb: { rail: "audit_only", shortName: "BBB" },
-  angi: { rail: "manual", shortName: "Angi" },
-  homeadvisor: { rail: "manual", shortName: "HomeAdvisor" },
-  thumbtack: { rail: "manual", shortName: "Thumbtack" },
-  houzz: { rail: "audit_only", shortName: "Houzz" },
   foursquare: { rail: "audit_only", shortName: "Foursquare" },
 };
 
@@ -89,8 +85,8 @@ export function PublisherNetworkGrid() {
       </div>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        + Angi, Porch, BuildZoom, Yellow Pages, MapQuest, Manta, and more in
-        every workspace
+        Category Packs add the specialized publishers, profile fields, and
+        workflows your industry needs.
       </p>
     </section>
   );
