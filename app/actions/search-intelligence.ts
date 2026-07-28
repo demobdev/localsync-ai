@@ -13,6 +13,8 @@ import {
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
 import { inngest } from "@/lib/inngest/client";
+import { dispatchBackgroundJob } from "@/lib/inngest/dispatch";
+import { executeWebsiteAudit } from "@/lib/search-intelligence/audit";
 import { deriveSearchOpportunities } from "@/lib/search-intelligence/scoring";
 import { syncSearchConsolePerformance } from "@/lib/search-intelligence/search-console";
 
@@ -56,9 +58,13 @@ export async function startWebsiteAuditAction(locationId: string) {
     })
     .returning({ id: websiteAuditRuns.id });
 
-  await inngest.send({
-    name: "search-intelligence/audit.requested",
-    data: { auditRunId: run.id },
+  await dispatchBackgroundJob({
+    send: () =>
+      inngest.send({
+        name: "search-intelligence/audit.requested",
+        data: { auditRunId: run.id },
+      }),
+    runInline: () => executeWebsiteAudit(run.id),
   });
   revalidatePath(`/dashboard/locations/${locationId}/search`);
   return { auditRunId: run.id };

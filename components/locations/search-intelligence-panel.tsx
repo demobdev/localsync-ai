@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   AlertCircleIcon,
   ArrowUpRightIcon,
@@ -204,6 +204,13 @@ export function SearchIntelligencePanel({
   const passed = data.findings.filter((finding) => finding.severity === "passed");
   const running = data.latestRun?.status === "queued" || data.latestRun?.status === "running";
   const score = data.latestComplete?.score ?? null;
+
+  useEffect(() => {
+    if (!running) return;
+
+    const refreshTimer = window.setInterval(() => router.refresh(), 1_500);
+    return () => window.clearInterval(refreshTimer);
+  }, [router, running]);
 
   function runAudit() {
     startTransition(async () => {
