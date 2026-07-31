@@ -13,6 +13,7 @@ import {
 import { HeritageHero } from "@/components/marketing/heritage-hero";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { ShaderBand } from "@/components/brand/shader-band";
 import {
   AiVisibilityShowcase,
   DistributionFlowVisual,
@@ -27,7 +28,6 @@ import {
   HOMEPAGE_REVIEWS,
   SOCIAL_PRESENCE,
 } from "@/lib/brand/external-reviews";
-import { HERITAGE_STRIP } from "@/lib/brand/texture-assets";
 import { LISTING_PLANS } from "@/lib/billing/plan-catalog";
 import { cn } from "@/lib/utils";
 
@@ -110,6 +110,8 @@ export default async function HomePage() {
 
         <PhotoMarquee />
 
+        <ShaderBand scene="grain-sunset" height="md" />
+
         <section className="localmap-mesh relative overflow-hidden border-b">
           <div className="localmap-grid absolute inset-0 opacity-30" />
           <SurfaceGrain opacity={0.2} className="mix-blend-multiply dark:mix-blend-soft-light" />
@@ -160,6 +162,8 @@ export default async function HomePage() {
 
         <PublisherNetworkGrid />
 
+        <ShaderBand scene="orbit" height="lg" />
+
         <section className="border-b">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
             <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -203,6 +207,8 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+
+        <ShaderBand scene="waves" height="sm" />
 
         <section className="border-b">
           <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
@@ -309,6 +315,8 @@ export default async function HomePage() {
         </section>
 
         <YextComparisonSection />
+
+        <ShaderBand scene="aurora" height="md" />
 
         <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
           <div className="mb-10 max-w-2xl">
@@ -434,18 +442,8 @@ export default async function HomePage() {
         </section>
 
         <section className="relative overflow-hidden border-b">
-          <div className="absolute inset-0 grid grid-cols-4 opacity-[0.18] dark:opacity-[0.22]">
-            {HERITAGE_STRIP.map((src) => (
-              <div key={src} className="relative min-h-[220px]">
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  sizes="25vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
+          <div className="absolute inset-0 opacity-40 dark:opacity-50">
+            <ShaderBand scene="ember" height="xl" fade={false} className="h-full min-h-[280px]" />
           </div>
           <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/92 to-background" />
           <SurfaceGrain opacity={0.25} className="mix-blend-multiply dark:mix-blend-soft-light" />

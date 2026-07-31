@@ -17,6 +17,10 @@ import type { OnboardingIntent } from "@/lib/onboarding/routing";
 import type { SetupPrefill } from "@/lib/onboarding/prefill";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  OnboardingProgress,
+  type OnboardingStepId,
+} from "@/components/onboarding/onboarding-progress";
 
 type OnboardingStep = "choose" | "agency-name" | "business";
 
@@ -149,6 +153,12 @@ export function OnboardingFlow({
 
   return (
     <>
+      <OnboardingProgress
+        currentStep={step as OnboardingStepId}
+        isAgencyPath={selectedType === "agency" || organizationType === "agency"}
+        className="mb-6"
+      />
+
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {heading.title}
