@@ -3,12 +3,11 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { listOnboardingCategoriesAction } from "@/app/actions/onboarding";
-import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { GraderClaimOnboarding } from "@/components/onboarding/grader-claim-onboarding";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { OnboardingShell } from "@/components/onboarding/onboarding-shell";
 import { OperatingModelGuide } from "@/components/onboarding/operating-model-guide";
 import { SetupCompleteCard } from "@/components/onboarding/setup-complete-card";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { getDb } from "@/db";
 import { locations } from "@/db/schema";
 import { getOrganization } from "@/lib/auth/organizations";
@@ -134,69 +133,65 @@ export default async function DashboardOnboardingPage({
 
   const graderClaimFlow = entryRoute.type === "claim_onboarding";
 
-  return (
-    <div className="localmap-mesh min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-xl flex-col px-4 py-8 sm:px-6">
-        <div className="mb-8 flex items-center justify-between">
-          <LocalMapLogo />
-          <ThemeToggle />
-        </div>
-        <div className="flex flex-1 flex-col justify-center gap-6 pb-12">
-          {setupComplete ? (
-            <SetupCompleteCard
-              locationId={params.location!}
-              publishersTracked={Number(params.publishers ?? 0) || 20}
-              accountType={
-                params.accountType === "agency" ? "agency" : "business"
-              }
-              auditId={params.audit ?? null}
-              scanId={params.scan ?? null}
-              organizationId={params.org ?? session.orgId ?? null}
-              operatingContext={operatingContext}
-            />
-          ) : graderClaimFlow ? (
-            <GraderClaimOnboarding
-              claimContext={entryRoute.claimContext}
-              categories={categories}
-              existingLocations={entryRoute.existingLocations}
-              suggestedLocationId={entryRoute.suggestedLocationId}
-              hasWorkspace={Boolean(session.orgId)}
-              organizationId={session.orgId ?? null}
-              organizationType={organization?.type ?? null}
-              organizationName={organization?.name ?? null}
-              onboardingIntent={onboardingIntent}
-            />
-          ) : entryRoute.type === "already_claimed" && claimContext ? (
-            <GraderClaimOnboarding
-              claimContext={claimContext}
-              categories={categories}
-              existingLocations={[]}
-              suggestedLocationId={null}
-              hasWorkspace={Boolean(session.orgId)}
-              organizationId={session.orgId ?? null}
-              organizationType={organization?.type ?? null}
-              organizationName={organization?.name ?? null}
-              onboardingIntent={onboardingIntent}
-            />
-          ) : (
-            <>
-              {prefill?.operatingModel ? (
-                <OperatingModelGuide prefill={prefill} />
-              ) : null}
-              <OnboardingFlow
-                categories={categories}
-                hasWorkspace={Boolean(session.orgId)}
-                organizationType={organization?.type ?? null}
-                organizationName={organization?.name ?? null}
-                addingAnother={addingAnother}
-                showAccountTypeChoice={showAccountTypeChoice}
-                prefill={prefill}
-                onboardingIntent={onboardingIntent}
-              />
-            </>
-          )}
-        </div>
-      </div>
+  const content = (
+    <div className="flex flex-col gap-6">
+      {setupComplete ? (
+        <SetupCompleteCard
+          locationId={params.location!}
+          publishersTracked={Number(params.publishers ?? 0) || 20}
+          accountType={
+            params.accountType === "agency" ? "agency" : "business"
+          }
+          auditId={params.audit ?? null}
+          scanId={params.scan ?? null}
+          organizationId={params.org ?? session.orgId ?? null}
+          operatingContext={operatingContext}
+        />
+      ) : graderClaimFlow ? (
+        <GraderClaimOnboarding
+          claimContext={entryRoute.claimContext}
+          categories={categories}
+          existingLocations={entryRoute.existingLocations}
+          suggestedLocationId={entryRoute.suggestedLocationId}
+          hasWorkspace={Boolean(session.orgId)}
+          organizationId={session.orgId ?? null}
+          organizationType={organization?.type ?? null}
+          organizationName={organization?.name ?? null}
+          onboardingIntent={onboardingIntent}
+        />
+      ) : entryRoute.type === "already_claimed" && claimContext ? (
+        <GraderClaimOnboarding
+          claimContext={claimContext}
+          categories={categories}
+          existingLocations={[]}
+          suggestedLocationId={null}
+          hasWorkspace={Boolean(session.orgId)}
+          organizationId={session.orgId ?? null}
+          organizationType={organization?.type ?? null}
+          organizationName={organization?.name ?? null}
+          onboardingIntent={onboardingIntent}
+        />
+      ) : (
+        <>
+          {prefill?.operatingModel ? (
+            <OperatingModelGuide prefill={prefill} />
+          ) : null}
+          <OnboardingFlow
+            categories={categories}
+            hasWorkspace={Boolean(session.orgId)}
+            organizationType={organization?.type ?? null}
+            organizationName={organization?.name ?? null}
+            addingAnother={addingAnother}
+            showAccountTypeChoice={showAccountTypeChoice}
+            prefill={prefill}
+            onboardingIntent={onboardingIntent}
+          />
+        </>
+      )}
     </div>
+  );
+
+  return (
+    <OnboardingShell wide={Boolean(setupComplete)}>{content}</OnboardingShell>
   );
 }

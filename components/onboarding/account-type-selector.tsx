@@ -21,7 +21,7 @@ export function AccountTypeSelector({
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <Card className="localmap-card-glow transition-colors hover:border-primary/40">
+      <Card className="localmap-card-glow transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md">
         <CardHeader>
           <div className="mb-2 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <Building2Icon className="size-5" />
@@ -38,7 +38,7 @@ export function AccountTypeSelector({
         </CardContent>
       </Card>
 
-      <Card className="localmap-card-glow transition-colors hover:border-primary/40">
+      <Card className="localmap-card-glow transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md">
         <CardHeader>
           <div
             className={cn(
