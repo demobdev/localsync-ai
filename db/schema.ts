@@ -23,6 +23,7 @@ import type {
   KeywordResult,
   PageSpeedData,
 } from "@/lib/grader/types";
+import type { PublisherOperation } from "@/lib/publishers/delivery";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -48,6 +49,40 @@ export const publisherRailEnum = pgEnum("publisher_rail", [
   "guided_import",
   "manual",
   "audit_only",
+]);
+
+export const publisherDeliveryRailEnum = pgEnum("publisher_delivery_rail", [
+  "first_party_direct",
+  "approval_gated_direct",
+  "partner_network",
+  "managed_submission",
+  "customer_action",
+  "monitor_only",
+]);
+
+export const publisherApprovalStatusEnum = pgEnum(
+  "publisher_approval_status",
+  [
+    "not_required",
+    "not_applied",
+    "pending",
+    "sandbox",
+    "production",
+    "unavailable",
+  ],
+);
+
+export const publisherVerificationOwnerEnum = pgEnum(
+  "publisher_verification_owner",
+  ["localsync", "customer", "partner", "publisher"],
+);
+
+export const publisherCostCadenceEnum = pgEnum("publisher_cost_cadence", [
+  "none",
+  "one_time",
+  "monthly",
+  "annual",
+  "quote",
 ]);
 
 export const locationPublisherStatusEnum = pgEnum("location_publisher_status", [
@@ -274,6 +309,26 @@ export const publishers = pgTable(
     slug: text("slug").notNull().unique(),
     name: text("name").notNull(),
     rail: publisherRailEnum("rail").notNull(),
+    deliveryRail: publisherDeliveryRailEnum("delivery_rail")
+      .notNull()
+      .default("monitor_only"),
+    approvalStatus: publisherApprovalStatusEnum("approval_status")
+      .notNull()
+      .default("not_required"),
+    verificationOwner: publisherVerificationOwnerEnum("verification_owner")
+      .notNull()
+      .default("customer"),
+    costCadence: publisherCostCadenceEnum("cost_cadence")
+      .notNull()
+      .default("none"),
+    estimatedCostCents: integer("estimated_cost_cents").notNull().default(0),
+    costNotes: text("cost_notes"),
+    ownershipPersists: boolean("ownership_persists").notNull().default(true),
+    supportedOperations: jsonb("supported_operations")
+      .$type<PublisherOperation[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    evidenceRequirement: text("evidence_requirement"),
     websiteUrl: text("website_url"),
     logoUrl: text("logo_url"),
     description: text("description"),
@@ -285,7 +340,11 @@ export const publishers = pgTable(
       .defaultNow()
       .notNull(),
   },
-  (table) => [index("publishers_rail_idx").on(table.rail)],
+  (table) => [
+    index("publishers_rail_idx").on(table.rail),
+    index("publishers_delivery_rail_idx").on(table.deliveryRail),
+    index("publishers_approval_status_idx").on(table.approvalStatus),
+  ],
 );
 
 export const publisherRequiredFields = pgTable(

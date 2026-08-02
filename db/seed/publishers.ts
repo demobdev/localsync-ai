@@ -1,6 +1,14 @@
+import type {
+  PublisherApprovalStatus,
+  PublisherCostCadence,
+  PublisherDeliveryRail,
+  PublisherOperation,
+  PublisherVerificationOwner,
+} from "../../lib/publishers/delivery";
+
 export type PublisherRail = "api" | "guided_import" | "manual" | "audit_only";
 
-export type PublisherSeed = {
+type BasePublisherSeed = {
   slug: string;
   name: string;
   rail: PublisherRail;
@@ -19,7 +27,21 @@ export type PublisherSeed = {
   }>;
 };
 
-export const PUBLISHER_SEEDS: PublisherSeed[] = [
+export type PublisherCapabilitySeed = {
+  deliveryRail: PublisherDeliveryRail;
+  approvalStatus: PublisherApprovalStatus;
+  verificationOwner: PublisherVerificationOwner;
+  costCadence: PublisherCostCadence;
+  estimatedCostCents: number;
+  costNotes: string;
+  ownershipPersists: boolean;
+  supportedOperations: PublisherOperation[];
+  evidenceRequirement: string;
+};
+
+export type PublisherSeed = BasePublisherSeed & PublisherCapabilitySeed;
+
+const BASE_PUBLISHER_SEEDS: BasePublisherSeed[] = [
   {
     slug: "google-business-profile",
     name: "Google Business Profile",
@@ -43,7 +65,8 @@ export const PUBLISHER_SEEDS: PublisherSeed[] = [
     name: "Bing Places",
     rail: "guided_import",
     websiteUrl: "https://www.bingplaces.com",
-    description: "Microsoft Bing local listings. No public write API — guided import from Google.",
+    description:
+      "Microsoft Bing local listings. Guided import works now; the Trusted Partner API is the automation target.",
     isCore: true,
     isHomeServices: false,
     sortOrder: 2,
@@ -60,7 +83,8 @@ export const PUBLISHER_SEEDS: PublisherSeed[] = [
     name: "Apple Business Connect",
     rail: "audit_only",
     websiteUrl: "https://businessconnect.apple.com",
-    description: "Apple Maps business listings. Audit and manual update only at launch.",
+    description:
+      "Apple Maps business listings. Direct management requires verified third-party partner access and customer delegation.",
     isCore: true,
     isHomeServices: false,
     sortOrder: 3,
@@ -90,7 +114,8 @@ export const PUBLISHER_SEEDS: PublisherSeed[] = [
     name: "Yelp",
     rail: "audit_only",
     websiteUrl: "https://www.yelp.com",
-    description: "Yelp business profile. Audit-only at launch.",
+    description:
+      "Yelp business profile. Free claiming works now; direct ingestion requires an approved partner agreement.",
     isCore: true,
     isHomeServices: false,
     sortOrder: 5,
@@ -317,3 +342,300 @@ export const PUBLISHER_SEEDS: PublisherSeed[] = [
     ],
   },
 ];
+
+const noPublisherFee =
+  "No per-listing publisher fee is currently modeled; engineering, verification, and partner costs are separate.";
+const freeProfileManaged =
+  "The base publisher profile is free; managed fulfillment labor or optional publisher products are separate.";
+
+const PUBLISHER_CAPABILITIES: Record<string, PublisherCapabilitySeed> = {
+  "google-business-profile": {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: noPublisherFee,
+    ownershipPersists: true,
+    supportedOperations: [
+      "discover",
+      "create",
+      "claim",
+      "update",
+      "verify",
+      "monitor",
+      "analytics",
+      "suppress_duplicates",
+    ],
+    evidenceRequirement:
+      "Customer authorization plus a live API re-read confirming the approved fields.",
+  },
+  "bing-places": {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: noPublisherFee,
+    ownershipPersists: true,
+    supportedOperations: [
+      "discover",
+      "create",
+      "update",
+      "verify",
+      "monitor",
+      "analytics",
+    ],
+    evidenceRequirement:
+      "Trusted Partner production status plus a successful Bing status response and live listing URL.",
+  },
+  "apple-business-connect": {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: noPublisherFee,
+    ownershipPersists: true,
+    supportedOperations: [
+      "discover",
+      "create",
+      "update",
+      "verify",
+      "monitor",
+    ],
+    evidenceRequirement:
+      "Verified partner account, customer delegation, and a live Apple place-card re-read.",
+  },
+  facebook: {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: noPublisherFee,
+    ownershipPersists: true,
+    supportedOperations: ["discover", "update", "verify", "monitor", "analytics"],
+    evidenceRequirement:
+      "Customer Page access, required Meta app permissions, and a live Page re-read.",
+  },
+  yelp: {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "publisher",
+    costCadence: "quote",
+    estimatedCostCents: 0,
+    costNotes:
+      "The business page is free; Data Ingestion API commercial terms require a Yelp partner agreement.",
+    ownershipPersists: true,
+    supportedOperations: [
+      "discover",
+      "create",
+      "claim",
+      "update",
+      "verify",
+      "monitor",
+      "analytics",
+    ],
+    evidenceRequirement:
+      "Approved partner ingestion result followed by Yelp claim status and live page confirmation.",
+  },
+  nextdoor: {
+    deliveryRail: "customer_action",
+    approvalStatus: "not_required",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: freeProfileManaged,
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Customer completes Nextdoor ownership verification and LocalSync records the public page URL.",
+  },
+  bbb: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "A basic profile can be managed without buying accreditation; accreditation and advertising are separate.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Publisher-approved BBB profile URL with matching core business information.",
+  },
+  angi: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "quote",
+    estimatedCostCents: 0,
+    costNotes:
+      "Profile setup is managed separately from optional lead and advertising spend.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Approved public professional profile with customer-owned credentials.",
+  },
+  homeadvisor: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "quote",
+    estimatedCostCents: 0,
+    costNotes:
+      "Profile setup is managed separately from optional lead and advertising spend.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Approved public professional profile with customer-owned credentials.",
+  },
+  thumbtack: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "Creating a professional profile is free; paid leads are outside the listings subscription.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Complete public professional profile with services, coverage, and customer-owned credentials.",
+  },
+  houzz: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: freeProfileManaged,
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Live professional-directory URL with matching location, services, and website.",
+  },
+  porch: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "publisher",
+    costCadence: "quote",
+    estimatedCostCents: 0,
+    costNotes:
+      "Managed profile submission; optional marketplace and lead products are separate.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Publisher-approved professional profile and public listing URL.",
+  },
+  buildzoom: {
+    deliveryRail: "monitor_only",
+    approvalStatus: "unavailable",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: "No general production write rail has been validated for LocalSync.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "verify", "monitor"],
+    evidenceRequirement:
+      "Public profile evidence compared against authoritative license and website information.",
+  },
+  "yellow-pages": {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "Basic claiming is separated from optional enhanced profile and advertising products.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Claimed public YP listing with matching NAP and customer-owned access.",
+  },
+  foursquare: {
+    deliveryRail: "approval_gated_direct",
+    approvalStatus: "not_applied",
+    verificationOwner: "publisher",
+    costCadence: "quote",
+    estimatedCostCents: 0,
+    costNotes:
+      "Discovery and contribution have low-cost access; merchant-grade synchronization requires approved access or an aggregator.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "update", "verify", "monitor"],
+    evidenceRequirement:
+      "Approved place edit or merchant claim followed by a canonical Foursquare place re-read.",
+  },
+  mapquest: {
+    deliveryRail: "monitor_only",
+    approvalStatus: "unavailable",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "Treat as a downstream or managed correction source until a production partner feed is contracted.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "verify", "monitor"],
+    evidenceRequirement: "Public MapQuest place URL with matching NAP evidence.",
+  },
+  citysearch: {
+    deliveryRail: "monitor_only",
+    approvalStatus: "unavailable",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: "No general production write rail has been validated for LocalSync.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "verify", "monitor"],
+    evidenceRequirement: "Public directory URL with matching NAP evidence.",
+  },
+  merchantcircle: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes: freeProfileManaged,
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Claimed public profile with matching NAP and customer-owned credentials.",
+  },
+  expertise: {
+    deliveryRail: "monitor_only",
+    approvalStatus: "unavailable",
+    verificationOwner: "publisher",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "Expertise.com is curated; LocalSync can monitor inclusion and prepare publisher outreach.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "verify", "monitor"],
+    evidenceRequirement:
+      "Public curated profile or category inclusion with matching business information.",
+  },
+  manta: {
+    deliveryRail: "managed_submission",
+    approvalStatus: "not_required",
+    verificationOwner: "customer",
+    costCadence: "none",
+    estimatedCostCents: 0,
+    costNotes:
+      "The base listing is free; Manta's optional 70+ directory product is outside this rail.",
+    ownershipPersists: true,
+    supportedOperations: ["discover", "create", "claim", "verify", "monitor"],
+    evidenceRequirement:
+      "Claimed public Manta profile with matching NAP and customer-owned access.",
+  },
+};
+
+export const PUBLISHER_SEEDS: PublisherSeed[] = BASE_PUBLISHER_SEEDS.map(
+  (publisher) => {
+    const capability = PUBLISHER_CAPABILITIES[publisher.slug];
+    if (!capability) {
+      throw new Error(`Missing capability metadata for ${publisher.slug}`);
+    }
+    return { ...publisher, ...capability };
+  },
+);

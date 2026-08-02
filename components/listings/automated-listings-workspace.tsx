@@ -44,6 +44,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { verifyGoogleProfile } from "@/lib/connectors/google-profile-diff";
 import { publisherSlugForListingUrl } from "@/lib/publishers/detect-listing-url";
+import {
+  isAutomationRail,
+  publisherDeliveryDescription,
+  publisherDeliveryLabel,
+  publisherNextActionLabel,
+  type PublisherApprovalStatus,
+  type PublisherCostCadence,
+  type PublisherDeliveryRail,
+  type PublisherOperation,
+  type PublisherVerificationOwner,
+} from "@/lib/publishers/delivery";
 import { listingUrlPlaceholder } from "@/lib/publishers/listing-setup-copy";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { cn } from "@/lib/utils";
@@ -54,6 +65,15 @@ type PublisherRow = {
   publisherName: string;
   publisherSlug: string;
   rail: string;
+  deliveryRail: PublisherDeliveryRail;
+  approvalStatus: PublisherApprovalStatus;
+  verificationOwner: PublisherVerificationOwner;
+  costCadence: PublisherCostCadence;
+  estimatedCostCents: number;
+  costNotes: string | null;
+  ownershipPersists: boolean;
+  supportedOperations: PublisherOperation[];
+  evidenceRequirement: string | null;
   isCore: boolean;
   status: string;
   listingUrl: string | null;
@@ -69,7 +89,7 @@ type AuditRunRow = {
   completedAt: Date | null;
 };
 
-type PublisherFilter = "all" | "connected" | "needs-action" | "audit-only";
+type PublisherFilter = "all" | "connected" | "needs-action" | "managed";
 
 const GOOGLE_SLUG = "google-business-profile";
 
@@ -89,10 +109,7 @@ function parsePastedUrls(value: string): string[] {
 }
 
 function integrationLabel(row: PublisherRow): string {
-  if (row.publisherSlug === GOOGLE_SLUG) return "Direct";
-  if (row.rail === "audit_only" || row.rail === "manual") return "Audit-only";
-  if (row.rail === "guided_import") return "Guided / audit-only";
-  return "Not available yet";
+  return publisherDeliveryLabel(row);
 }
 
 function statusTone(status: string):
@@ -104,7 +121,12 @@ function statusTone(status: string):
   if (status === "Needs action" || status === "Connection error") {
     return "destructive";
   }
-  if (status === "Pending verification" || status === "Ready to audit") {
+  if (
+    status === "Pending verification" ||
+    status === "Ready to audit" ||
+    status === "Ready to submit" ||
+    status === "Ready to distribute"
+  ) {
     return "secondary";
   }
   return "outline";
@@ -225,6 +247,23 @@ export function AutomatedListingsWorkspace({
     auditOnlyRows.filter(
       (row) => row.isCore && !(urls[row.id] ?? "").trim(),
     ).length;
+  const automationReadyCount = publisherRows.filter((row) =>
+    isAutomationRail(row),
+  ).length;
+  const approvalRequiredCount = publisherRows.filter(
+    (row) =>
+      row.deliveryRail === "approval_gated_direct" &&
+      row.approvalStatus !== "production",
+  ).length;
+  const managedSubmissionCount = publisherRows.filter(
+    (row) => row.deliveryRail === "managed_submission",
+  ).length;
+  const customerActionCount = publisherRows.filter(
+    (row) => row.deliveryRail === "customer_action",
+  ).length;
+  const monitorOnlyCount = publisherRows.filter(
+    (row) => row.deliveryRail === "monitor_only",
+  ).length;
 
   const currentStep = !profileReady
     ? 0
@@ -270,7 +309,7 @@ export function AutomatedListingsWorkspace({
             : {
                 label: "Review publisher health",
                 href: "#publisher-health",
-                note: "Google is verified. Review audit-only coverage and recent checks.",
+                note: "Google is verified. Review managed coverage and recent checks.",
               };
 
   function publisherStatus(row: PublisherRow): string {
@@ -283,7 +322,24 @@ export function AutomatedListingsWorkspace({
     }
 
     const hasUrl = Boolean((urls[row.id] ?? "").trim());
-    if (!hasUrl) return "Not configured";
+    if (!hasUrl) {
+      if (
+        row.deliveryRail === "approval_gated_direct" &&
+        row.approvalStatus !== "production"
+      ) {
+        return "Approval required";
+      }
+      if (row.deliveryRail === "partner_network") {
+        return "Ready to distribute";
+      }
+      if (row.deliveryRail === "managed_submission") {
+        return "Ready to submit";
+      }
+      if (row.deliveryRail === "customer_action") {
+        return "Customer verification";
+      }
+      return "Not configured";
+    }
     return row.lastCheckedAt ? "Audit complete" : "Ready to audit";
   }
 
@@ -309,10 +365,20 @@ export function AutomatedListingsWorkspace({
           status === "Needs action" ||
           status === "Connection error" ||
           status === "Pending verification" ||
+          status === "Approval required" ||
+          status === "Customer verification" ||
+          status === "Ready to submit" ||
+          status === "Ready to distribute" ||
           (row.isCore && status === "Not configured")
         );
       }
-      if (filter === "audit-only") return row.publisherSlug !== GOOGLE_SLUG;
+      if (filter === "managed") {
+        return (
+          row.deliveryRail === "managed_submission" ||
+          row.deliveryRail === "customer_action" ||
+          row.deliveryRail === "monitor_only"
+        );
+      }
       return true;
     });
   })();
@@ -339,7 +405,7 @@ export function AutomatedListingsWorkspace({
     setShowAuditOnly(true);
     requestAnimationFrame(() => {
       document
-        .getElementById("audit-only-listings")
+        .getElementById("submission-workspace")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }
@@ -356,7 +422,7 @@ export function AutomatedListingsWorkspace({
         });
         toast.success(
           value
-            ? `${row.publisherName} added as audit-only`
+            ? `${row.publisherName} added to monitoring`
             : `${row.publisherName} removed`,
         );
         router.refresh();
@@ -400,7 +466,7 @@ export function AutomatedListingsWorkspace({
 
       if (saved > 0) {
         toast.success(
-          `Added ${saved} audit-only listing${saved === 1 ? "" : "s"}`,
+          `Added ${saved} tracked listing${saved === 1 ? "" : "s"}`,
         );
         setQuickPaste(missed.join(" "));
         router.refresh();
@@ -451,7 +517,7 @@ export function AutomatedListingsWorkspace({
   function runAudit() {
     startAuditTransition(async () => {
       try {
-        toast.info("Checking audit-only listings against the Master Profile…");
+        toast.info("Checking tracked listings against the Master Profile…");
         const result = await startAuditAction(locationId);
         toast.success(
           `Audit complete — ${result.score.auditScore}/50 consistency points`,
@@ -500,7 +566,7 @@ export function AutomatedListingsWorkspace({
                 One profile. One connection. No guesswork.
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">
-                Approve your business facts once. LocalMap compares them with
+                Approve your business facts once. LocalSync compares them with
                 Google, sends only the changes you approve, and verifies the
                 result before calling anything synced.
               </p>
@@ -628,11 +694,20 @@ export function AutomatedListingsWorkspace({
               {googleConnected ? "Google account connected" : "No direct account yet"}
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Badge variant={googleConnected ? "default" : "secondary"}>
-                {googleConnected ? "1 direct" : "0 direct"}
+              <Badge variant={automationReadyCount > 0 ? "default" : "secondary"}>
+                {automationReadyCount} automation-ready
               </Badge>
               <Badge variant="outline">
-                {configuredAuditOnlyCount} audit-only
+                {approvalRequiredCount} approval-gated
+              </Badge>
+              <Badge variant="outline">
+                {managedSubmissionCount} managed
+              </Badge>
+              <Badge variant="outline">
+                {customerActionCount} customer verification
+              </Badge>
+              <Badge variant="outline">
+                {monitorOnlyCount} monitored
               </Badge>
             </div>
           </CardContent>
@@ -677,7 +752,7 @@ export function AutomatedListingsWorkspace({
                   ["all", "All"],
                   ["connected", "Connected"],
                   ["needs-action", "Needs action"],
-                  ["audit-only", "Audit-only"],
+                  ["managed", "Managed / monitor"],
                 ] as Array<[PublisherFilter, string]>
               ).map(([value, label]) => (
                 <button
@@ -724,9 +799,10 @@ export function AutomatedListingsWorkspace({
                     : liveAndSynced
                       ? "Manage"
                       : "Review"
-                : listingUrl
-                  ? "View listing"
-                  : "Add URL";
+                : publisherNextActionLabel({
+                    state: row,
+                    hasListingUrl: Boolean(listingUrl),
+                  });
 
               return (
                 <div
@@ -754,9 +830,14 @@ export function AutomatedListingsWorkspace({
                     <p className="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase xl:hidden">
                       Integration
                     </p>
-                    <Badge variant={isGoogle ? "default" : "outline"}>
+                    <Badge
+                      variant={isAutomationRail(row) ? "default" : "outline"}
+                    >
                       {integrationLabel(row)}
                     </Badge>
+                    <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                      {publisherDeliveryDescription(row)}
+                    </p>
                   </div>
 
                   <div>
@@ -830,8 +911,17 @@ export function AutomatedListingsWorkspace({
                           Tasks
                         </Button>
                       </>
-                    ) : (
+                    ) : row.deliveryRail === "monitor_only" ? (
                       <Button size="sm" variant="outline" onClick={openAuditOnly}>
+                        {actionLabel}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => createTasks(row)}
+                        disabled={savePending}
+                      >
                         {actionLabel}
                       </Button>
                     )}
@@ -844,22 +934,22 @@ export function AutomatedListingsWorkspace({
       </Card>
 
       <Card
-        id="audit-only-listings"
+        id="submission-workspace"
         className="localmap-card-glow scroll-mt-6 border-dashed"
       >
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <Badge variant="outline">Optional fallback</Badge>
+                <Badge variant="outline">Submission workspace</Badge>
                 <span className="text-xs text-muted-foreground">
-                  Monitoring only · no write access
+                  Managed, customer-action, and monitoring rails
                 </span>
               </div>
-              <CardTitle className="text-lg">Audit another directory</CardTitle>
+              <CardTitle className="text-lg">Add or verify another publisher</CardTitle>
               <CardDescription className="mt-1">
-                Add a public URL only when direct account management is not
-                available. LocalMap can check it, but cannot change it.
+                Paste known public URLs, let LocalSync discover links from the
+                business website, or prepare the next submission task.
               </CardDescription>
             </div>
             <Button
@@ -867,7 +957,7 @@ export function AutomatedListingsWorkspace({
               size="sm"
               onClick={() => setShowAuditOnly((current) => !current)}
             >
-              {showAuditOnly ? "Hide fallback" : "Add audit-only listing"}
+              {showAuditOnly ? "Hide workspace" : "Open workspace"}
               {showAuditOnly ? (
                 <ChevronUpIcon className="size-4" />
               ) : (
@@ -954,7 +1044,7 @@ export function AutomatedListingsWorkspace({
                           {row.publisherName}
                         </p>
                         <p className="mt-0.5 text-xs text-muted-foreground">
-                          Audit-only · {row.isCore ? "priority" : "extended"}
+                          {publisherDeliveryLabel(row)} · {row.isCore ? "priority" : "extended"}
                         </p>
                       </div>
                     </div>
@@ -996,8 +1086,8 @@ export function AutomatedListingsWorkspace({
               <CardTitle className="text-lg">Verification activity</CardTitle>
             </div>
             <CardDescription className="mt-1">
-              A readable record of checks. Audit-only results never imply write
-              access or publisher sync.
+              A readable record of checks. A discovered or submitted listing is
+              never called synchronized until live evidence confirms it.
             </CardDescription>
           </div>
           {configuredAuditOnlyCount > 0 ? (
@@ -1008,7 +1098,7 @@ export function AutomatedListingsWorkspace({
               disabled={auditPending}
             >
               <RadarIcon className="size-4" />
-              Run audit-only check
+              Run listing check
             </Button>
           ) : null}
         </CardHeader>
@@ -1016,7 +1106,7 @@ export function AutomatedListingsWorkspace({
           {auditRuns.length === 0 ? (
             <div className="rounded-2xl border border-dashed bg-muted/15 px-5 py-8 text-center">
               <Clock3Icon className="mx-auto size-6 text-muted-foreground" />
-              <p className="mt-3 text-sm font-medium">No audit-only checks yet</p>
+              <p className="mt-3 text-sm font-medium">No listing checks yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Google verification is handled through the direct connection.
                 Add another directory only if you also want URL monitoring.
@@ -1040,7 +1130,7 @@ export function AutomatedListingsWorkspace({
                     )}
                     <div>
                       <p className="text-sm font-medium capitalize">
-                        {run.status} audit-only check
+                        {run.status} listing check
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
                         {run.summary ?? "Listing values compared with the Master Profile"}
@@ -1063,7 +1153,7 @@ export function AutomatedListingsWorkspace({
         label={
           discoverPending
             ? "Scanning the website for public listing links…"
-            : "Checking audit-only listings against the Master Profile…"
+            : "Checking tracked listings against the Master Profile…"
         }
         className="rounded-[1.75rem]"
       />
