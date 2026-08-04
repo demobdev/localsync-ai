@@ -139,7 +139,7 @@ function initials(name: string): string {
     .join("");
 }
 
-function InviteDrawer({ canManage }: { canManage: boolean }) {
+function InviteForm({ onDone }: { onDone: () => void }) {
   const [state, formAction, pending] = useActionState(
     inviteTeamMemberAction,
     initialInviteTeamState,
@@ -148,36 +148,13 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
   const [acknowledged, setAcknowledged] = useState(false);
 
   return (
-    <Sheet>
-      <SheetTrigger
-        render={
-          <Button size="lg" disabled={!canManage}>
-            <UserPlusIcon />
-            Invite teammate
-          </Button>
-        }
-      />
-      <SheetContent
-        side="right"
-        className="w-[min(100vw,460px)] gap-0 overflow-y-auto border-l bg-background p-0 sm:max-w-[460px]"
-      >
-        <SheetHeader className="border-b px-6 py-5">
-          <SheetTitle className="text-xl font-semibold">
-            Invite teammate
-          </SheetTitle>
-          <SheetDescription>
-            Add one trusted internal teammate to this workspace.
-          </SheetDescription>
-        </SheetHeader>
-
-        <form action={formAction} className="space-y-6 px-6 py-6">
+    <form action={formAction} className="space-y-6 px-6 py-6">
           <div className="space-y-2">
             <Label htmlFor="team-email">Email address</Label>
             <Input
               id="team-email"
               name="email"
               type="email"
-              defaultValue="christian@blockbusters.tech"
               placeholder="name@company.com"
               autoComplete="email"
               required
@@ -201,7 +178,9 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
               }
             >
               <SelectTrigger className="h-10 w-full">
-                <SelectValue />
+                <SelectValue>
+                  {role === "org:admin" ? "Admin" : "Member"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="org:member">Member</SelectItem>
@@ -224,8 +203,8 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
               className="min-h-24 resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Clerk sends the secure invitation. Custom note delivery is coming
-              next.
+              Clerk sends the secure invitation. Personalized note delivery is
+              not included yet.
             </p>
           </div>
 
@@ -238,7 +217,7 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
             />
             <span className="text-xs leading-5 text-muted-foreground">
               I understand this teammate will receive workspace-wide access.
-              Client- scoped access is not enabled yet.
+              Client-scoped access is not enabled yet.
             </span>
           </label>
           {state.fieldErrors?.accessAcknowledged?.map((error) => (
@@ -265,15 +244,22 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
             </div>
           ) : null}
 
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full"
-            disabled={pending || !acknowledged}
-          >
-            <SendIcon />
-            {pending ? "Sending secure invite…" : "Send test invite"}
-          </Button>
+          {state.status === "success" ? (
+            <Button type="button" size="lg" className="w-full" onClick={onDone}>
+              <CheckCircle2Icon />
+              Done
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              disabled={pending || !acknowledged}
+            >
+              <SendIcon />
+              {pending ? "Sending invitation…" : "Send invitation"}
+            </Button>
+          )}
 
           <div className="border-t pt-6">
             <h3 className="mb-4 text-sm font-semibold">Role permissions</h3>
@@ -298,7 +284,46 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
               })}
             </div>
           </div>
-        </form>
+    </form>
+  );
+}
+
+function InviteDrawer({ canManage }: { canManage: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [formKey, setFormKey] = useState(0);
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+    if (!nextOpen) setFormKey((current) => current + 1);
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetTrigger
+        render={
+          <Button size="lg" disabled={!canManage}>
+            <UserPlusIcon />
+            Invite teammate
+          </Button>
+        }
+      />
+      <SheetContent
+        side="right"
+        className="w-[min(100vw,460px)] gap-0 overflow-y-auto border-l bg-background p-0 sm:max-w-[460px]"
+      >
+        <SheetHeader className="border-b px-6 py-5">
+          <SheetTitle className="text-xl font-semibold">
+            Invite teammate
+          </SheetTitle>
+          <SheetDescription>
+            Add one trusted internal teammate to this workspace.
+          </SheetDescription>
+        </SheetHeader>
+
+        <InviteForm
+          key={formKey}
+          onDone={() => handleOpenChange(false)}
+        />
       </SheetContent>
     </Sheet>
   );
