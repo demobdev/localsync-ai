@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -137,6 +138,16 @@ function initials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+function ResendInvitationButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" size="sm" variant="outline" disabled={pending}>
+      {pending ? "Sending new link\u2026" : "Send new link"}
+    </Button>
+  );
 }
 
 function InviteForm({ onDone }: { onDone: () => void }) {
@@ -597,9 +608,7 @@ export function TeamWorkspace({
                             name="invitationId"
                             value={invitation.id}
                           />
-                          <Button type="submit" size="sm" variant="outline">
-                            Send again
-                          </Button>
+                          <ResendInvitationButton />
                         </form>
                       ) : null}
                     </TableCell>

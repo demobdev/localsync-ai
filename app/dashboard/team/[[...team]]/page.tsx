@@ -5,6 +5,7 @@ import {
   type TeamInvitationView,
   type TeamMemberView,
 } from "@/components/team/team-workspace";
+import { visibleInvitationHistory } from "@/lib/team/invitation-flow";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "numeric",
@@ -58,15 +59,18 @@ export default async function TeamPage() {
     };
   });
 
-  const invitations: TeamInvitationView[] = invitationResponse.data.map(
-    (invitation) => ({
+  const invitations: TeamInvitationView[] = visibleInvitationHistory(
+    invitationResponse.data.map((invitation) => ({
       id: invitation.id,
       email: invitation.emailAddress,
-      role: invitation.role === "org:admin" ? "Admin" : "Member",
+      role:
+        invitation.role === "org:admin"
+          ? ("Admin" as const)
+          : ("Member" as const),
       status: invitation.status ?? "pending",
       sentAt: dateFormatter.format(new Date(invitation.createdAt)),
       expiresAt: dateFormatter.format(new Date(invitation.expiresAt)),
-    }),
+    })),
   );
 
   return (

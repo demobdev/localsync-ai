@@ -4,10 +4,14 @@ import type { Metadata } from "next";
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { TeamInvitationWelcome } from "@/components/team/team-invitation-welcome";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+  recentInvitationCutoff,
+  selectInvitationMembership,
+} from "@/lib/team/invitation-flow";
 
 export const metadata: Metadata = {
-  title: "Workspace invitation accepted",
-  description: "Open the LocalMap workspace you were invited to join.",
+  title: "Workspace invitation",
+  description: "Confirm the LocalMap workspace you were invited to join.",
 };
 
 export default async function TeamWelcomePage() {
@@ -23,11 +27,15 @@ export default async function TeamWelcomePage() {
     }),
   ]);
 
-  const membership =
-    membershipResponse.data.find(
-      (item) => item.organization.id === session.orgId,
-    ) ??
-    membershipResponse.data.toSorted((a, b) => b.createdAt - a.createdAt)[0];
+  const membership = selectInvitationMembership(
+    membershipResponse.data.map((item) => ({
+      membership: item,
+      organizationId: item.organization.id,
+      createdAt: item.createdAt,
+    })),
+    session.orgId,
+    recentInvitationCutoff(),
+  )?.membership;
 
   const email =
     user.primaryEmailAddress?.emailAddress ??
@@ -50,10 +58,13 @@ export default async function TeamWelcomePage() {
       ) : (
         <main className="mx-auto flex w-full max-w-xl flex-1 items-center px-4 py-16 text-center">
           <section className="w-full rounded-3xl border bg-card p-8 localmap-card-glow">
-            <h1 className="text-2xl font-semibold">No workspace found yet</h1>
+            <h1 className="text-2xl font-semibold">
+              Invitation not confirmed yet
+            </h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Open the latest invitation email and accept it with {email}. If
-              you already accepted, ask the workspace owner to resend it.
+              This account has not joined the invited workspace. Open the most
+              recent invitation email and finish with {email}. Older links stop
+              working after a new link is sent.
             </p>
           </section>
         </main>
