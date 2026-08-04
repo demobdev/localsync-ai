@@ -4,6 +4,8 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { buildOrganizationInvitation } from "@/lib/team/invitation-config";
+
 const inviteSchema = z.object({
   email: z.string().trim().email("Enter a valid email address"),
   role: z.enum(["org:admin", "org:member"]),
@@ -15,7 +17,9 @@ const inviteSchema = z.object({
 export type InviteTeamState = {
   status: "idle" | "success" | "error";
   message: string;
-  fieldErrors?: Partial<Record<"email" | "role" | "accessAcknowledged", string[]>>;
+  fieldErrors?: Partial<
+    Record<"email" | "role" | "accessAcknowledged", string[]>
+  >;
 };
 
 export async function inviteTeamMemberAction(
@@ -54,9 +58,6 @@ export async function inviteTeamMemberAction(
 
   const client = await clerkClient();
   const emailAddress = parsed.data.email.toLowerCase();
-  const publicAppUrl =
-    process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://app.localmap.co";
-
   const [memberships, invitations] = await Promise.all([
     client.organizations.getOrganizationMembershipList({
       organizationId: session.orgId,
@@ -89,18 +90,14 @@ export async function inviteTeamMemberAction(
   }
 
   try {
-    await client.organizations.createOrganizationInvitation({
-      organizationId: session.orgId,
-      emailAddress,
-      role: parsed.data.role,
-      inviterUserId: session.userId,
-      expiresInDays: 14,
-      redirectUrl: new URL("/dashboard", publicAppUrl).toString(),
-      publicMetadata: {
-        invitedFrom: "localmap-team",
-        accessScope: "workspace",
-      },
-    });
+    await client.organizations.createOrganizationInvitation(
+      buildOrganizationInvitation({
+        organizationId: session.orgId,
+        emailAddress,
+        role: parsed.data.role,
+        inviterUserId: session.userId,
+      }),
+    );
   } catch (error) {
     console.error("[team] invitation failed", error);
     return {
@@ -115,4 +112,43 @@ export async function inviteTeamMemberAction(
     status: "success",
     message: `Invitation sent to ${emailAddress}.`,
   };
+}
+
+export async function resendTeamInvitationAction(formData: FormData) {
+  const session = await auth();
+
+  if (!session.userId || !session.orgId || session.orgRole !== "org:admin") {
+    return;
+  }
+
+  const parsed = z
+    .string()
+    .startsWith("orginv_")
+    .safeParse(formData.get("invitationId"));
+  if (!parsed.success) return;
+
+  const client = await clerkClient();
+  const invitation = await client.organizations.getOrganizationInvitation({
+    organizationId: session.orgId,
+    invitationId: parsed.data,
+  });
+
+  if (invitation.status !== "pending") return;
+
+  await client.organizations.revokeOrganizationInvitation({
+    organizationId: session.orgId,
+    invitationId: invitation.id,
+    requestingUserId: session.userId,
+  });
+
+  await client.organizations.createOrganizationInvitation(
+    buildOrganizationInvitation({
+      organizationId: session.orgId,
+      emailAddress: invitation.emailAddress.toLowerCase(),
+      role: invitation.role as "org:admin" | "org:member",
+      inviterUserId: session.userId,
+    }),
+  );
+
+  revalidatePath("/dashboard/team");
 }

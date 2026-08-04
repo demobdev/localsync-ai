@@ -18,6 +18,7 @@ import {
 
 import {
   inviteTeamMemberAction,
+  resendTeamInvitationAction,
   type InviteTeamState,
 } from "@/app/actions/team";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -88,7 +89,8 @@ const initialInviteTeamState: InviteTeamState = {
 const roleDetails = [
   {
     name: "Owner",
-    description: "Controls billing, members, roles, and every workspace setting.",
+    description:
+      "Controls billing, members, roles, and every workspace setting.",
     icon: CrownIcon,
     color: "text-violet-500",
     surface: "bg-violet-500/10",
@@ -102,7 +104,8 @@ const roleDetails = [
   },
   {
     name: "Member",
-    description: "Works across clients and locations without managing the team.",
+    description:
+      "Works across clients and locations without managing the team.",
     icon: SparklesIcon,
     color: "text-amber-500",
     surface: "bg-amber-500/10",
@@ -148,7 +151,9 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
         className="w-[min(100vw,460px)] gap-0 overflow-y-auto border-l bg-background p-0 sm:max-w-[460px]"
       >
         <SheetHeader className="border-b px-6 py-5">
-          <SheetTitle className="text-xl font-semibold">Invite teammate</SheetTitle>
+          <SheetTitle className="text-xl font-semibold">
+            Invite teammate
+          </SheetTitle>
           <SheetDescription>
             Add one trusted internal teammate to this workspace.
           </SheetDescription>
@@ -208,7 +213,8 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
               className="min-h-24 resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Clerk sends the secure invitation. Custom note delivery is coming next.
+              Clerk sends the secure invitation. Custom note delivery is coming
+              next.
             </p>
           </div>
 
@@ -220,8 +226,8 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
               className="mt-0.5"
             />
             <span className="text-xs leading-5 text-muted-foreground">
-              I understand this teammate will receive workspace-wide access. Client-
-              scoped access is not enabled yet.
+              I understand this teammate will receive workspace-wide access.
+              Client- scoped access is not enabled yet.
             </span>
           </label>
           {state.fieldErrors?.accessAcknowledged?.map((error) => (
@@ -346,7 +352,10 @@ export function TeamWorkspace({
       <Tabs defaultValue="members" className="gap-4">
         <TabsList variant="line" className="h-10 gap-5 border-b">
           <TabsTrigger value="members" className="px-1">
-            Members <span className="text-xs text-muted-foreground">{members.length}</span>
+            Members{" "}
+            <span className="text-xs text-muted-foreground">
+              {members.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="invitations" className="px-1">
             Invitations
@@ -363,8 +372,9 @@ export function TeamWorkspace({
           <div>
             <p className="font-medium">Keep client access scoped.</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Internal teammates can join this workspace. Client accounts should wait
-              for location-level permissions instead of receiving full agency access.
+              Internal teammates can join this workspace. Client accounts should
+              wait for location-level permissions instead of receiving full
+              agency access.
             </p>
           </div>
         </div>
@@ -389,7 +399,9 @@ export function TeamWorkspace({
                   <TableHead>Access</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
-                  <TableHead className="w-12"><span className="sr-only">Actions</span></TableHead>
+                  <TableHead className="w-12">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -399,13 +411,19 @@ export function TeamWorkspace({
                       <div className="flex items-center gap-3">
                         <Avatar size="lg">
                           <AvatarImage src={member.imageUrl} alt="" />
-                          <AvatarFallback>{initials(member.name)}</AvatarFallback>
+                          <AvatarFallback>
+                            {initials(member.name)}
+                          </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="truncate font-medium">{member.name}</p>
+                            <p className="truncate font-medium">
+                              {member.name}
+                            </p>
                             {member.isCurrentUser ? (
-                              <span className="text-[11px] text-muted-foreground">You</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                You
+                              </span>
                             ) : null}
                           </div>
                           <p className="truncate text-xs text-muted-foreground">
@@ -415,19 +433,33 @@ export function TeamWorkspace({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={member.role === "Owner" ? "secondary" : "outline"}>
+                      <Badge
+                        variant={
+                          member.role === "Owner" ? "secondary" : "outline"
+                        }
+                      >
                         {member.role}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">All clients</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      All clients
+                    </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-2 text-sm">
-                        <span className="size-1.5 rounded-full bg-emerald-500" /> Active
+                        <span className="size-1.5 rounded-full bg-emerald-500" />{" "}
+                        Active
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{member.joinedAt}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {member.joinedAt}
+                    </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon-sm" disabled={!canManage || member.isCurrentUser} aria-label={`Manage ${member.name}`}>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={!canManage || member.isCurrentUser}
+                        aria-label={`Manage ${member.name}`}
+                      >
                         <MoreHorizontalIcon />
                       </Button>
                     </TableCell>
@@ -435,7 +467,10 @@ export function TeamWorkspace({
                 ))}
                 {visibleMembers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                    <TableCell
+                      colSpan={6}
+                      className="h-32 text-center text-muted-foreground"
+                    >
                       No teammates match that search.
                     </TableCell>
                   </TableRow>
@@ -455,25 +490,51 @@ export function TeamWorkspace({
                   <TableHead>Status</TableHead>
                   <TableHead>Sent</TableHead>
                   <TableHead>Expires</TableHead>
+                  <TableHead className="w-28">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {invitations.map((invitation) => (
                   <TableRow key={invitation.id}>
-                    <TableCell className="px-4 py-4 font-medium">{invitation.email}</TableCell>
+                    <TableCell className="px-4 py-4 font-medium">
+                      {invitation.email}
+                    </TableCell>
                     <TableCell>{invitation.role}</TableCell>
-                    <TableCell className="capitalize">{invitation.status}</TableCell>
-                    <TableCell className="text-muted-foreground">{invitation.sentAt}</TableCell>
-                    <TableCell className="text-muted-foreground">{invitation.expiresAt}</TableCell>
+                    <TableCell className="capitalize">
+                      {invitation.status}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {invitation.sentAt}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {invitation.expiresAt}
+                    </TableCell>
+                    <TableCell>
+                      {canManage && invitation.status === "pending" ? (
+                        <form action={resendTeamInvitationAction}>
+                          <input
+                            type="hidden"
+                            name="invitationId"
+                            value={invitation.id}
+                          />
+                          <Button type="submit" size="sm" variant="outline">
+                            Send again
+                          </Button>
+                        </form>
+                      ) : null}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {invitations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-36 text-center">
+                    <TableCell colSpan={6} className="h-36 text-center">
                       <div className="mx-auto max-w-sm">
                         <p className="font-medium">No invitations yet</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          Use one controlled internal test before inviting the rest of the team.
+                          Use one controlled internal test before inviting the
+                          rest of the team.
                         </p>
                       </div>
                     </TableCell>

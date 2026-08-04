@@ -6,8 +6,9 @@ import { WorkspaceSwitcher } from "@/components/dashboard/workspace-switcher";
 
 const setActive = vi.fn();
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean })
-  .IS_REACT_ACT_ENVIRONMENT = true;
+(
+  globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 vi.mock("@clerk/nextjs", () => ({
   useOrganization: () => ({
@@ -16,28 +17,27 @@ vi.mock("@clerk/nextjs", () => ({
   useOrganizationList: () => ({
     isLoaded: true,
     setActive,
-    userMemberships: {
-      data: [
-        {
-          id: "membership_restore",
-          role: "org:admin",
-          organization: {
-            id: "org_restore",
-            name: "Restore Heating & Cooling",
-          },
-        },
-        {
-          id: "membership_operations",
-          role: "org:member",
-          organization: {
-            id: "org_operations",
-            name: "LocalMap Operations",
-          },
-        },
-      ],
-    },
   }),
 }));
+
+const workspaces = [
+  {
+    organizationId: "org_restore",
+    name: "Restore Heating & Cooling",
+    slug: "restore-heating-cooling",
+    role: "org:admin",
+    businessCount: 2,
+    setupComplete: true,
+  },
+  {
+    organizationId: "org_operations",
+    name: "LocalMap Operations",
+    slug: "localmap-operations",
+    role: "org:member",
+    businessCount: 3,
+    setupComplete: true,
+  },
+];
 
 describe("WorkspaceSwitcher", () => {
   let container: HTMLDivElement;
@@ -56,10 +56,12 @@ describe("WorkspaceSwitcher", () => {
   });
 
   it("opens the authorized workspace menu without crashing", async () => {
-    await act(async () => root.render(<WorkspaceSwitcher />));
+    await act(async () =>
+      root.render(<WorkspaceSwitcher workspaces={workspaces} />),
+    );
 
-    const trigger = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Switch workspace"),
+    const trigger = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Switch workspace"),
     );
 
     expect(trigger).toBeDefined();

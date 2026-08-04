@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 import type { SwitcherBusiness } from "@/components/dashboard/business-switcher";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import type { WorkspaceOption } from "@/lib/org/workspace-options";
 
 export function DashboardLayoutGate({
   children,
@@ -12,6 +13,7 @@ export function DashboardLayoutGate({
   workspaceName,
   workspaceImageUrl,
   businesses,
+  workspaceOptions,
 }: {
   children: React.ReactNode;
   /** User has an org but no locations yet — onboarding only, no sidebar */
@@ -20,6 +22,7 @@ export function DashboardLayoutGate({
   workspaceName: string;
   workspaceImageUrl?: string | null;
   businesses?: SwitcherBusiness[];
+  workspaceOptions?: WorkspaceOption[];
 }) {
   const pathname = usePathname();
   const isOnboarding = pathname.startsWith("/dashboard/onboarding");
@@ -40,6 +43,7 @@ export function DashboardLayoutGate({
       workspaceName={workspaceName}
       workspaceImageUrl={workspaceImageUrl}
       businesses={businesses}
+      workspaceOptions={workspaceOptions}
     >
       {children}
     </DashboardShell>

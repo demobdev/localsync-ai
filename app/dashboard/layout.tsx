@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { eq, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -8,6 +8,7 @@ import { getDb } from "@/db";
 import { locations } from "@/db/schema";
 import { getOrganization } from "@/lib/auth/organizations";
 import { countOrgLocations } from "@/lib/org/locations";
+import { selectWorkspaceOptions } from "@/lib/org/workspace-options";
 
 export default async function DashboardLayout({
   children,
@@ -52,6 +53,25 @@ export default async function DashboardLayout({
     city: location.profile?.city ?? null,
   }));
 
+  const clerk = await clerkClient();
+  const membershipList = await clerk.users.getOrganizationMembershipList({
+    userId: session.userId,
+    limit: 100,
+  });
+  const membershipSummaries = await Promise.all(
+    membershipList.data.map(async (membership) => ({
+      organizationId: membership.organization.id,
+      name: membership.organization.name,
+      slug: membership.organization.slug,
+      role: membership.role,
+      businessCount: await countOrgLocations(membership.organization.id),
+    })),
+  );
+  const workspaceOptions = selectWorkspaceOptions({
+    memberships: membershipSummaries,
+    activeOrganizationId: session.orgId,
+  });
+
   return (
     <DashboardLayoutGate
       setupIncomplete={setupIncomplete}
@@ -59,6 +79,7 @@ export default async function DashboardLayout({
       workspaceName={organization?.name ?? "LocalSync workspace"}
       workspaceImageUrl={organization?.imageUrl ?? null}
       businesses={businesses}
+      workspaceOptions={workspaceOptions}
     >
       {children}
     </DashboardLayoutGate>

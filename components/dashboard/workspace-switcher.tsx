@@ -13,16 +13,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { WorkspaceOption } from "@/lib/org/workspace-options";
 
-export function WorkspaceSwitcher() {
+export function WorkspaceSwitcher({
+  workspaces,
+}: {
+  workspaces: WorkspaceOption[];
+}) {
   const { organization } = useOrganization();
-  const { userMemberships, isLoaded, setActive } = useOrganizationList({
-    userMemberships: { infinite: true },
-  });
+  const { isLoaded, setActive } = useOrganizationList();
 
-  const orgCount = userMemberships.data?.length ?? 0;
-
-  if (!isLoaded || orgCount <= 1) {
+  if (!isLoaded || workspaces.length <= 1) {
     return null;
   }
 
@@ -58,13 +59,12 @@ export function WorkspaceSwitcher() {
       <DropdownMenuContent side="top" align="start" className="w-64">
         <DropdownMenuGroup>
           <DropdownMenuLabel>Authorized workspaces</DropdownMenuLabel>
-          {userMemberships.data?.map((membership) => {
-            const item = membership.organization;
-            const active = item.id === organization?.id;
+          {workspaces.map((item) => {
+            const active = item.organizationId === organization?.id;
             return (
               <DropdownMenuItem
-                key={membership.id}
-                onClick={() => void switchWorkspace(item.id)}
+                key={item.organizationId}
+                onClick={() => void switchWorkspace(item.organizationId)}
                 className="gap-2 py-2"
               >
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -75,10 +75,14 @@ export function WorkspaceSwitcher() {
                     {item.name}
                   </span>
                   <span className="block text-[10px] capitalize text-muted-foreground">
-                    {membership.role.replace("org:", "")}
+                    {item.setupComplete
+                      ? `${item.businessCount} ${item.businessCount === 1 ? "business" : "businesses"}`
+                      : "Setup incomplete"}
                   </span>
                 </span>
-                {active ? <CheckIcon className="size-3.5 text-primary" /> : null}
+                {active ? (
+                  <CheckIcon className="size-3.5 text-primary" />
+                ) : null}
               </DropdownMenuItem>
             );
           })}

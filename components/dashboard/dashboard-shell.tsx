@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/sheet";
 import { getDashboardNav } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
+import type { WorkspaceOption } from "@/lib/org/workspace-options";
 
 function NavLink({
   href,
@@ -66,12 +67,14 @@ function SidebarContent({
   workspaceName,
   workspaceImageUrl,
   businesses,
+  workspaceOptions,
 }: {
   onNavigate?: () => void;
   isAgency: boolean;
   workspaceName: string;
   workspaceImageUrl?: string | null;
   businesses: SwitcherBusiness[];
+  workspaceOptions: WorkspaceOption[];
 }) {
   const pathname = usePathname();
   const navItems = getDashboardNav(isAgency);
@@ -143,7 +146,7 @@ function SidebarContent({
             <NavLink key={item.href} {...item} onNavigate={onNavigate} />
           ))}
         </nav>
-        <WorkspaceSwitcher />
+        <WorkspaceSwitcher workspaces={workspaceOptions} />
         <div className="flex items-center justify-between gap-2">
           <span className="text-xs text-muted-foreground">Account</span>
           <div className="flex items-center gap-1">
@@ -162,12 +165,14 @@ export function DashboardShell({
   workspaceName = "LocalSync workspace",
   workspaceImageUrl = null,
   businesses = [],
+  workspaceOptions = [],
 }: {
   children: React.ReactNode;
   isAgency?: boolean;
   workspaceName?: string;
   workspaceImageUrl?: string | null;
   businesses?: SwitcherBusiness[];
+  workspaceOptions?: WorkspaceOption[];
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -197,6 +202,7 @@ export function DashboardShell({
                   workspaceName={workspaceName}
                   workspaceImageUrl={workspaceImageUrl}
                   businesses={businesses}
+                  workspaceOptions={workspaceOptions}
                 />
               </div>
             </SheetContent>
@@ -212,6 +218,7 @@ export function DashboardShell({
               workspaceName={workspaceName}
               workspaceImageUrl={workspaceImageUrl}
               businesses={businesses}
+              workspaceOptions={workspaceOptions}
             />
           </div>
         </aside>
