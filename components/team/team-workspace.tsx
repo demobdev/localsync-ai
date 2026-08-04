@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 
 import {
-  initialInviteTeamState,
   inviteTeamMemberAction,
+  type InviteTeamState,
 } from "@/app/actions/team";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +78,11 @@ type TeamWorkspaceProps = {
   invitations: TeamInvitationView[];
   seatLimit: number;
   canManage: boolean;
+};
+
+const initialInviteTeamState: InviteTeamState = {
+  status: "idle",
+  message: "",
 };
 
 const roleDetails = [

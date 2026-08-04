@@ -18,11 +18,6 @@ export type InviteTeamState = {
   fieldErrors?: Partial<Record<"email" | "role" | "accessAcknowledged", string[]>>;
 };
 
-export const initialInviteTeamState: InviteTeamState = {
-  status: "idle",
-  message: "",
-};
-
 export async function inviteTeamMemberAction(
   _previousState: InviteTeamState,
   formData: FormData,
