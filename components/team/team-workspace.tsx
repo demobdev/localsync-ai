@@ -18,6 +18,7 @@ import {
 
 import {
   inviteTeamMemberAction,
+  removeTeamMemberAction,
   resendTeamInvitationAction,
   type InviteTeamState,
 } from "@/app/actions/team";
@@ -25,6 +26,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -293,6 +304,44 @@ function InviteDrawer({ canManage }: { canManage: boolean }) {
   );
 }
 
+function MemberActions({ member }: { member: TeamMemberView }) {
+  return (
+    <Dialog>
+      <DialogTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Manage ${member.name}`}
+          />
+        }
+      >
+        <MoreHorizontalIcon />
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Remove {member.name}?</DialogTitle>
+          <DialogDescription>
+            They will lose access to this workspace. You can invite them again
+            at any time.
+          </DialogDescription>
+        </DialogHeader>
+        <form action={removeTeamMemberAction}>
+          <input type="hidden" name="userId" value={member.userId} />
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>
+              Keep member
+            </DialogClose>
+            <Button type="submit" variant="destructive">
+              Remove member
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TeamWorkspace({
   workspaceName,
   members,
@@ -454,14 +503,18 @@ export function TeamWorkspace({
                       {member.joinedAt}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        disabled={!canManage || member.isCurrentUser}
-                        aria-label={`Manage ${member.name}`}
-                      >
-                        <MoreHorizontalIcon />
-                      </Button>
+                      {canManage && !member.isCurrentUser ? (
+                        <MemberActions member={member} />
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          disabled
+                          aria-label={`Manage ${member.name}`}
+                        >
+                          <MoreHorizontalIcon />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

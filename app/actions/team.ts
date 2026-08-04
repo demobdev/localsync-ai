@@ -152,3 +152,22 @@ export async function resendTeamInvitationAction(formData: FormData) {
 
   revalidatePath("/dashboard/team");
 }
+
+export async function removeTeamMemberAction(formData: FormData) {
+  const session = await auth();
+
+  if (!session.userId || !session.orgId || session.orgRole !== "org:admin") {
+    return;
+  }
+
+  const parsed = z.string().startsWith("user_").safeParse(formData.get("userId"));
+  if (!parsed.success || parsed.data === session.userId) return;
+
+  const client = await clerkClient();
+  await client.organizations.deleteOrganizationMembership({
+    organizationId: session.orgId,
+    userId: parsed.data,
+  });
+
+  revalidatePath("/dashboard/team");
+}
