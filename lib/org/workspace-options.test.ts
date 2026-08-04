@@ -19,7 +19,14 @@ describe("workspace switcher options", () => {
           name: "Restore Heating & Cooling LLC",
           slug: "restore-heating-cooling-legacy",
           role: "org:admin",
-          businessCount: 0,
+          businessCount: 1,
+        },
+        {
+          organizationId: "org_restore_duplicate",
+          name: "Restore Heating & Cooling, L.L.C.",
+          slug: "restore-heating-cooling-copy",
+          role: "org:admin",
+          businessCount: 1,
         },
         {
           organizationId: "org_localmap_ready",
