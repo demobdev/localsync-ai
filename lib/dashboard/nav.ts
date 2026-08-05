@@ -4,6 +4,7 @@ import {
   Download,
   LayoutDashboard,
   MapPin,
+  Settings,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -56,6 +57,12 @@ const billingNavItem: DashboardNavItem = {
   icon: CreditCard,
 };
 
+const settingsNavItem: DashboardNavItem = {
+  title: "Settings",
+  href: "/dashboard/settings",
+  icon: Settings,
+};
+
 export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
   const teamItem = teamNavItem;
 
@@ -65,6 +72,7 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
       ...baseDashboardNav.slice(1),
       teamItem,
       billingNavItem,
+      settingsNavItem,
     ];
   }
 
@@ -74,6 +82,7 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
     ...baseDashboardNav.slice(1),
     teamItem,
     billingNavItem,
+    settingsNavItem,
   ];
 }
 

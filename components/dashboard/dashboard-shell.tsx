@@ -80,11 +80,15 @@ function SidebarContent({
   const navItems = getDashboardNav(isAgency);
   const utilityItems = navItems.filter(
     (item) =>
-      item.href === "/dashboard/team" || item.href === "/dashboard/billing",
+      item.href === "/dashboard/team" ||
+      item.href === "/dashboard/billing" ||
+      item.href === "/dashboard/settings",
   );
   const primaryItems = navItems.filter(
     (item) =>
-      item.href !== "/dashboard/team" && item.href !== "/dashboard/billing",
+      item.href !== "/dashboard/team" &&
+      item.href !== "/dashboard/billing" &&
+      item.href !== "/dashboard/settings",
   );
   const activeBusiness = businesses.find((business) =>
     pathname.startsWith(`/dashboard/locations/${business.id}`),
