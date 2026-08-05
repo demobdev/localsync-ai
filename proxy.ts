@@ -46,7 +46,7 @@ export default clerkMiddleware(async (auth, req) => {
     !session.orgId &&
     !isOnboardingRoute(req)
   ) {
-    return NextResponse.redirect(new URL("/dashboard/onboarding", req.url));
+    return NextResponse.redirect(new URL("/welcome/team", req.url));
   }
 
   return nextWithPathname(req, pathname);

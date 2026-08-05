@@ -22,6 +22,25 @@ export function selectInvitationMembership<
   );
 }
 
+export function selectWorkspaceMembership<
+  T extends { organizationId: string; createdAt?: number },
+>(
+  memberships: T[],
+  organizationId: string | null | undefined,
+): T | undefined {
+  const activeMembership = organizationId
+    ? memberships.find(
+        (membership) => membership.organizationId === organizationId,
+      )
+    : undefined;
+
+  if (activeMembership) return activeMembership;
+
+  return [...memberships].sort(
+    (left, right) => (right.createdAt ?? 0) - (left.createdAt ?? 0),
+  )[0];
+}
+
 export function visibleInvitationHistory<T extends { status: string }>(
   invitations: T[],
 ): T[] {

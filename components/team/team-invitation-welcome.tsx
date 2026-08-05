@@ -18,11 +18,13 @@ export function TeamInvitationWelcome({
   organizationName,
   role,
   email,
+  isNewMembership,
 }: {
   organizationId: string;
   organizationName: string;
   role: string;
   email: string;
+  isNewMembership: boolean;
 }) {
   const { setActive, signOut } = useClerk();
   const [pending, setPending] = useState(false);
@@ -80,7 +82,7 @@ export function TeamInvitationWelcome({
             <CheckIcon className="size-6" />
           </div>
           <h1 className="mt-6 text-3xl font-semibold tracking-tight sm:text-4xl">
-            You joined {organizationName}.
+            {isNewMembership ? "You joined" : "Open"} {organizationName}.
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
             Your LocalMap workspace is ready. Open it now to see the shared

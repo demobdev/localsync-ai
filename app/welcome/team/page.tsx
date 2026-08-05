@@ -1,12 +1,15 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
 import { TeamInvitationWelcome } from "@/components/team/team-invitation-welcome";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { resolveDashboardEntry } from "@/lib/onboarding/dashboard-entry";
 import {
   recentInvitationCutoff,
   selectInvitationMembership,
+  selectWorkspaceMembership,
 } from "@/lib/team/invitation-flow";
 
 export const metadata: Metadata = {
@@ -27,15 +30,29 @@ export default async function TeamWelcomePage() {
     }),
   ]);
 
-  const membership = selectInvitationMembership(
-    membershipResponse.data.map((item) => ({
+  const memberships = membershipResponse.data.map((item) => ({
       membership: item,
       organizationId: item.organization.id,
       createdAt: item.createdAt,
-    })),
+    }));
+  const entry = resolveDashboardEntry({
+    hasWorkspace: memberships.length > 0,
+    hasActiveWorkspace: Boolean(session.orgId),
+  });
+
+  if (entry === "onboarding") redirect("/dashboard/onboarding");
+
+  const recentMembership = selectInvitationMembership(
+    memberships,
     session.orgId,
     recentInvitationCutoff(),
-  )?.membership;
+  );
+
+  if (entry === "dashboard" && !recentMembership) redirect("/dashboard");
+
+  const membership =
+    (recentMembership ??
+      selectWorkspaceMembership(memberships, session.orgId))?.membership;
 
   const email =
     user.primaryEmailAddress?.emailAddress ??
@@ -54,6 +71,7 @@ export default async function TeamWelcomePage() {
           organizationName={membership.organization.name}
           role={membership.role === "org:admin" ? "Workspace admin" : "Team member"}
           email={email}
+          isNewMembership={Boolean(recentMembership)}
         />
       ) : (
         <main className="mx-auto flex w-full max-w-xl flex-1 items-center px-4 py-16 text-center">

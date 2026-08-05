@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   recentInvitationCutoff,
   selectInvitationMembership,
+  selectWorkspaceMembership,
   visibleInvitationHistory,
 } from "@/lib/team/invitation-flow";
 
@@ -44,6 +45,21 @@ describe("team invitation flow", () => {
     expect(
       selectInvitationMembership(memberships, "org_restore", 900),
     ).toMatchObject({ organizationId: "org_restore" });
+  });
+
+  it("selects the newest membership when Clerk has no active workspace", () => {
+    const memberships = [
+      { organizationId: "org_restore", createdAt: 100 },
+      { organizationId: "org_biolight", createdAt: 200 },
+    ];
+
+    expect(selectWorkspaceMembership(memberships, null)).toMatchObject({
+      organizationId: "org_biolight",
+    });
+    expect(
+      selectWorkspaceMembership(memberships, "org_restore"),
+    ).toMatchObject({ organizationId: "org_restore" });
+    expect(selectWorkspaceMembership([], null)).toBeUndefined();
   });
 
   it("keeps revoked retry tokens out of the primary invitations table", () => {
