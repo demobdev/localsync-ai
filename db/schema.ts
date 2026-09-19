@@ -23,6 +23,10 @@ import type {
   KeywordResult,
   PageSpeedData,
 } from "@/lib/grader/types";
+import {
+  SUBMISSION_CAMPAIGN_STATUSES,
+  SUBMISSION_TARGET_STATUSES,
+} from "@/lib/publishers/campaign";
 import type { PublisherOperation } from "@/lib/publishers/delivery";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 
@@ -91,6 +95,16 @@ export const locationPublisherStatusEnum = pgEnum("location_publisher_status", [
   "manual",
   "unknown",
 ]);
+
+export const submissionCampaignStatusEnum = pgEnum(
+  "submission_campaign_status",
+  SUBMISSION_CAMPAIGN_STATUSES,
+);
+
+export const submissionTargetStatusEnum = pgEnum(
+  "submission_target_status",
+  SUBMISSION_TARGET_STATUSES,
+);
 
 export const manualTaskStatusEnum = pgEnum("manual_task_status", [
   "open",
@@ -394,6 +408,111 @@ export const locationPublishers = pgTable(
       table.locationId,
       table.publisherId,
     ),
+  ],
+);
+
+export const submissionCampaigns = pgTable(
+  "submission_campaigns",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    locationId: uuid("location_id")
+      .references(() => locations.id, { onDelete: "cascade" })
+      .notNull(),
+    status: submissionCampaignStatusEnum("status")
+      .notNull()
+      .default("active"),
+    profileSnapshot: jsonb("profile_snapshot")
+      .$type<LocationProfileSnapshot>()
+      .notNull(),
+    targetCount: integer("target_count").notNull().default(0),
+    createdByUserId: text("created_by_user_id"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("submission_campaigns_location_id_idx").on(table.locationId),
+    index("submission_campaigns_status_idx").on(table.status),
+    index("submission_campaigns_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const submissionTargets = pgTable(
+  "submission_targets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .references(() => submissionCampaigns.id, { onDelete: "cascade" })
+      .notNull(),
+    locationPublisherId: uuid("location_publisher_id")
+      .references(() => locationPublishers.id, { onDelete: "cascade" })
+      .notNull(),
+    publisherId: uuid("publisher_id")
+      .references(() => publishers.id, { onDelete: "cascade" })
+      .notNull(),
+    deliveryRail: publisherDeliveryRailEnum("delivery_rail").notNull(),
+    status: submissionTargetStatusEnum("status").notNull().default("planned"),
+    statusDetail: text("status_detail").notNull(),
+    nextAction: text("next_action").notNull(),
+    customerActionRequired: boolean("customer_action_required")
+      .notNull()
+      .default(false),
+    attemptCount: integer("attempt_count").notNull().default(0),
+    lastError: text("last_error"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    submittedAt: timestamp("submitted_at", { withTimezone: true }),
+    liveAt: timestamp("live_at", { withTimezone: true }),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("submission_targets_campaign_id_idx").on(table.campaignId),
+    index("submission_targets_publisher_id_idx").on(table.publisherId),
+    index("submission_targets_status_idx").on(table.status),
+    uniqueIndex("submission_targets_campaign_publisher_idx").on(
+      table.campaignId,
+      table.publisherId,
+    ),
+  ],
+);
+
+export const submissionEvents = pgTable(
+  "submission_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    campaignId: uuid("campaign_id")
+      .references(() => submissionCampaigns.id, { onDelete: "cascade" })
+      .notNull(),
+    targetId: uuid("target_id").references(() => submissionTargets.id, {
+      onDelete: "cascade",
+    }),
+    eventType: text("event_type").notNull(),
+    fromStatus: submissionTargetStatusEnum("from_status"),
+    toStatus: submissionTargetStatusEnum("to_status"),
+    message: text("message").notNull(),
+    evidenceUrl: text("evidence_url"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    actorUserId: text("actor_user_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("submission_events_campaign_id_idx").on(table.campaignId),
+    index("submission_events_target_id_idx").on(table.targetId),
+    index("submission_events_created_at_idx").on(table.createdAt),
   ],
 );
 

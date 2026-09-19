@@ -59,7 +59,7 @@ function GraderAuditHero({ claimContext }: { claimContext: AuditClaimContext }) 
         </div>
       </div>
       <p className="mt-3 text-sm text-muted-foreground">
-        Connect this audit to your LocalSync workspace to open your fix queue,
+        Connect this audit to your LocalMap workspace to open your fix queue,
         sync listings, and track improvement when you re-grade.
       </p>
     </div>
@@ -151,8 +151,8 @@ export function GraderClaimOnboarding({
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           {step === "account-type"
-            ? "How will you use LocalSync?"
-            : "Connect your audit to LocalSync"}
+            ? "How will you use LocalMap?"
+            : "Connect your audit to LocalMap"}
         </h1>
         <p className="mt-2 text-muted-foreground">
           {step === "account-type"

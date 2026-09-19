@@ -140,7 +140,7 @@ export default async function ReputationProductPage() {
       <MarketingHeader signedIn={signedIn} />
       <ProductFamilyNav active="reputation" />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(255,177,92,0.18),transparent_33%),radial-gradient(circle_at_82%_75%,rgba(32,201,181,0.18),transparent_30%)]" />
           <div className="localmap-grid absolute inset-0 opacity-[0.07]" />

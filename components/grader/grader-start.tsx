@@ -627,6 +627,7 @@ export function GraderStart({
           <SearchIcon className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-zinc-400" />
           <input
             name="business"
+            aria-label="Business name or website"
             required
             autoFocus
             autoComplete="off"

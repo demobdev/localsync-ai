@@ -1,5 +1,7 @@
 # Google Business Profile API access request
 
+> Historical instructions below are superseded by [the September 19 recovery report](plans/2026-09-19-listings-recovery-report.md). Use project `localsync-501521`, project number `249394741886`, and applicant `demo@localmap.co`. Do not reuse other project numbers or old case IDs from this document. Current approval and quota remain unverified. A zero quota requires Basic API access, not a quota-increase request.
+
 Submit this on **day 1** of Sprint 1. Approval often takes **2–6 weeks**, and write sync in Phase 2 depends on it.
 
 ## Why this is manual

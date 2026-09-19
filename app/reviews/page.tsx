@@ -34,7 +34,7 @@ export default async function ReviewsPage() {
     <div className="flex min-h-full flex-col bg-background">
       <MarketingHeader signedIn={Boolean(userId)} />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="border-b bg-gradient-to-b from-teal-50/70 to-background px-4 py-16 dark:from-teal-950/25 sm:px-6 sm:py-20">
           <div className="mx-auto grid max-w-6xl items-end gap-10 lg:grid-cols-[1.4fr_0.6fr]">
             <div>

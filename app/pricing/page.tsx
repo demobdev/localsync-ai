@@ -35,7 +35,7 @@ import {
 } from "@/lib/verticals/category-pack-catalog";
 
 export const metadata: Metadata = {
-  title: "Pricing | LocalMap",
+  title: "Listings Plans & Pricing",
   description:
     "Modular listing plans and category packs. Pay for the workflow your location needs, not an oversized directory bundle.",
 };
@@ -94,16 +94,16 @@ const COMPARISON_MATRIX: MatrixGroup[] = [
         pro: true,
       },
       {
-        feature: "Google, Apple, Bing, Facebook, Yelp + map graph",
+        feature: "Core publisher workflows (delivery varies)",
         basic: false,
         premium: true,
         pro: true,
       },
       {
-        feature: "Approve-first API profile sync",
+        feature: "Approved sync on supported connections",
         basic: false,
-        premium: true,
-        pro: true,
+        premium: "Requires active access",
+        pro: "Requires active access",
       },
       {
         feature: "Expanded publisher set",
@@ -175,13 +175,13 @@ const VALUE_PROPS = [
   },
   {
     icon: RadarIcon,
-    title: "Honest rails, no fake syndication",
+    title: "Clear publisher status",
     body: "Every publisher is labeled API, guided, manual, or audit-only. You always know what actually syncs versus what we verify.",
   },
   {
     icon: TrendingUpIcon,
     title: "Built for the AI search shift",
-    body: "Hosted machine-readable profiles, schema.org, and llms.txt so ChatGPT, Gemini, and Google AI cite accurate facts about your business.",
+    body: "Machine-readable profiles and structured business information help search tools understand your business. Inclusion in AI answers is not guaranteed.",
   },
   {
     icon: ShieldCheckIcon,
@@ -192,7 +192,7 @@ const VALUE_PROPS = [
 
 const FAQS = [
   {
-    q: "Why is LocalMap cheaper than Yext?",
+    q: "How is LocalMap priced?",
     a: "LocalMap separates the core listing workflow from optional Category Packs. Each location adds only the industry-specific fields, publishers, checks, and tasks it can actually use.",
   },
   {
@@ -201,7 +201,7 @@ const FAQS = [
   },
   {
     q: "Can I do everything manually on Basic?",
-    a: "Yes. Basic gives you the master profile, audits, NAP tracking, and per-publisher checklists. Premium and Pro automate the same work. The manual path never disappears.",
+    a: "Basic includes the business profile, audits, consistency tracking, and publisher checklists. Premium and Pro add supported workflows; automation requires publisher access and an authorized connection.",
   },
   {
     q: "What happens if I cancel?",
@@ -223,10 +223,10 @@ const FAQS = [
 
 function MatrixCell({ value }: { value: MatrixValue }) {
   if (value === true) {
-    return <CheckIcon className="mx-auto size-4 text-primary" />;
+    return <><CheckIcon aria-hidden="true" className="mx-auto size-4 text-primary" /><span className="sr-only">Included</span></>;
   }
   if (value === false) {
-    return <MinusIcon className="mx-auto size-4 text-muted-foreground/40" />;
+    return <><MinusIcon aria-hidden="true" className="mx-auto size-4 text-muted-foreground/40" /><span className="sr-only">Not included</span></>;
   }
   return (
     <span className="block text-center text-xs font-medium text-muted-foreground">
@@ -241,10 +241,10 @@ export default async function PricingPage() {
   const ctaHref = signedIn ? "/dashboard/billing" : "/sign-up";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="localmap-public flex min-h-full flex-col">
       <MarketingHeader signedIn={signedIn} />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="localmap-mesh relative overflow-hidden border-b">
           <div className="localmap-grid absolute inset-0 opacity-40" />
           <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-20">
@@ -259,9 +259,9 @@ export default async function PricingPage() {
               Pay for what your business needs. Nothing else.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
-              Every plan is per location, per month. Manual workflows are always
-              included. Upgrades buy automation, not access. Reputation lives
-              in Pro; Category Packs are +$15/location/mo.
+              One business profile on every plan. Add supported connections,
+              reporting, and review tools as you need them. Prices are per
+              location, per month.
             </p>
             <p className="mx-auto mt-4 text-sm text-muted-foreground">
               Trusted by local brands since 2016 ·{" "}
@@ -317,13 +317,17 @@ export default async function PricingPage() {
                     nativeButton={false}
                     render={<Link href={ctaHref} />}
                   >
-                    {signedIn ? "Choose plan" : "Start free"}
+                    {signedIn ? "Choose plan" : "Set up my listings"}
                     <ArrowRightIcon className="size-4" />
                   </Button>
                 </CardContent>
               </Card>
             ))}
           </div>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Publisher access and account verification are required for direct
+            updates. A plan does not activate an unavailable integration.
+          </p>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Premium and Pro include a 14-day free trial. Annual billing saves
             ~2 months.{" "}
@@ -347,8 +351,8 @@ export default async function PricingPage() {
                 Compare plans in detail
               </h2>
               <p className="mt-2 text-muted-foreground">
-                Every tier keeps the manual path. Upgrades unlock automation,
-                the major platforms, and the AI discovery layer.
+                Every tier keeps the manual path. Compare supported workflows,
+                connection requirements, and reporting tools below.
               </p>
             </div>
 
@@ -587,8 +591,8 @@ export default async function PricingPage() {
               Not sure which tier fits?
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              Run the free AI visibility scan. We&apos;ll show you exactly
-              what&apos;s broken and which plan fixes it.
+              Start with a free business check to review your public profile
+              before choosing a plan.
             </p>
             <Button
               size="lg"

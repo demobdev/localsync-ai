@@ -28,7 +28,7 @@ export default async function AboutPage() {
   return (
     <div className="flex min-h-full flex-col bg-background">
       <MarketingHeader signedIn={Boolean(userId)} />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative isolate overflow-hidden border-b">
           <div className="absolute inset-0">
             <Image

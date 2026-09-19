@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircleIcon, ArrowRightIcon } from "lucide-react";
+import { AlertCircleIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,8 +26,8 @@ export function AuditAlreadyClaimedCard({
         </div>
         <CardDescription>
           {businessName
-            ? `The visibility audit for ${businessName} is already connected to another LocalSync workspace.`
-            : "This visibility audit is already connected to another LocalSync workspace."}
+            ? `The visibility audit for ${businessName} is already connected to another LocalMap workspace.`
+            : "This visibility audit is already connected to another LocalMap workspace."}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">

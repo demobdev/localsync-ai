@@ -18,11 +18,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "LocalMap | Get Found Online",
+    default: "LocalMap | Business Listings Management",
     template: "%s | LocalMap",
   },
   description:
-    "Local Map Co. helps local brands get found. One master profile, honest listings across Google, Apple, Yelp, and more, plus reputation and AI visibility.",
+    "Manage your business details in one place. Review listing updates, complete publisher verification, and track what is actually live with LocalMap.",
   metadataBase: new URL("https://localmap.co"),
 };
 
@@ -34,6 +34,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${manrope.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >

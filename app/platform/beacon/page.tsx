@@ -128,7 +128,7 @@ export default async function BeaconPage() {
     <div className="flex min-h-full flex-col">
       <MarketingHeader signedIn={Boolean(session.userId)} />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {/* Hero */}
         <section className="localmap-mesh relative overflow-hidden border-b">
           <div className="localmap-grid absolute inset-0 opacity-40" />

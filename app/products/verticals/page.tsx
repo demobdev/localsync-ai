@@ -98,7 +98,7 @@ export default async function VerticalsProductPage() {
       <MarketingHeader signedIn={signedIn} />
       <ProductFamilyNav active="verticals" />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative overflow-hidden bg-[#071f2d] text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(32,201,181,0.20),transparent_34%),radial-gradient(circle_at_82%_70%,rgba(255,177,92,0.15),transparent_32%)]" />
           <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:52px_52px]" />

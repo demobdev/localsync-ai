@@ -20,7 +20,7 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#087e78]">
-            Master profile
+            Illustrative profile
           </p>
           <p className="font-semibold text-[#062f3a]">
             Your business · one source of truth
@@ -35,7 +35,7 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
             className="flex items-center justify-between rounded-lg border border-white/70 bg-white/80 px-3 py-2 shadow-[0_5px_18px_rgba(6,47,58,.04)]"
           >
             <span className="text-[#526d72]">{field}</span>
-            <span className="text-xs font-medium text-[#008b80]">Synced</span>
+            <span className="text-xs font-medium text-[#008b80]">Ready to review</span>
           </div>
         ))}
       </div>
@@ -55,7 +55,6 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
             <BrandIconBadge
               brand={brand}
               size={32}
-              showCheck
               className="border-[#9dcfc7]/45 bg-white/90 text-[#062f3a]"
             />
             <span className="text-center text-[10px] leading-tight text-[#587078]">
@@ -66,7 +65,7 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
       </div>
 
       <p className="mt-4 text-center text-xs text-[#526d72]">
-        Audits verify live listings · AI pages feed LLM crawlers
+        Example destinations · not live sync or guaranteed AI placement
       </p>
     </div>
   );

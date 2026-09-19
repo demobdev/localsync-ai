@@ -1,129 +1,170 @@
-import Image from "next/image";
+import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
+import { LISTING_PLANS } from "@/lib/billing/plan-catalog";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import {
+  ActivityIcon,
   ArrowRightIcon,
-  BadgeCheckIcon,
   CheckIcon,
-  EyeIcon,
-  LinkIcon,
+  ChevronDownIcon,
+  CircleCheckIcon,
+  PlugZapIcon,
+  RadarIcon,
+  SendIcon,
   ShieldCheckIcon,
+  StoreIcon,
+  UserCheckIcon,
+  UsersIcon,
 } from "lucide-react";
 
-import { MarketingFooter } from "@/components/marketing/marketing-footer";
-import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { PublisherIcon } from "@/components/brand/publisher-icon";
 import { Button } from "@/components/ui/button";
-import { HOMEPAGE_REVIEWS, SOCIAL_PRESENCE } from "@/lib/brand/external-reviews";
-import { CLIENT_ARCHIVE_WORK } from "@/lib/brand/texture-assets";
+import { cn } from "@/lib/utils";
 
-const productionHero = "/marketing/localmap-signal-main-street-hero.png";
+const campaignRows = [
+  {
+    name: "Google",
+    slug: "google-business-profile",
+    detail: "Connect the account that manages your listing",
+    status: "Connection required",
+    tone: "amber",
+  },
+  {
+    name: "Apple Maps",
+    slug: "apple-business-connect",
+    detail: "Owner confirmation required",
+    status: "Customer verification",
+    tone: "blue",
+  },
+  {
+    name: "Bing",
+    slug: "bing-places",
+    detail: "Review the publisher setup instructions",
+    status: "Guided setup",
+    tone: "violet",
+  },
+  {
+    name: "Yelp",
+    slug: "yelp",
+    detail: "Profile ready for your approval",
+    status: "Ready for review",
+    tone: "amber",
+  },
+  {
+    name: "Facebook",
+    slug: "facebook",
+    detail: "Watching the existing listing for drift",
+    status: "Monitoring",
+    tone: "teal",
+  },
+] as const;
 
 const workflow = [
   {
-    icon: LinkIcon,
-    step: "01",
-    title: "Connect the account",
-    body: "Authorize Google and choose the exact listing you manage. No pasted URL required for the direct workflow.",
+    number: "1",
+    icon: StoreIcon,
+    title: "Add your business",
+    body: "Start with a name or website.",
   },
   {
-    icon: EyeIcon,
-    step: "02",
-    title: "Review the truth",
-    body: "Compare every supported field against your Master Profile, then choose which direction each change should go.",
+    number: "2",
+    icon: ShieldCheckIcon,
+    title: "Approve the profile",
+    body: "Confirm the facts once.",
   },
   {
-    icon: BadgeCheckIcon,
-    step: "03",
-    title: "Verify the result",
-    body: "LocalMap re-reads the publisher after an update. Only a confirmed match earns the Live & synced label.",
+    number: "3",
+    icon: RadarIcon,
+    title: "Track every source",
+    body: "See what needs attention and what is verified.",
   },
 ] as const;
 
-const statuses = [
-  ["Connected", "The publisher account is authorized and the listing is linked."],
-  ["Needs review", "LocalMap found a real difference and is waiting for your decision."],
-  ["Pending verification", "An update was sent; the fresh publisher read has not confirmed it yet."],
-  ["Live & synced", "The listing is verified and every supported field matches."],
+const deliveryRails = [
+  { icon: PlugZapIcon, label: "Direct connection" },
+  { icon: UsersIcon, label: "Supported connections" },
+  { icon: SendIcon, label: "Managed submission" },
+  { icon: UserCheckIcon, label: "Customer verification" },
+  { icon: ActivityIcon, label: "Monitored" },
 ] as const;
 
-const plans = [
-  {
-    name: "Basic Listings",
-    description: "Citation cleanup on your own steam",
-    price: 19,
-    featured: false,
-    features: [
-      "Secondary + audit-only publishers",
-      "NAP consistency tracking",
-      "Manual & guided checklists",
-    ],
-  },
-  {
-    name: "Premium Listings",
-    description: "The majors, synced and monitored",
-    price: 49,
-    featured: true,
-    features: [
-      "Google, Apple, Bing, Facebook, Yelp + map graph",
-      "Approve-first profile sync",
-      "Visibility score & history",
-    ],
-  },
-  {
-    name: "Pro Listings",
-    description: "Automation + AI discovery layer",
-    price: 79,
-    featured: false,
-    features: [
-      "Analytics & duplicate detection",
-      "Expanded publisher set",
-      "AI visibility pages (/l/[id], llms.txt)",
-    ],
-  },
+const premiumPlan = LISTING_PLANS.find((plan) => plan.tier === "premium")!;
+
+const premiumFeatures = [
+  "One approved business profile",
+  "Publisher setup and verification guidance",
+  "Approve updates on supported connections",
+  "Listing checks and evidence history",
 ] as const;
 
-function ProfileStatusCard() {
+function statusClass(tone: (typeof campaignRows)[number]["tone"]) {
+  return cn(
+    "rounded-lg px-2.5 py-1.5 text-[11px] font-semibold",
+    tone === "amber" && "bg-amber-50 text-amber-800",
+    tone === "blue" && "bg-sky-50 text-sky-700",
+    tone === "violet" && "bg-violet-50 text-violet-700",
+    tone === "teal" && "bg-emerald-50 text-emerald-700",
+  );
+}
+
+function CampaignPreview() {
   return (
-    <div className="w-full max-w-sm rounded-[1.6rem] border border-white/15 bg-[#103e48]/80 p-5 text-white shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between">
+    <div className="overflow-hidden rounded-[1.35rem] border border-white/25 bg-white text-[#072d38] shadow-[0_30px_90px_rgba(0,0,0,.28)]">
+      <div className="flex items-center justify-between border-b px-4 py-4 sm:px-5">
         <div>
-          <p className="text-[0.65rem] font-bold tracking-[0.18em] text-cyan-200 uppercase">
-            Live status
+          <p className="text-base font-semibold tracking-tight">
+            Submission campaign
           </p>
-          <p className="mt-1 text-sm font-medium">Your business profile</p>
+          <p className="mt-0.5 text-[11px] text-slate-500">
+            Illustrative workflow · not live account data
+          </p>
         </div>
-        <div className="flex size-9 items-center justify-center rounded-full bg-lime-300 text-[#062f3a]">
-          <BadgeCheckIcon className="size-5" />
-        </div>
+        <span className="rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
+          Example
+        </span>
       </div>
-      <div className="mt-5 space-y-3">
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">Master Profile</p>
-              <p className="text-[0.68rem] text-white/45">Name, phone, hours, services</p>
-            </div>
-            <span className="rounded-full bg-white/10 px-2 py-1 text-[0.62rem] text-lime-200">
-              Approved
-            </span>
+
+      <div className="m-3 flex items-center justify-between gap-3 rounded-xl border bg-slate-50 px-3.5 py-3 sm:m-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[#062f3a] text-[#bef264]">
+            <StoreIcon className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">Master Profile</p>
+            <p className="truncate text-[11px] text-slate-500">
+              Your approved business facts
+            </p>
           </div>
         </div>
-        <div className="rounded-2xl border border-lime-200/20 bg-lime-200/5 p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">Google Business Profile</p>
-              <p className="text-[0.68rem] text-white/45">Re-read after the latest update</p>
-            </div>
-            <span className="rounded-full bg-lime-300 px-2 py-1 text-[0.62rem] font-semibold text-[#062f3a]">
-              Synced
-            </span>
-          </div>
-        </div>
+        <span className="flex shrink-0 items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700">
+          <CircleCheckIcon className="size-3" />
+          Approved
+        </span>
       </div>
-      <p className="mt-4 flex gap-2 text-[0.68rem] leading-relaxed text-white/45">
-        <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-cyan-200" />
-        “Live & synced” appears only after publisher verification.
-      </p>
+
+      <div className="divide-y border-t">
+        {campaignRows.map((publisher) => (
+          <div
+            key={publisher.slug}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_16px] sm:px-5"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <PublisherIcon slug={publisher.slug} badge size={32} />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{publisher.name}</p>
+                <p className="truncate text-[10px] text-slate-500 sm:text-[11px]">
+                  {publisher.detail}
+                </p>
+              </div>
+            </div>
+            <span className={statusClass(publisher.tone)}>
+              {publisher.status}
+            </span>
+            <ChevronDownIcon className="hidden size-3.5 text-slate-400 sm:block" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -131,242 +172,158 @@ function ProfileStatusCard() {
 export default async function HomePage() {
   const session = await auth();
   const signedIn = Boolean(session.userId);
-  const workspaceHref = signedIn ? "/dashboard" : "/sign-up";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="localmap-public min-h-full">
       <MarketingHeader signedIn={signedIn} />
-      <main className="flex-1">
-        <section className="relative isolate overflow-hidden bg-[#062f3a] text-white">
-          <Image
-            src={productionHero}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="-z-30 object-cover object-center"
-          />
-          <div className="absolute inset-0 -z-20 bg-[linear-gradient(90deg,#062f3a_0%,rgba(6,47,58,.96)_42%,rgba(6,47,58,.42)_100%)]" />
-          <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(6,47,58,.1),rgba(6,47,58,.2))]" />
-          <div className="mx-auto grid min-h-[620px] max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_.72fr] lg:px-8">
-            <div className="max-w-2xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-cyan-100/15 bg-white/8 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.18em] text-cyan-100 uppercase">
-                <span className="size-1.5 rounded-full bg-lime-300" />
-                Local business truth, everywhere
-              </p>
-              <h1 className="mt-6 max-w-xl text-5xl font-semibold tracking-[-0.055em] text-balance sm:text-6xl lg:text-7xl lg:leading-[0.94]">
-                Be the business the internet gets right.
-              </h1>
-              <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-                One approved profile keeps your Google listing accurate today—and
-                gives every other directory a clear source of truth tomorrow. You
-                see every difference. You approve every move.
-              </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button
-                  size="lg"
-                  className="rounded-full bg-lime-300 text-[#062f3a] hover:bg-lime-200"
-                  nativeButton={false}
-                  render={<Link href="/grader" />}
-                >
-                  Check my visibility
-                  <ArrowRightIcon className="size-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
-                  nativeButton={false}
-                  render={<Link href={workspaceHref} />}
-                >
-                  {signedIn ? "Open workspace" : "Create free workspace"}
-                </Button>
-              </div>
-              <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/55">
-                {["Google connected", "Approve every change", "Verified after sync"].map(
-                  (item) => (
-                    <span key={item} className="flex items-center gap-1.5">
-                      <CheckIcon className="size-3.5 text-cyan-200" />
-                      {item}
-                    </span>
-                  ),
-                )}
-              </div>
-            </div>
-            <div className="flex justify-center lg:justify-end">
-              <ProfileStatusCard />
-            </div>
-          </div>
-        </section>
+      <main id="main-content">
+      <section className="relative overflow-hidden bg-[#062f3a] text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(18,139,155,.18),transparent_35%)]" />
 
-        <section className="border-b bg-[#071f26] py-12 text-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200 uppercase">
-              Client work · recent + archive
+
+        <div className="relative mx-auto grid min-h-[690px] max-w-7xl items-center gap-12 px-4 pb-20 pt-12 sm:px-6 sm:pt-16 lg:grid-cols-2 lg:px-8 lg:pb-28 lg:pt-20">
+          <div className="max-w-2xl">
+            <h1 className="text-5xl font-semibold leading-[.98] tracking-[-0.055em] text-balance sm:text-6xl lg:text-[4rem]">
+              Get your business listed. Keep it right.
+            </h1>
+            <p className="mt-7 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
+              Keep your name, address, hours, and contact details in one place.
+              Review updates, follow each publisher’s next step, and see which
+              listings match your approved profile.
             </p>
-            <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-              <div>
-                <h2 className="text-3xl font-semibold tracking-tight">
-                  The work that built the playbook.
-                </h2>
-                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/50">
-                  Recent launches lead the reel, followed by selected projects
-                  from our earlier agency years. Every project adds something to
-                  the LocalMap playbook.
-                </p>
-              </div>
-              <p className="text-xs text-white/35">Swipe to explore client work</p>
-            </div>
-            <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:mx-0 xl:px-0">
-              {CLIENT_ARCHIVE_WORK.map((work) => (
-                <article
-                  key={work.src}
-                  className="group relative aspect-[4/3] w-[82vw] max-w-[390px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 sm:w-[320px] xl:w-[calc((100%-3rem)/4)] xl:max-w-none"
-                >
-                  <Image
-                    src={work.src}
-                    alt={work.alt}
-                    fill
-                    sizes="(max-width: 640px) 82vw, (max-width: 1279px) 320px, 25vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                  {"era" in work && work.era === "Recent" ? (
-                    <span className="absolute top-4 right-4 rounded-full border border-white/30 bg-lime-300 px-2.5 py-1 text-[0.62rem] font-bold tracking-[0.14em] text-[#062f3a] uppercase shadow-sm">
-                      Recent
-                    </span>
-                  ) : null}
-                  <div className="absolute inset-x-0 bottom-0 p-5">
-                    <p className="text-[0.65rem] font-bold tracking-[0.16em] text-cyan-200 uppercase">
-                      {work.kind}
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold">{work.client}</h3>
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/60">
-                      {work.caption}
-                    </p>
-                  </div>
-                </article>
-              ))}
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                nativeButton={false}
+                render={<Link href={signedIn ? "/dashboard" : "/sign-up"} />}
+                className="h-12 rounded-xl bg-[#bef264] px-6 text-[15px] font-semibold text-[#062f3a] hover:bg-[#d1fa87]"
+              >
+                {signedIn ? "Open your workspace" : "Set up my listings"}
+                <ArrowRightIcon className="size-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/grader" />}
+                className="h-12 rounded-xl border-cyan-300/60 bg-transparent px-6 text-[15px] font-semibold text-cyan-100 hover:bg-white/10 hover:text-white"
+              >
+                Check my business first
+              </Button>
             </div>
           </div>
-        </section>
 
-        <section className="border-b bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,.08),transparent_36%)]">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-            <div className="grid gap-12 lg:grid-cols-[.78fr_1.22fr]">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">A clearer workflow</p>
-                <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">
-                  One source of truth. Three deliberate moves.
-                </h2>
-                <p className="mt-5 max-w-lg leading-relaxed text-muted-foreground">
-                  Local listings software should remove uncertainty, not hide it.
-                  The product always tells you what is connected, what differs,
-                  what needs approval, and what has actually been verified.
-                </p>
-                <Link href="/products/listings" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                  Explore the listings workflow <ArrowRightIcon className="size-4" />
-                </Link>
+          <CampaignPreview />
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 h-10 origin-bottom-left -skew-y-1 bg-white sm:h-14" />
+      </section>
+
+      <section id="how-it-works" className="scroll-mt-8 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
+          <div className="max-w-4xl">
+            <h2 className="text-4xl font-semibold leading-[1.02] tracking-[-0.05em] text-balance sm:text-5xl lg:text-6xl">
+              One profile. Clear next steps. Proof of what changed.
+            </h2>
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+              Approve your business details, follow the setup for each publisher,
+              and keep a record of listing checks and approved changes.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-6">
+            {workflow.map((step, index) => (
+              <div key={step.title} className="relative">
+                <div className="flex items-center">
+                  <span className="flex size-14 items-center justify-center rounded-full border border-[#a3e635] text-[#062f3a]">
+                    <step.icon className="size-6" />
+                  </span>
+                  {index < workflow.length - 1 ? (
+                    <span className="ml-5 hidden h-px flex-1 bg-[#0b3a45]/40 md:block" />
+                  ) : null}
+                </div>
+                <div className="mt-7 flex items-start gap-3">
+                  <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#a3e635] text-[11px] font-bold text-[#062f3a]">
+                    {step.number}
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-semibold">{step.title}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{step.body}</p>
+                  </div>
+                </div>
               </div>
-              <ol className="grid gap-4 sm:grid-cols-3">
-                {workflow.map(({ icon: Icon, step, title, body }) => (
-                  <li key={step} className="rounded-[1.6rem] border bg-background/82 p-6 shadow-[0_18px_60px_rgba(8,52,60,.06)]">
-                    <div className="flex items-center justify-between">
-                      <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Icon className="size-5" /></div>
-                      <span className="text-xs font-bold tracking-[0.18em] text-muted-foreground/55">{step}</span>
-                    </div>
-                    <h3 className="mt-7 text-xl font-semibold">{title}</h3>
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
+            ))}
+          </div>
+
+          <div className="mt-16 grid overflow-hidden border-y sm:grid-cols-2 lg:grid-cols-5">
+            {deliveryRails.map((rail) => (
+              <div
+                key={rail.label}
+                className="flex items-center gap-3 border-b px-4 py-5 last:border-b-0 sm:border-r lg:border-b-0 lg:last:border-r-0"
+              >
+                <rail.icon className="size-5 shrink-0 text-[#0e9ab0]" />
+                <span className="text-sm font-semibold">{rail.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="scroll-mt-8 bg-[#062f3a] text-white">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
+          <div className="mx-auto max-w-4xl text-center">
+            <h2 className="text-4xl font-semibold leading-[1.04] tracking-[-0.05em] text-balance sm:text-5xl">
+              Start with listings. Upgrade when growth needs more.
+            </h2>
+            <p className="mx-auto mt-6 max-w-3xl text-base leading-relaxed text-white/65 sm:text-lg">
+              Premium Listings brings your business profile, supported connections,
+              listing checks, and next actions into one workspace. Automation
+              depends on publisher access and your account connection.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-12 grid max-w-4xl overflow-hidden rounded-2xl border border-cyan-300/45 md:grid-cols-[.72fr_1.28fr]">
+            <div className="flex flex-col justify-center border-b border-cyan-300/30 p-7 md:border-r md:border-b-0 sm:p-10">
+              <span className="flex size-16 items-center justify-center rounded-full border border-cyan-300 text-cyan-200">
+                <RadarIcon className="size-7" />
+              </span>
+              <h3 className="mt-7 text-2xl font-semibold">Premium Listings</h3>
+              <p className="mt-5 flex items-end gap-2">
+                <span className="text-6xl font-semibold tracking-[-0.06em]">${premiumPlan.priceMonthly}</span>
+                <span className="pb-2 text-lg text-white/70">/ month</span>
+              </p>
+              <p className="mt-2 text-sm text-white/55">per business location</p>
+            </div>
+            <div className="p-7 sm:p-10">
+              <ul className="space-y-4">
+                {premiumFeatures.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3 text-sm sm:text-base">
+                    <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-cyan-300 text-cyan-200">
+                      <CheckIcon className="size-3" />
+                    </span>
+                    {feature}
                   </li>
                 ))}
-              </ol>
+              </ul>
+              <Button
+                nativeButton={false}
+                render={<Link href={signedIn ? "/dashboard" : "/sign-up"} />}
+                className="mt-8 h-12 w-full rounded-xl bg-[#bef264] px-6 text-base font-semibold text-[#062f3a] hover:bg-[#d1fa87]"
+              >
+                {signedIn ? "Open your workspace" : "Set up my listings"}
+                <ArrowRightIcon className="size-4" />
+              </Button>
+              <Link
+                href="/pricing"
+                className="mt-5 block text-center text-sm font-medium text-cyan-200 underline underline-offset-4"
+              >
+                Compare all plans
+              </Link>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="border-b bg-[#082b34] text-white">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-            <p className="text-xs font-semibold tracking-[0.18em] text-lime-200 uppercase">Honest by design</p>
-            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Statuses that mean something.</h2>
-            <p className="mt-5 max-w-2xl text-white/55">
-              You should never have to guess whether “done” means connected,
-              submitted, or actually correct. LocalMap makes the state visible.
-            </p>
-            <div className="mt-10 grid gap-px overflow-hidden rounded-[1.6rem] bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
-              {statuses.map(([title, body]) => (
-                <div key={title} className="bg-[#082b34] p-6 sm:p-7">
-                  <BadgeCheckIcon className="size-5 text-lime-300" />
-                  <h3 className="mt-5 font-semibold">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-white/55">{body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Proof from business owners</p>
-                <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Getting found changes the conversation.</h2>
-                <p className="mt-4 text-muted-foreground">
-                  Real feedback from the client relationships that shaped our local search playbook. {SOCIAL_PRESENCE.bark.rating}/5 across {SOCIAL_PRESENCE.bark.reviewCount} Bark reviews.
-                </p>
-              </div>
-              <Link href="/reviews" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">Read all proof <ArrowRightIcon className="size-4" /></Link>
-            </div>
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              {HOMEPAGE_REVIEWS.slice(0, 3).map((review) => (
-                <figure key={`${review.author}-${review.date}`} className="rounded-[1.6rem] border bg-card p-6">
-                  <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">{"★".repeat(review.stars)} · {review.source}</p>
-                  <blockquote className="mt-5 leading-relaxed">“{review.quote}”</blockquote>
-                  <figcaption className="mt-5 text-sm font-semibold">{review.author}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b bg-muted/30">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-            <div className="text-center">
-              <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Start at the right depth</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Clear plans. No enterprise maze.</h2>
-              <p className="mx-auto mt-5 max-w-2xl text-muted-foreground">Begin with visibility and manual tools, or unlock direct sync and deeper automation when the workflow earns it.</p>
-            </div>
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
-              {plans.map((plan) => (
-                <div key={plan.name} className={`relative flex flex-col rounded-[1.6rem] border bg-card p-6 ${plan.featured ? "ring-2 ring-primary" : ""}`}>
-                  {plan.featured && <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Best place to start</span>}
-                  <h3 className="text-xl font-semibold">{plan.name}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-                  <p className="mt-6"><span className="text-4xl font-semibold tracking-tight">${plan.price}</span><span className="text-sm text-muted-foreground">/location/mo</span></p>
-                  <ul className="mt-6 flex-1 space-y-3 text-sm text-muted-foreground">
-                    {plan.features.map((feature) => <li key={feature} className="flex items-start gap-2.5"><CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" /><span>{feature}</span></li>)}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <div className="mt-7 text-center"><Button variant="outline" className="rounded-full" nativeButton={false} render={<Link href="/pricing" />}>Compare every plan <ArrowRightIcon className="size-4" /></Button></div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="relative isolate overflow-hidden rounded-[2rem] bg-[#062f3a] px-6 py-12 text-white shadow-[0_30px_90px_rgba(8,52,60,.18)] sm:px-10 sm:py-16 lg:px-14">
-            <Image src={productionHero} alt="" fill sizes="1280px" className="-z-20 object-cover object-[72%_center] opacity-55" />
-            <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#062f3a_0%,rgba(6,47,58,.98)_34%,rgba(6,47,58,.55)_72%,rgba(6,47,58,.3)_100%)]" />
-            <div className="max-w-2xl">
-              <p className="text-xs font-semibold tracking-[0.2em] text-cyan-200 uppercase">See what the internet sees</p>
-              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">Start with your real business.</h2>
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/68">Run a free visibility check, find the facts that drifted, and turn the result into one clear next move.</p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button className="rounded-full bg-lime-300 text-[#062f3a] hover:bg-lime-200" nativeButton={false} render={<Link href="/grader" />}>Check my visibility <ArrowRightIcon className="size-4" /></Button>
-                <Button variant="outline" className="rounded-full border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white" nativeButton={false} render={<Link href={workspaceHref} />}>{signedIn ? "Open workspace" : "Create free workspace"}</Button>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <MarketingFooter />
     </div>

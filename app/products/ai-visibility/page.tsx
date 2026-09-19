@@ -117,7 +117,7 @@ export default async function AiVisibilityProductPage() {
       <MarketingHeader signedIn={signedIn} />
       <ProductFamilyNav active="ai-visibility" />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(135,116,255,0.20),transparent_34%),radial-gradient(circle_at_80%_80%,rgba(32,201,181,0.17),transparent_30%)]" />
           <div className="localmap-grid absolute inset-0 opacity-[0.07]" />

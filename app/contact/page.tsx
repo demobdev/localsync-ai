@@ -18,7 +18,7 @@ export default async function ContactPage() {
   return (
     <div className="flex min-h-full flex-col bg-background">
       <MarketingHeader signedIn={Boolean(userId)} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-14 sm:px-6">
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-4 py-14 sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
           {COMPANY.brandName}
         </p>

@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 export function LocalMapLogo({
   className,
   compact = false,
+  tone = "auto",
 }: {
   className?: string;
   compact?: boolean;
+  tone?: "auto" | "light" | "dark";
 }) {
   if (compact) {
     return (
@@ -33,7 +35,7 @@ export function LocalMapLogo({
         src="/brand/lmc-logo-long.png"
         alt="LocalMap.Co"
         fill
-        className="object-contain object-left dark:hidden"
+        className={cn("object-contain object-left", tone === "light" ? "hidden" : tone === "auto" ? "dark:hidden" : "")}
         sizes="168px"
         priority
       />
@@ -41,7 +43,7 @@ export function LocalMapLogo({
         src="/brand/lmc-logo-long-white.png"
         alt="LocalMap.Co"
         fill
-        className="hidden object-contain object-left dark:block"
+        className={cn("object-contain object-left", tone === "light" ? "" : tone === "auto" ? "hidden dark:block" : "hidden")}
         sizes="168px"
         priority
       />

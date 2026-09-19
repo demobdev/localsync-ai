@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const RAIL_LABELS: Record<string, { label: string; className: string }> = {
   api: {
-    label: "API",
+    label: "Access required",
     className: "border-primary/30 bg-primary/10 text-primary",
   },
   guided_import: {
@@ -47,12 +47,12 @@ export function PublisherNetworkGrid() {
           Publisher network
         </p>
         <h2 className="mt-2 text-3xl font-bold tracking-tight">
-          Tracked everywhere customers search, honestly labeled
+          See how each publisher is managed
         </h2>
         <p className="mt-4 text-muted-foreground">
-          Every location auto-tracks 20+ directories. We label each rail (API,
-          guided import, manual, or audit-only) so you always know what syncs
-          vs what we verify.
+          These are supported workflow types, not a count of live integrations.
+          Connect an account or add a listing URL to begin. Direct Google
+          updates require approved API access and account authorization.
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export function PublisherNetworkGrid() {
               key={slug}
               className="localmap-card-glow group flex flex-col items-center gap-3 rounded-2xl border bg-card p-4 text-center transition-transform hover:-translate-y-1"
             >
-              <PublisherIcon slug={slug} badge size={36} showCheck />
+              <PublisherIcon slug={slug} badge size={36} />
               <div className="space-y-1.5">
                 <p className="text-sm font-medium leading-tight">
                   {meta?.shortName ?? brand.label}

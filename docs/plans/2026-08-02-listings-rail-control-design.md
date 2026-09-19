@@ -82,3 +82,26 @@ This slice is complete when:
 3. the Listings UI uses truthful customer-facing labels and next actions;
 4. unit tests cover label and action derivation;
 5. typecheck, tests, lint, build, desktop, and mobile browser checks pass.
+
+## Submission control-plane slice
+
+The next implementation slice adds durable campaign orchestration without
+claiming delivery that has not happened externally:
+
+- `submission_campaigns` snapshots the approved Master Profile and records the
+  campaign lifecycle for one location;
+- `submission_targets` creates one publisher job with a frozen delivery rail,
+  honest state, next action, and external outcome timestamps;
+- `submission_events` records routing, customer approval, delivery, errors, and
+  evidence as an append-only activity ledger;
+- customer approval moves a job only to `approved`. It does not mark the job
+  submitted, live, or verified;
+- managed approvals create a fulfillment task, while approval-gated APIs remain
+  blocked until production access is active;
+- known public URLs enter monitoring, not submission, until verification
+  evidence supports a stronger state.
+
+The migration is intentionally additive and lives at
+`db/migrations/20260802_submission_campaign_control_plane.sql`. It should be
+applied as the reviewed migration itself, rather than through a broad remote
+schema diff.

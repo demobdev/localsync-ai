@@ -78,7 +78,7 @@ export function publisherDeliveryLabel(
     case "partner_network":
       return "Partner-distributed";
     case "managed_submission":
-      return "LocalSync-managed";
+      return "LocalMap-managed";
     case "customer_action":
       return "Customer verification";
     case "monitor_only":
@@ -92,21 +92,21 @@ export function publisherDeliveryDescription(
 ): string {
   switch (state.deliveryRail) {
     case "first_party_direct":
-      return "LocalSync can publish approved changes and verify them against the live listing.";
+      return "LocalMap can publish approved changes and verify them against the live listing.";
     case "approval_gated_direct":
       if (state.approvalStatus === "production") {
-        return "LocalSync can publish after the business authorizes this publisher.";
+        return "LocalMap can publish after the business authorizes this publisher.";
       }
-      return "The publisher supports automation, but LocalSync must finish partner approval before writes can begin.";
+      return "The publisher supports automation, but LocalMap must finish partner approval before writes can begin.";
     case "partner_network":
-      return "An approved distribution partner delivers updates while LocalSync tracks status and evidence.";
+      return "An approved distribution partner delivers updates while LocalMap tracks status and evidence.";
     case "managed_submission":
-      return "LocalSync prepares and manages the submission; the publisher may still review it before publication.";
+      return "LocalMap prepares and manages the submission; the publisher may still review it before publication.";
     case "customer_action":
       return "The publisher requires the business owner to complete a claim or verification step.";
     case "monitor_only":
     default:
-      return "LocalSync can discover and monitor this listing but does not claim direct write access.";
+      return "LocalMap can discover and monitor this listing but does not claim direct write access.";
   }
 }
 

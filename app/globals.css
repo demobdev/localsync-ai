@@ -117,6 +117,34 @@
   --sidebar-ring: oklch(0.72 0.14 175);
 }
 
+/* The public listings experience has one palette, independent of workspace theme. */
+.localmap-public {
+  color-scheme: light;
+  --background: #f7faf9;
+  --foreground: #072d38;
+  --card: #ffffff;
+  --card-foreground: #072d38;
+  --popover: #ffffff;
+  --popover-foreground: #072d38;
+  --primary: #176553;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4f0;
+  --secondary-foreground: #072d38;
+  --muted: #edf4f0;
+  --muted-foreground: #53676b;
+  --accent: #e8f5d4;
+  --accent-foreground: #072d38;
+  --border: #dce7e3;
+  --input: #cbdad4;
+  --ring: #176553;
+  background: var(--background);
+  color: var(--foreground);
+}
+.localmap-public :focus-visible {
+  outline: 2px solid #3e8c77;
+  outline-offset: 4px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,193 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDownIcon, MenuIcon } from "lucide-react";
+import { MenuIcon, XIcon } from "lucide-react";
 import { useState } from "react";
-
+import { usePathname } from "next/navigation";
 import { LocalMapLogo } from "@/components/brand/localmap-logo";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
-const PRODUCT_LINKS = [
-  { href: "/products/listings", label: "Listings", note: "Sync & audits" },
-  {
-    href: "/products/reputation",
-    label: "Reputation",
-    note: "Included in Pro",
-  },
-  {
-    href: "/products/ai-visibility",
-    label: "AI Visibility",
-    note: "Citation network",
-  },
-  {
-    href: "/products/verticals",
-    label: "Vertical Networks",
-    note: "+$15/mo add-ons",
-  },
-];
-
-const MOBILE_NAV = [
+const links = [
   { href: "/products/listings", label: "Listings" },
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/grader", label: "Free visibility audit" },
-  { href: "/reviews", label: "Reviews" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-  { href: "/platform/beacon", label: "Beacon agent" },
+  { href: "/grader", label: "Free business check" },
 ];
 
-export function MarketingHeader({
-  signedIn,
-}: {
-  signedIn: boolean;
-}) {
+export function MarketingHeader({ signedIn }: { signedIn: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-
+  const pathname = usePathname();
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link href="/" className="min-w-0">
-          <LocalMapLogo />
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/products/listings" />}
-          >
-            Listings
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="sm" />}
-            >
-              Products
-              <ChevronDownIcon className="size-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {PRODUCT_LINKS.map((item) => (
-                <DropdownMenuItem
-                  key={item.href}
-                  render={<Link href={item.href} />}
-                  className="flex-col items-start gap-0 py-1.5"
-                >
-                  <span className="font-medium">{item.label}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.note}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/pricing" />}
-          >
-            Pricing
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/about" />}
-          >
-            About
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/reviews" />}
-          >
-            Reviews
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            nativeButton={false}
-            render={<Link href="/grader" />}
-          >
-            Free audit
-          </Button>
+    <header className="relative z-40 border-b border-white/10 bg-[#062f3a] text-white">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-white focus:p-3 focus:text-[#062f3a]">Skip to content</a>
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link href="/" aria-label="LocalMap home"><LocalMapLogo tone="light" /></Link>
+        <nav aria-label="Main navigation" className="hidden items-center gap-6 text-sm lg:flex">
+          {links.map((link) => <Link key={link.href} href={link.href} aria-current={pathname === link.href ? "page" : undefined} className="rounded-sm text-white/80 underline-offset-8 hover:text-white aria-[current=page]:underline">{link.label}</Link>)}
         </nav>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <ThemeToggle />
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              className="md:hidden"
-              render={
-                <Button variant="outline" size="icon-sm" aria-label="Open menu">
-                  <MenuIcon className="size-4" />
-                </Button>
-              }
-            />
-            <SheetContent side="right" className="w-[min(100vw-2rem,320px)]">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-              </SheetHeader>
-              <nav className="mt-4 flex flex-col gap-1">
-                {MOBILE_NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-xl px-3 py-2.5 text-sm font-medium hover:bg-muted"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                <div className="my-2 border-t" />
-                {PRODUCT_LINKS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="rounded-xl px-3 py-2 text-sm hover:bg-muted"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          {signedIn ? (
-            <Button nativeButton={false} render={<Link href="/dashboard" />}>
-              Dashboard
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                nativeButton={false}
-                render={<Link href="/sign-in" />}
-                className="hidden sm:inline-flex"
-              >
-                Sign in
-              </Button>
-              <Button nativeButton={false} render={<Link href="/sign-up" />}>
-                Get started
-              </Button>
-            </>
-          )}
+        <div className="flex items-center gap-3">
+          {!signedIn && <Link href="/sign-in" className="hidden text-sm text-white/80 hover:text-white sm:inline-flex">Sign in</Link>}
+          <Link href={signedIn ? "/dashboard" : "/sign-up"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#bef264] px-4 text-sm font-semibold text-[#062f3a] hover:bg-[#d1fa87]">{signedIn ? "Open workspace" : "Get started"}</Link>
+          <button type="button" aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen} aria-controls="marketing-mobile-nav" onClick={() => setMobileOpen(!mobileOpen)} className="flex size-11 items-center justify-center rounded-xl border border-white/25 lg:hidden">
+            {mobileOpen ? <XIcon className="size-5" /> : <MenuIcon className="size-5" />}
+          </button>
         </div>
       </div>
+      <nav id="marketing-mobile-nav" aria-label="Mobile navigation" hidden={!mobileOpen} className="border-t border-white/15 px-4 pb-4 lg:hidden">
+        {links.map((link) => <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} className="block rounded-lg px-3 py-3 text-sm text-white/90 hover:bg-white/10">{link.label}</Link>)}
+        {!signedIn && <Link href="/sign-in" onClick={() => setMobileOpen(false)} className="block rounded-lg px-3 py-3 text-sm text-white/90 hover:bg-white/10">Sign in</Link>}
+      </nav>
     </header>
   );
 }

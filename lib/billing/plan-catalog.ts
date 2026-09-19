@@ -21,7 +21,7 @@ export const LISTING_PLANS: PlanDefinition[] = [
     slug: "basic_listings",
     name: "Basic Listings",
     priceMonthly: 19,
-    tagline: "Citation cleanup on your own steam",
+    tagline: "Build a consistent business profile",
     highlights: [
       "Secondary + audit-only publishers",
       "NAP consistency tracking",
@@ -34,10 +34,10 @@ export const LISTING_PLANS: PlanDefinition[] = [
     slug: "premium_listings",
     name: "Premium Listings",
     priceMonthly: 49,
-    tagline: "The majors, synced and monitored",
+    tagline: "Manage connections, updates, and evidence",
     highlights: [
-      "Google, Apple, Bing, Facebook, Yelp + map graph",
-      "Approve-first profile sync",
+      "Core publisher workflows in one workspace",
+      "Approved sync on available connections",
       "Visibility score & history",
       "Everything in Basic",
     ],
@@ -47,7 +47,7 @@ export const LISTING_PLANS: PlanDefinition[] = [
     slug: "pro_listings",
     name: "Pro Listings",
     priceMonthly: 79,
-    tagline: "Automation + AI discovery layer",
+    tagline: "Add reporting, reviews, and discovery",
     highlights: [
       "Analytics & duplicate detection",
       "Expanded publisher set",

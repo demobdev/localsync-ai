@@ -28,8 +28,10 @@ import {
   updateListingUrlAction,
 } from "@/app/actions/audits";
 import type { GoogleImportState } from "@/app/actions/google-import";
+import type { LatestSubmissionCampaign } from "@/app/actions/listing-campaigns";
 import { createChecklistTasksAction } from "@/app/actions/tasks";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
+import { SubmissionCampaignPanel } from "@/components/listings/submission-campaign-panel";
 import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -189,6 +191,7 @@ export function AutomatedListingsWorkspace({
   listingConsistencyScore,
   listingHealthScore,
   canSync,
+  submissionCampaign,
 }: {
   locationId: string;
   profile: LocationProfileSnapshot;
@@ -199,6 +202,7 @@ export function AutomatedListingsWorkspace({
   listingConsistencyScore: number;
   listingHealthScore: number;
   canSync: boolean;
+  submissionCampaign: LatestSubmissionCampaign | null;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<PublisherFilter>("all");
@@ -265,13 +269,18 @@ export function AutomatedListingsWorkspace({
     (row) => row.deliveryRail === "monitor_only",
   ).length;
 
+  const campaignVerifiedCount =
+    submissionCampaign?.targets.filter((target) => target.status === "verified")
+      .length ?? 0;
   const currentStep = !profileReady
     ? 0
-    : !googleConnected
+    : publisherRows.length === 0
       ? 1
-      : !listingMatched
-        ? 2
-        : 3;
+    : !submissionCampaign
+      ? 2
+      : campaignVerifiedCount < submissionCampaign.targetCount
+        ? 3
+        : 4;
 
   const primaryAction = !profileReady
     ? {
@@ -279,38 +288,18 @@ export function AutomatedListingsWorkspace({
         href: `/dashboard/locations/${locationId}`,
         note: "Add the core facts publishers need before connecting an account.",
       }
-    : !googleConnected
+    : !submissionCampaign
       ? {
-          label: "Connect Google account",
-          href: "/dashboard/connect/google",
-          note: "Authorize the account that owns or manages this listing.",
+          label: "Start submission campaign",
+          href: "#submission-campaign",
+          note:
+            "Google is one optional source. Route the Master Profile across every available delivery rail.",
         }
-      : googleConnectionError
-        ? {
-            label: "Resolve Google access",
-            href: "/dashboard/connect/google",
-            note: googleConnectionError.message,
-          }
-        : !listingMatched
-          ? {
-              label: "Choose your Google listing",
-              href: "/dashboard/connect/google",
-              note: "Confirm which publisher record belongs to this Master Profile.",
-            }
-          : !liveAndSynced
-            ? {
-                label: "Review & approve differences",
-                href: "/dashboard/connect/google",
-                note:
-                  googleVerification?.mismatchedFields.length
-                    ? `${googleVerification.mismatchedFields.length} supported field${googleVerification.mismatchedFields.length === 1 ? "" : "s"} still ${googleVerification.mismatchedFields.length === 1 ? "differs" : "differ"}.`
-                    : "The fields match, but Google ownership still needs verification.",
-              }
-            : {
-                label: "Review publisher health",
-                href: "#publisher-health",
-                note: "Google is verified. Review managed coverage and recent checks.",
-              };
+      : {
+          label: "Review campaign actions",
+          href: "#submission-campaign",
+          note: `${submissionCampaign.targetCount} publisher jobs are classified by what LocalSync can truthfully deliver.`,
+        };
 
   function publisherStatus(row: PublisherRow): string {
     if (row.publisherSlug === GOOGLE_SLUG) {
@@ -556,19 +545,19 @@ export function AutomatedListingsWorkspace({
               <div className="mb-3 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white/80">
                   <SparklesIcon className="size-3.5 text-emerald-300" />
-                  Automated listings
+                  Listings control plane
                 </span>
                 <span className="text-xs text-white/50">
-                  Google first · every status verified
+                  Truthful delivery · evidence at every step
                 </span>
               </div>
               <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-                One profile. One connection. No guesswork.
+                One approved profile. Every available listing rail.
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">
-                Approve your business facts once. LocalSync compares them with
-                Google, sends only the changes you approve, and verifies the
-                result before calling anything synced.
+                LocalSync discovers the business, routes each publisher through
+                the delivery method we actually control, and shows the proof
+                before anything is called submitted, live, or verified.
               </p>
             </div>
 
@@ -603,23 +592,35 @@ export function AutomatedListingsWorkspace({
             />
             <ProgressStep
               index={2}
-              label="Connect account"
-              description={googleConnected ? "Google authorized" : "OAuth required"}
-              done={googleConnected}
+              label="Discover sources"
+              description={`${publisherRows.length} publishers classified`}
+              done={publisherRows.length > 0}
               current={currentStep === 1}
             />
             <ProgressStep
               index={3}
-              label="Confirm listing"
-              description={listingMatched ? "Publisher ID linked" : "Choose the right record"}
-              done={listingMatched}
+              label="Start campaign"
+              description={
+                submissionCampaign
+                  ? `${submissionCampaign.targetCount} durable jobs created`
+                  : "Create one job per publisher"
+              }
+              done={Boolean(submissionCampaign)}
               current={currentStep === 2}
             />
             <ProgressStep
               index={4}
               label="Approve & verify"
-              description={liveAndSynced ? "Live values match" : "Review every difference"}
-              done={liveAndSynced}
+              description={
+                submissionCampaign
+                  ? `${campaignVerifiedCount}/${submissionCampaign.targetCount} verified live`
+                  : "Review every external outcome"
+              }
+              done={
+                submissionCampaign !== null &&
+                submissionCampaign.targetCount > 0 &&
+                campaignVerifiedCount === submissionCampaign.targetCount
+              }
               current={currentStep === 3}
             />
           </ol>
@@ -735,6 +736,14 @@ export function AutomatedListingsWorkspace({
             </Button>
           </CardContent>
         </Card>
+      </section>
+
+      <section id="submission-campaign" className="scroll-mt-6">
+        <SubmissionCampaignPanel
+          locationId={locationId}
+          sourceCount={publisherRows.length}
+          campaign={submissionCampaign}
+        />
       </section>
 
       <Card id="publisher-health" className="localmap-card-glow scroll-mt-6">

@@ -5,6 +5,7 @@ import {
   listLocationPublishersAction,
 } from "@/app/actions/audits";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
+import { getLatestSubmissionCampaignAction } from "@/app/actions/listing-campaigns";
 import { getLocationAction } from "@/app/actions/locations";
 import { AutomatedListingsWorkspace } from "@/components/listings/automated-listings-workspace";
 import { getWorkspacePlan } from "@/lib/billing/plans";
@@ -23,6 +24,7 @@ export default async function LocationListingsPage({
     workspace,
     scoreBreakdown,
     googleState,
+    submissionCampaign,
   ] = await Promise.all([
     getLocationAction(locationId),
     listLocationPublishersAction(locationId),
@@ -32,6 +34,10 @@ export default async function LocationListingsPage({
     getGoogleImportStateAction().catch((error) => {
       console.error("[listings] Google state failed:", error);
       return { status: "not_connected" as const };
+    }),
+    getLatestSubmissionCampaignAction(locationId).catch((error) => {
+      console.error("[listings] Submission campaign state failed:", error);
+      return null;
     }),
   ]);
 
@@ -50,6 +56,7 @@ export default async function LocationListingsPage({
       listingConsistencyScore={scoreBreakdown?.auditScore ?? 0}
       listingHealthScore={scoreBreakdown?.total ?? 0}
       canSync={workspace.features.apiSync}
+      submissionCampaign={submissionCampaign}
     />
   );
 }

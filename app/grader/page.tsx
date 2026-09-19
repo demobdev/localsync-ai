@@ -11,29 +11,30 @@ import {
 
 import { GraderStart } from "@/components/grader/grader-start";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { parseGraderModelParam } from "@/lib/onboarding/routing";
 
 export const metadata: Metadata = {
-  title: "Free Local Visibility Grader | LocalMap",
+  title: "Free Business Check",
   description:
-    "See where customers are finding your competitors instead of you. Free local visibility & revenue leak audit: 44 factors, Google rankings, page speed, and your Business Profile.",
+    "Find your business on Google and check its public profile, reviews, and website before setting up your listings workspace.",
 };
 
 const PROOF_POINTS = [
   {
     icon: SearchCheckIcon,
-    title: "44 factors reviewed",
-    body: "SEO, page speed, Google Business Profile, reviews, and local rankings, scored like Google sees them.",
+    title: "Your public profile",
+    body: "Start with the business details customers see on Google. Confirm the right location before running a check.",
   },
   {
     icon: MapPinIcon,
     title: "Competitor comparison",
-    body: "See exactly who outranks you in the map pack for the searches that bring in customers.",
+    body: "Review available local search evidence alongside nearby businesses. Coverage depends on the data returned.",
   },
   {
     icon: TrendingDownIcon,
-    title: "Revenue leak estimate",
-    body: "A dollar figure on what invisible rankings cost you every month, and the plan to fix it.",
+    title: "A clear next step",
+    body: "Use the findings to prioritize profile corrections and listing setup in your LocalMap workspace.",
   },
 ];
 
@@ -47,10 +48,10 @@ export default async function GraderPage({
   const addBusiness = params.add === "1";
 
   return (
-    <div className="flex min-h-full flex-col bg-[#faf7ef]">
+    <div className="localmap-public flex min-h-full flex-col">
       <MarketingHeader signedIn={Boolean(session.userId)} />
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {session.userId ? (
           <div className="border-b border-black/5 bg-white/70">
             <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
@@ -72,21 +73,23 @@ export default async function GraderPage({
             <div className="mb-8 space-y-4 text-center">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/20 bg-emerald-600/10 px-3 py-1 text-sm font-medium text-emerald-700">
                 <BarChart3Icon className="size-3.5" />
-                Free local visibility audit
+                Free business check
               </span>
               <h1 className="text-4xl font-bold tracking-tight text-zinc-900 sm:text-5xl">
-                See where customers are finding your{" "}
-                <span className="text-emerald-700">competitors</span> instead of
-                you.
+                Start with what customers see.
               </h1>
               <p className="mx-auto max-w-xl text-lg text-zinc-600">
-                Search your business on Google, the same way customers find you
-                today. We&apos;ll grade your visibility and show where revenue
-                is leaking.
+                Find your business on Google, confirm the right location, and
+                check its public profile, reviews, and website. Nothing is
+                changed or published during this check.
               </p>
             </div>
 
             <GraderStart initialModel={initialModel} addBusiness={addBusiness} />
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              Ready to manage your listings?{" "}
+              <Link href={session.userId ? "/dashboard" : "/sign-up"} className="font-semibold text-primary underline underline-offset-4">Set up your workspace</Link>
+            </p>
           </div>
         </section>
 
@@ -107,6 +110,7 @@ export default async function GraderPage({
           </div>
         </section>
       </main>
+      <MarketingFooter />
     </div>
   );
 }

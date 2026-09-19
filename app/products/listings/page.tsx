@@ -16,7 +16,6 @@ import {
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { ProductFamilyNav } from "@/components/marketing/product-family-nav";
 import { DistributionFlowVisual } from "@/components/marketing/distribution-visuals";
 import { PublisherNetworkGrid } from "@/components/marketing/publisher-network-grid";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,7 @@ import { LISTING_PLANS } from "@/lib/billing/plan-catalog";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Listings Management | LocalMap",
+  title: "Listings Management",
   description:
     "One master profile, a direct Google connection, and evidence-backed workflows across the publishers that shape local discovery.",
 };
@@ -36,8 +35,8 @@ const PROOF_POINTS = [
     body: "A versioned master profile is the source of truth for Google and every guided, manual, or audit-only publisher workflow.",
   },
   {
-    title: "Honest rails, not fake syndication",
-    body: "Every publisher is labeled API, guided, manual, or audit-only. You always know what actually syncs versus what we verify.",
+    title: "Know how each listing is managed",
+    body: "See which publishers support connected updates, which need your help, and which can be checked through a public listing URL.",
   },
   {
     title: "Evidence with every audit",
@@ -62,7 +61,7 @@ const FEATURES = [
     category: "Approve-first sync",
     icon: WorkflowIcon,
     title: "Nothing publishes without your approval",
-    body: "AI drafts profile updates; you review and approve; we execute. Premium unlocks direct API sync to the majors, always through the same approve-first gate. No surprise edits, ever.",
+    body: "AI drafts profile updates; you review and approve; we execute. Direct updates are available only where publisher access and your account connection are active. No surprise edits, ever.",
   },
   {
     category: "Audits",
@@ -94,8 +93,8 @@ const FAQS = [
     a: "Every publisher in your workspace is labeled by how updates actually reach it: API (direct write), guided (we prep, you submit), manual (checklist), or audit-only (we verify what's live). No pretending everything syncs automatically when it doesn't.",
   },
   {
-    q: "How is this different from Yext Listings?",
-    a: "Yext sells bundled annual tiers ($199–$999/yr) funneled through a sales demo, and claims 200+ integrations without telling you which ones actually accept API writes. LocalMap is self-serve and month-to-month, labels every rail honestly, and includes audits with screenshot evidence on every tier, starting at $19/mo.",
+    q: "Does every publisher update automatically?",
+    a: "No. Some connections support approved updates; others require publisher verification, guided setup, or manual work. Monitoring checks what is public. Your workspace shows the method and next action for each listing.",
   },
   {
     q: "Which publishers are covered?",
@@ -117,12 +116,11 @@ export default async function ListingsProductPage() {
   const primaryHref = signedIn ? "/dashboard" : "/sign-up";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="localmap-public flex min-h-full flex-col">
       <MarketingHeader signedIn={signedIn} />
-      <ProductFamilyNav active="listings" />
 
-      <main className="flex-1">
-        <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
+      <main id="main-content" className="flex-1">
+        <section className="relative overflow-hidden border-b border-white/10 bg-[#062f3a] text-white">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(32,201,181,0.20),transparent_35%),radial-gradient(circle_at_85%_80%,rgba(89,153,255,0.14),transparent_30%)]" />
           <div className="localmap-grid absolute inset-0 opacity-[0.07]" />
           <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
@@ -136,21 +134,21 @@ export default async function ListingsProductPage() {
                   Listings · the core product
                 </Badge>
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
-                  Listings management with nothing to hide
+                  One place to keep your business details right
                 </h1>
                 <p className="text-lg leading-relaxed text-white/68 sm:text-xl">
-                  One master profile, a direct Google connection, and a clear
-                  workflow for every other publisher—with the delivery rail
-                  labeled before the work begins.
+                  Approve your business details once. Connect supported accounts,
+                  follow publisher setup steps, and review evidence of what is
+                  actually live.
                 </p>
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <Button
                     size="lg"
-                    className="bg-[#67e3d5] text-[#062b31] hover:bg-[#91eee4]"
+                    className="bg-[#bef264] text-[#062f3a] hover:bg-[#d1fa87]"
                     nativeButton={false}
                     render={<Link href={primaryHref} />}
                   >
-                    {signedIn ? "Open workspace" : "Start free workspace"}
+                    {signedIn ? "Open workspace" : "Set up my listings"}
                     <ArrowRightIcon className="size-4" />
                   </Button>
                   <Button
@@ -239,8 +237,8 @@ export default async function ListingsProductPage() {
             </h2>
             <p className="mt-4 text-muted-foreground">
               Every tier includes the master profile, audits, and NAP tracking.
-              Upgrades buy the major platforms, approve-first API sync, and the
-              AI discovery layer.
+              Higher tiers add supported connection workflows, reporting,
+              and discovery tools. Publisher availability is shown separately.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -287,8 +285,7 @@ export default async function ListingsProductPage() {
               <ArrowRightIcon className="size-4" />
             </Button>
             <p className="text-sm text-muted-foreground">
-              Yext&apos;s equivalent bundles run $199–$999/yr, annual only,
-              demo required.
+              Direct updates depend on publisher approval and an active connection.
             </p>
           </div>
         </section>
@@ -298,22 +295,21 @@ export default async function ListingsProductPage() {
             <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  vs Yext Listings
+                  Designed around your business
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                  Same architecture. Different honesty policy.
+                  Every update has a clear next step.
                 </h2>
                 <p className="mt-4 text-muted-foreground">
-                  Yext pioneered the master-profile model. We kept the
-                  architecture and dropped the opacity. No aggregator claims
-                  without rail labels, no pricing behind a demo, no annual
-                  lock-in.
+                  Start with one approved profile. Review differences, complete
+                  publisher verification when needed, and keep the evidence
+                  together as your listings change.
                 </p>
               </div>
               <ul className="space-y-3 text-sm">
                 {[
                   "Every publisher rail labeled: API, guided, manual, or audit-only",
-                  "Month-to-month from $19; Yext starts at $199/yr for secondary directories only",
+                  "Published plans from $19 per location per month",
                   "Audits ship screenshot evidence, not just a verifier verdict",
                   "Approve-first sync on every automated change",
                 ].map((item) => (

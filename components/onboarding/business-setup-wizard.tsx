@@ -37,7 +37,7 @@ const copyByMode = {
     description:
       "These approved facts become the source of truth for every connected publisher.",
     nameLabel: "Business name *",
-    namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
+    namePlaceholder: "e.g. LocalMap or Smith Heating & Cooling",
     submitIdle: "Save Master Profile",
     submitWithWorkspace: "Save Master Profile",
   },
@@ -55,7 +55,7 @@ const copyByMode = {
     description:
       "Create one source of truth before connecting a publisher account.",
     nameLabel: "Business name *",
-    namePlaceholder: "e.g. LocalSync or Smith Heating & Cooling",
+    namePlaceholder: "e.g. LocalMap or Smith Heating & Cooling",
     submitIdle: "Save Master Profile",
     submitWithWorkspace: "Save Master Profile",
   },
