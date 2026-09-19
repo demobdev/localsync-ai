@@ -2,6 +2,14 @@
 
 Reviewed September 19, 2026. Local preview: http://localhost:3002/
 
+## PC handoff / next-phase update
+
+The cohesion checkpoint was subsequently committed as `c851a17` and pushed to `origin/codex/listings-cohesion`. It passed `npm run build`. The initial-review sections below describe the earlier local-only state.
+
+The next-phase hardening checks all three required campaign tables instead of treating one existing table as a complete migration. Regression coverage includes every table-presence combination, an empty result, and a database outage. This is a table-presence guard, not a schema compatibility check or proof of actual publisher delivery.
+
+Follow [PC setup instructions](../pc-handoff.md). Local screenshots and pre-existing asset deletions are intentionally excluded from the handoff. Google access verification, authenticated/responsive acceptance, and the reviewed migration remain open; no live database or publisher state was changed.
+
 ## Executive assessment
 
 The simplified listings proposition is the right center of the product: **one approved business profile, clear next steps for each publisher, and evidence of what changed**. The app has substantial implementation already; it is not yet verified as an operational end-to-end publishing service. Avoid presenting publisher logos, paid tiers, or illustrative status cards as proof of live distribution.

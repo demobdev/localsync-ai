@@ -1,4 +1,6 @@
-# LocalSync AI
+# LocalMap
+
+The current listings-focused experience is on `codex/listings-cohesion`. For an existing-project checkout, follow the [PC handoff](docs/pc-handoff.md), not the original infrastructure bootstrap below. See the [recovery report](docs/plans/2026-09-19-listings-recovery-report.md) for current launch gates.
 
 The AI-readable local presence platform for home services.
 
@@ -13,7 +15,9 @@ LocalSync AI is a standalone Vercel-native SaaS for HVAC, plumbing, restoration,
 - shadcn/ui + Tailwind CSS v4
 - Vercel Blob, PostHog, Resend, AI SDK (wired for later sprints)
 
-## Setup
+## Original infrastructure bootstrap (not required for a second computer)
+
+Do not create duplicate services, push schema, or seed the shared database just to run this project on another computer. Review the target environment and migrations separately.
 
 1. Copy env template:
 
@@ -45,7 +49,7 @@ npm run dev
 npm run dev:jobs
 ```
 
-5. **GBP API access:** submitted 2026-07-13 (Gift a Story dogfood, case `0-0182000041521`) — see [docs/gbp-api-request.md](docs/gbp-api-request.md). Pre-optimization snapshot: [docs/gift-a-story-baseline.md](docs/gift-a-story-baseline.md).
+5. **GBP API access:** current project is `localsync-501521` (`249394741886`); approval remains unverified. See [the current recovery report](docs/plans/2026-09-19-listings-recovery-report.md). The Gift a Story material is historical, not the current application.
 
 ## Scripts
 

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -20,6 +20,7 @@ import {
   type SubmissionTargetStatus,
 } from "@/lib/publishers/campaign";
 import type { PublisherDeliveryRail } from "@/lib/publishers/delivery";
+import { isSubmissionCampaignStorageReady } from "@/lib/publishers/campaign-storage";
 
 const locationIdSchema = z.string().uuid();
 const approveTargetSchema = z.object({
@@ -47,14 +48,6 @@ async function assertLocationInOrg(locationId: string, orgId: string) {
 function revalidateCampaignPaths(locationId: string) {
   revalidatePath(`/dashboard/locations/${locationId}/listings`);
   revalidatePath("/dashboard/tasks");
-}
-
-async function isSubmissionCampaignStorageReady() {
-  const result = await getDb().execute<{ relation: string | null }>(
-    sql`select to_regclass('public.submission_campaigns')::text as relation`,
-  );
-
-  return Boolean(result.rows[0]?.relation);
 }
 
 async function requireSubmissionCampaignStorage() {
