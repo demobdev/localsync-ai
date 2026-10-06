@@ -1,11 +1,15 @@
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { buildOperatingModelSetupSteps } from "@/lib/profile/model-setup-steps";
-import { buildGraderFixSteps, buildGraderTaskQueueStep } from "@/lib/grader/location-audit-bridge";
+import {
+  buildGraderFixSteps,
+  buildGraderTaskQueueStep,
+} from "@/lib/grader/location-audit-bridge";
 import type { AuditCheck } from "@/lib/grader/types";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { computeProfileScore } from "@/lib/visibility/score";
 
-export type SetupPhase = "audit" | "profile" | "connect" | "visibility" | "reviews";
+export type SetupPhase =
+  "audit" | "profile" | "connect" | "visibility" | "reviews";
 
 export type SetupStep = {
   id: string;
@@ -69,6 +73,8 @@ export function buildConnectionSteps(input: {
   locationId: string;
   googleConnected: boolean;
   googleCanImport: boolean;
+  googleListingLinked?: boolean;
+  googleListingReady?: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
   listingAuditScore?: number;
@@ -77,6 +83,8 @@ export function buildConnectionSteps(input: {
     locationId,
     googleConnected,
     googleCanImport,
+    googleListingLinked = false,
+    googleListingReady = false,
     listingUrlsConfigured,
     auditRunsCompleted,
     listingAuditScore = 0,
@@ -96,13 +104,23 @@ export function buildConnectionSteps(input: {
     {
       id: "import-google",
       phase: "connect",
-      title: "Confirm listing and review differences",
-      description: googleCanImport
-        ? "Choose the correct record and approve each field direction"
-        : "Available once Google API quota is approved",
-      done: false,
-      href: "/dashboard/connect/google",
-      optional: !googleCanImport,
+      title: googleListingReady
+        ? "Google listing confirmed"
+        : googleListingLinked
+          ? "Review Google listing status"
+          : "Confirm listing and review differences",
+      description: googleListingReady
+        ? "Your saved Google listing is verified and matches the Master Profile"
+        : googleListingLinked
+          ? "Your listing is linked. Review remaining differences or verification needs in Listings"
+          : googleCanImport
+            ? "Choose the correct record and approve each field direction"
+            : "Check Google connection status before choosing a listing",
+      done: googleListingReady,
+      href: googleListingLinked
+        ? `/dashboard/locations/${locationId}/listings`
+        : "/dashboard/connect/google",
+      optional: !googleCanImport && !googleListingLinked,
     },
     {
       id: "listing-urls",
@@ -241,6 +259,8 @@ export function buildLocationSetupProgress(input: {
   graderOpenTaskCount?: number;
   googleConnected: boolean;
   googleCanImport: boolean;
+  googleListingLinked?: boolean;
+  googleListingReady?: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
   listingAuditScore?: number;
@@ -287,6 +307,8 @@ export function buildLocationSetupProgress(input: {
       locationId: input.locationId,
       googleConnected: input.googleConnected,
       googleCanImport: input.googleCanImport,
+      googleListingLinked: input.googleListingLinked,
+      googleListingReady: input.googleListingReady,
       listingUrlsConfigured: input.listingUrlsConfigured,
       auditRunsCompleted: input.auditRunsCompleted,
       listingAuditScore: input.listingAuditScore,

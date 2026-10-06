@@ -85,3 +85,20 @@ describe("Google connection integration", () => {
     });
   });
 });
+
+describe("Google account and location pagination", () => {
+  it("includes later pages of accounts and locations", async () => {
+    const fetchMock = vi.fn().mockImplementation(async (input: string) => {
+      const url = new URL(input);
+      if (url.hostname.includes("accountmanagement")) return Response.json(url.searchParams.has("pageToken") ? { accounts: [{ name: "accounts/2" }] } : { accounts: [{ name: "accounts/1" }], nextPageToken: "accounts-next" });
+      if (url.hostname.includes("businessinformation")) {
+        if (url.pathname.includes("accounts/2")) return Response.json({ locations: [{ name: "locations/3", title: "Third" }] });
+        return Response.json(url.searchParams.has("pageToken") ? { locations: [{ name: "locations/2", title: "Second" }] } : { locations: [{ name: "locations/1", title: "First" }], nextPageToken: "locations-next" });
+      }
+      return Response.json({ hasVoiceOfMerchant: true, hasBusinessAuthority: true });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const result = await fetchGbpLocationsSafe("test-token");
+    expect(result.ok && result.locations.map((location) => location.title)).toEqual(["First", "Second", "Third"]);
+  });
+});

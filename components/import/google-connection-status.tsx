@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import type { GbpFetchErrorCode } from "@/lib/connectors/google";
 import type { GoogleImportState } from "@/app/actions/google-import";
 import { googleConnectCopyForContext } from "@/lib/connect/google-connect-copy";
@@ -74,7 +72,7 @@ export function GoogleConnectionStatus({
         <CardContent className="space-y-3">
           <Button
             nativeButton={false}
-            render={<Link href="/api/connectors/google" />}
+            render={<a href="/api/connectors/google" />}
           >
             {copy.cta}
           </Button>
@@ -84,7 +82,7 @@ export function GoogleConnectionStatus({
             <p className="text-xs text-muted-foreground">
               Sign in with a Google account that is a test user in your Cloud
               project and an owner/manager on at least one Business Profile.
-              Read only — nothing is written back to Google until you push from
+              Nothing is written back to Google until you push from
               Premium.
             </p>
           )}
@@ -101,12 +99,20 @@ export function GoogleConnectionStatus({
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="text-lg">
-                Google account connected
+                {state.fetchError?.code === "unauthenticated"
+                  ? "Reconnect your Google account"
+                  : "Google account connected"}
               </CardTitle>
-              <Badge variant="secondary">Linked to this workspace</Badge>
+              <Badge variant="secondary">
+                {state.fetchError?.code === "unauthenticated"
+                  ? "Authorization needs attention"
+                  : "Linked to this workspace"}
+              </Badge>
             </div>
             <CardDescription>
-              {state.locations.length > 0
+              {state.fetchError?.code === "unauthenticated"
+                ? "The saved connection no longer has valid authorization. Reconnect to load your Business Profile locations."
+                : state.locations.length > 0
                 ? `Found ${state.locations.length} Business Profile location${state.locations.length === 1 ? "" : "s"}.`
                 : "OAuth succeeded. Location data depends on listing access and API approval below."}
             </CardDescription>
@@ -116,7 +122,7 @@ export function GoogleConnectionStatus({
           size="sm"
           variant="outline"
           nativeButton={false}
-          render={<Link href="/api/connectors/google" />}
+          render={<a href="/api/connectors/google" />}
         >
           Reconnect
         </Button>

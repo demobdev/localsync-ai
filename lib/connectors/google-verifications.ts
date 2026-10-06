@@ -103,26 +103,41 @@ export async function fetchVoiceOfMerchantStateSafe(
   accessToken: string,
   gbpName: string,
 ): Promise<FetchVoiceOfMerchantResult> {
-  const response = await fetch(
-    `https://mybusinessverifications.googleapis.com/v1/${gbpName}/VoiceOfMerchantState`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
+  try {
+    const response = await fetch(
+      `https://mybusinessverifications.googleapis.com/v1/${gbpName}/VoiceOfMerchantState`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
 
-  if (!response.ok) {
-    const body = await response.text();
+    if (!response.ok) {
+      const body = await response.text();
+      return {
+        ok: false,
+        error: classifyGbpFetchError(body, response.status),
+      };
+    }
+
+    const payload = (await response.json()) as VoiceOfMerchantPayload;
+
+    const state: GbpVoiceOfMerchantState = {
+      hasVoiceOfMerchant: Boolean(payload.hasVoiceOfMerchant),
+      hasBusinessAuthority: Boolean(payload.hasBusinessAuthority),
+      action: resolveGbpVerificationAction(payload),
+    };
+
+    return { ok: true, state };
+  } catch {
     return {
       ok: false,
-      error: classifyGbpFetchError(body, response.status),
+      error: {
+        code: "unknown",
+        message:
+          "Google verification status could not be read. Refresh and try again.",
+      },
     };
   }
-
-  const payload = (await response.json()) as VoiceOfMerchantPayload;
-
-  const state: GbpVoiceOfMerchantState = {
-    hasVoiceOfMerchant: Boolean(payload.hasVoiceOfMerchant),
-    hasBusinessAuthority: Boolean(payload.hasBusinessAuthority),
-    action: resolveGbpVerificationAction(payload),
-  };
-
-  return { ok: true, state };
 }

@@ -260,7 +260,7 @@ export function SearchIntelligencePanel({
               variant="outline"
               nativeButton={false}
               render={
-                <Link href={`/api/connectors/google/search-console?locationId=${data.locationId}`} />
+                <a href={`/api/connectors/google/search-console?locationId=${encodeURIComponent(data.locationId)}`} />
               }
             >
               <ExternalLinkIcon className="size-4" />

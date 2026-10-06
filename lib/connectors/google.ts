@@ -1,5 +1,7 @@
+import { mapGoogleHours, type GoogleHoursPeriod } from "./google-hours";
+import { readGooglePages } from "./google-read";
 import { buildGoogleRedirectUri } from "./google-oauth-config";
-import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google-errors";
+import type { GbpFetchErrorCode } from "./google-errors";
 import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -222,6 +224,8 @@ export type GbpLocation = {
   state?: string;
   postalCode?: string;
   regularHours: RegularHours;
+  hoursImportWarning?: string;
+  hoursDisplay?: string;
   categories: string[];
   /** OPEN, CLOSED_PERMANENTLY, CLOSED_TEMPORARILY, or undefined when not returned */
   openStatus?: string;
@@ -243,22 +247,6 @@ export type GbpLocation = {
   };
 };
 
-const DAY_MAP: Record<string, keyof RegularHours> = {
-  MONDAY: "monday",
-  TUESDAY: "tuesday",
-  WEDNESDAY: "wednesday",
-  THURSDAY: "thursday",
-  FRIDAY: "friday",
-  SATURDAY: "saturday",
-  SUNDAY: "sunday",
-};
-
-function formatGbpTime(time?: { hours?: number; minutes?: number }): string {
-  const hours = String(time?.hours ?? 0).padStart(2, "0");
-  const minutes = String(time?.minutes ?? 0).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
 export type FetchGbpLocationsResult =
   | { ok: true; locations: GbpLocation[] }
   | {
@@ -269,92 +257,72 @@ export type FetchGbpLocationsResult =
 export async function fetchGbpLocationsSafe(
   accessToken: string,
 ): Promise<FetchGbpLocationsResult> {
-  const accountsResponse = await fetch(
+  const accountResult = await readGooglePages<{ name: string }>(
     "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+    "accounts",
+    accessToken,
   );
-
-  if (!accountsResponse.ok) {
-    const body = await accountsResponse.text();
-    return {
-      ok: false,
-      error: classifyGbpFetchError(body, accountsResponse.status),
-    };
-  }
-
-  const accountsPayload = (await accountsResponse.json()) as {
-    accounts?: Array<{ name: string }>;
-  };
-
-  const accounts = accountsPayload.accounts ?? [];
+  if (!accountResult.ok) return accountResult;
   const locations: GbpLocation[] = [];
 
-  for (const account of accounts) {
-    const readMask =
-      "name,title,phoneNumbers,websiteUri,storefrontAddress,regularHours,categories,openInfo,metadata";
-    const locationsResponse = await fetch(
-      `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=${encodeURIComponent(readMask)}&pageSize=100`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    );
-
-    if (!locationsResponse.ok) {
+  for (const account of accountResult.items) {
+    if (!account || !/^accounts\/[A-Za-z0-9_-]+$/.test(account.name)) {
       return {
         ok: false,
-        error: classifyGbpFetchError(
-          await locationsResponse.text(),
-          locationsResponse.status,
-        ),
+        error: {
+          code: "unknown",
+          message:
+            "Google returned an invalid account reference. Refresh and try again.",
+        },
       };
     }
+    const readMask =
+      "name,title,phoneNumbers,websiteUri,storefrontAddress,regularHours,categories,openInfo,metadata";
+    const locationResult = await readGooglePages<{
+      name: string;
+      title?: string;
+      phoneNumbers?: { primaryPhone?: string };
+      websiteUri?: string;
+      storefrontAddress?: {
+        addressLines?: string[];
+        locality?: string;
+        administrativeArea?: string;
+        postalCode?: string;
+      };
+      regularHours?: {
+        periods?: GoogleHoursPeriod[];
+      };
+      categories?: {
+        primaryCategory?: { displayName?: string };
+        additionalCategories?: Array<{ displayName?: string }>;
+      };
+      openInfo?: { status?: string };
+      metadata?: {
+        mapsUri?: string;
+        duplicateLocation?: string;
+        canOperateLocalPost?: boolean;
+        canModifyServiceList?: boolean;
+        hasPendingEdits?: boolean;
+      };
+    }>(
+      `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=${encodeURIComponent(readMask)}&pageSize=100`,
+      "locations",
+      accessToken,
+    );
+    if (!locationResult.ok) return locationResult;
 
-    const payload = (await locationsResponse.json()) as {
-      locations?: Array<{
-        name: string;
-        title?: string;
-        phoneNumbers?: { primaryPhone?: string };
-        websiteUri?: string;
-        storefrontAddress?: {
-          addressLines?: string[];
-          locality?: string;
-          administrativeArea?: string;
-          postalCode?: string;
-        };
-        regularHours?: {
-          periods?: Array<{
-            openDay?: string;
-            openTime?: { hours?: number; minutes?: number };
-            closeTime?: { hours?: number; minutes?: number };
-          }>;
-        };
-        categories?: {
-          primaryCategory?: { displayName?: string };
-          additionalCategories?: Array<{ displayName?: string }>;
-        };
-        openInfo?: { status?: string };
-        metadata?: {
-          mapsUri?: string;
-          duplicateLocation?: string;
-          canOperateLocalPost?: boolean;
-          canModifyServiceList?: boolean;
-          hasPendingEdits?: boolean;
-        };
-      }>;
-    };
-
-    for (const location of payload.locations ?? []) {
-      const regularHours: RegularHours = {};
-
-      for (const period of location.regularHours?.periods ?? []) {
-        const day = period.openDay ? DAY_MAP[period.openDay] : undefined;
-        if (!day) {
-          continue;
-        }
-
-        regularHours[day] = {
-          open: formatGbpTime(period.openTime),
-          close: formatGbpTime(period.closeTime),
+    for (const location of locationResult.items) {
+      if (!location || !/^locations\/[A-Za-z0-9_-]+$/.test(location.name)) {
+        return {
+          ok: false,
+          error: {
+            code: "unknown",
+            message:
+              "Google returned an invalid location reference. Refresh and try again.",
+          },
         };
       }
+      const mappedHours = mapGoogleHours(location.regularHours?.periods);
 
       const categories = [
         location.categories?.primaryCategory?.displayName,
@@ -373,12 +341,11 @@ export async function fetchGbpLocationsSafe(
         city: location.storefrontAddress?.locality,
         state: location.storefrontAddress?.administrativeArea,
         postalCode: location.storefrontAddress?.postalCode,
-        regularHours,
+        ...mappedHours,
         categories,
         openStatus: location.openInfo?.status,
         mapsUri: location.metadata?.mapsUri,
         hasDuplicate: Boolean(location.metadata?.duplicateLocation),
-        canUpdate: location.metadata?.canModifyServiceList ?? undefined,
         hasPendingEdits: location.metadata?.hasPendingEdits ?? undefined,
       });
     }
@@ -392,6 +359,13 @@ export async function fetchGbpLocationsSafe(
       );
 
       if (!verificationResult.ok) {
+        location.verification = {
+          status: "unknown",
+          label: "Status unknown",
+          hasVoiceOfMerchant: false,
+          hasBusinessAuthority: false,
+          action: "none",
+        };
         return;
       }
 

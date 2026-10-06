@@ -2,6 +2,8 @@
 
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
+import { googleLocationName } from "@/lib/connectors/google-resource-names";
+import { verifyGoogleProfile } from "@/lib/connectors/google-profile-diff";
 import { getGoogleImportStateAction } from "@/app/actions/google-import";
 import { getDb } from "@/db";
 import {
@@ -9,19 +11,21 @@ import {
   generatedPages,
   locationPublishers,
   locationReviews,
+  publishers,
   locations,
 } from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
-import { getLocationOperatingContext, type LocationOperatingContext } from "@/lib/profile/operating-model-meta";
+import {
+  getLocationOperatingContext,
+  type LocationOperatingContext,
+} from "@/lib/profile/operating-model-meta";
 import {
   buildLocationSetupProgress,
   type SetupProgress,
 } from "@/lib/profile/setup-workflow";
 import { getGraderAuditForLocation } from "@/lib/grader/location-audit-bridge";
 import { getLocationVisibilityScoreBreakdown } from "@/lib/visibility/location-score";
-import {
-  countOpenGraderTasksForLocation,
-} from "@/lib/grader/seed-tasks-from-audit";
+import { countOpenGraderTasksForLocation } from "@/lib/grader/seed-tasks-from-audit";
 
 async function assertLocationInOrg(locationId: string, orgId: string) {
   const db = getDb();
@@ -47,15 +51,27 @@ export async function getLocationSetupProgressAction(
   const location = await assertLocationInOrg(locationId, orgId);
   const db = getDb();
 
-  const [googleState, publisherUrls, auditRow, page, reviewTotalRow, reviewUnrepliedRow] =
-    await Promise.all([
+  const [
+    googleState,
+    publisherUrls,
+    auditRow,
+    page,
+    reviewTotalRow,
+    reviewUnrepliedRow,
+  ] = await Promise.all([
     getGoogleImportStateAction().catch((error) => {
       console.error("[setup-progress] Google import state failed:", error);
       return { status: "not_connected" as const };
     }),
     db
-      .select({ listingUrl: locationPublishers.listingUrl })
+      .select({
+        listingUrl: locationPublishers.listingUrl,
+        externalId: locationPublishers.externalId,
+        lastCheckedAt: locationPublishers.lastCheckedAt,
+        publisherSlug: publishers.slug,
+      })
       .from(locationPublishers)
+      .innerJoin(publishers, eq(locationPublishers.publisherId, publishers.id))
       .where(eq(locationPublishers.locationId, locationId)),
     db
       .select({ count: sql<number>`count(*)::int` })
@@ -93,8 +109,27 @@ export async function getLocationSetupProgressAction(
     googleState.locations.length > 0 &&
     !googleState.fetchError;
 
-  const listingUrlsConfigured = publisherUrls.filter((row) =>
-    row.listingUrl?.trim(),
+  const googleLink = publisherUrls.find(
+    (row) => row.publisherSlug === "google-business-profile",
+  );
+  const googleListingLinked = Boolean(
+    googleLink?.externalId && googleLink.lastCheckedAt,
+  );
+  const matchedGoogle =
+    googleState.status === "connected" && !googleState.fetchError
+      ? googleState.locations.find(
+          (row) =>
+            row.gbpName === googleLocationName(googleLink?.externalId ?? ""),
+        )
+      : undefined;
+  const googleListingReady = Boolean(
+    googleListingLinked &&
+    matchedGoogle &&
+    verifyGoogleProfile(location.profile, matchedGoogle).verified,
+  );
+  const listingUrlsConfigured = publisherUrls.filter(
+    (row) =>
+      row.publisherSlug !== "google-business-profile" && row.listingUrl?.trim(),
   ).length;
 
   const linkedAudit = await getGraderAuditForLocation(locationId);
@@ -112,6 +147,8 @@ export async function getLocationSetupProgressAction(
     graderOpenTaskCount,
     googleConnected,
     googleCanImport,
+    googleListingLinked,
+    googleListingReady,
     listingUrlsConfigured,
     auditRunsCompleted: auditRow[0]?.count ?? 0,
     listingAuditScore: visibilityScore?.auditScore ?? 0,

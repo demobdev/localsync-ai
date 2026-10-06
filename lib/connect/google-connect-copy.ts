@@ -54,7 +54,7 @@ export function googleConnectCopyForContext(input: {
         "Storefront businesses need a verified Google profile for map pack visibility. Connect an existing listing, or create one on Google first.",
       cta: "Connect Google account",
       helper:
-        "Use the Google account that manages the Business Profile — read-only OAuth first.",
+        "Use the Google account that manages the Business Profile. Connecting loads your listing; changes are sent to Google only when you approve a push.",
     };
   }
 

@@ -65,7 +65,7 @@ export async function getGoogleImportStateAction(): Promise<GoogleImportState> {
       status: "connected",
       locations: [],
       fetchError: {
-        code: "unknown",
+        code: "unauthenticated",
         message:
           "Google is connected but the access token could not be refreshed. Click Reconnect to authorize again.",
       },
@@ -95,6 +95,7 @@ export async function importGbpFieldsAction(input: {
   targetLocationId: string;
   gbpLocation: GbpLocation;
   fields: GbpFieldKey[];
+  linkOnly?: boolean;
 }) {
   const { orgId, userId } = await requireOrgAuth();
   const db = getDb();
@@ -111,17 +112,88 @@ export async function importGbpFieldsAction(input: {
     .limit(1);
 
   if (!location) {
-    throw new Error("Location not found");
+    return { error: "Location not found" };
   }
 
-  if (input.fields.length === 0) {
-    throw new Error("Select at least one field to import");
+  const importFields = input.linkOnly === true ? [] : input.fields;
+  if (importFields.length === 0 && input.linkOnly !== true) {
+    return { error: "Select at least one field to import" };
+  }
+
+  const [googlePublisher] = await db
+    .select({ id: publishers.id })
+    .from(publishers)
+    .where(eq(publishers.slug, "google-business-profile"))
+    .limit(1);
+
+  if (!googlePublisher)
+    return {
+      error:
+        "Google listing setup is incomplete. Contact support before importing.",
+    };
+
+  let token: string | null;
+  try {
+    token = await getValidGoogleAccessToken(orgId);
+  } catch {
+    return {
+      error:
+        "Could not refresh the Google connection. Try again or reconnect before saving.",
+    };
+  }
+  if (!token) return { error: "Reconnect Google before saving this listing." };
+  const fresh = await fetchGbpLocationsSafe(token);
+  if (!fresh.ok) return { error: fresh.error.message };
+  const requestedName = googleLocationName(input.gbpLocation.gbpName);
+  const googleLocation = fresh.locations.find(
+    (candidate) =>
+      candidate.gbpName === requestedName &&
+      (!input.gbpLocation.gbpAccountName ||
+        candidate.gbpAccountName === input.gbpLocation.gbpAccountName),
+  );
+  if (!googleLocation)
+    return {
+      error:
+        "This Google listing is no longer available to the connected account. Refresh and choose a listing again.",
+    };
+  const allowedFields: GbpFieldKey[] = [
+    "name",
+    "phone",
+    "website",
+    "addressLine1",
+    "city",
+    "state",
+    "postalCode",
+    "regularHours",
+  ];
+  if (importFields.some((field) => !allowedFields.includes(field)))
+    return { error: "Choose supported fields to import." };
+  if (
+    importFields.includes("regularHours") &&
+    googleLocation.hoursImportWarning
+  )
+    return { error: googleLocation.hoursImportWarning };
+  const previewProfile = applyGbpFields(
+    location.profile,
+    input.gbpLocation,
+    importFields,
+  );
+  const freshProfile = applyGbpFields(
+    location.profile,
+    googleLocation,
+    importFields,
+  );
+  if (diffLocationProfiles(previewProfile, freshProfile).length > 0) {
+    return {
+      error:
+        "Google's data changed since this page loaded. Refresh and review the differences before saving.",
+    };
   }
 
   const nextProfile = applyGbpFields(
     location.profile,
-    input.gbpLocation,
-    input.fields,
+    googleLocation,
+    importFields,
   );
 
   const diff = diffLocationProfiles(location.profile, nextProfile);
@@ -141,7 +213,7 @@ export async function importGbpFieldsAction(input: {
         snapshot: nextProfile,
         source: "gbp_import",
         actorUserId: userId,
-        changeSummary: `Google import: ${summarizeProfileDiff(diff)}`,
+        changeSummary: `Google import (${googleLocation.gbpName}): ${summarizeProfileDiff(diff)}`,
       })
       .returning();
 
@@ -156,13 +228,7 @@ export async function importGbpFieldsAction(input: {
       .where(eq(locations.id, location.id));
   }
 
-  const verification = verifyGoogleProfile(nextProfile, input.gbpLocation);
-
-  const [googlePublisher] = await db
-    .select({ id: publishers.id })
-    .from(publishers)
-    .where(eq(publishers.slug, "google-business-profile"))
-    .limit(1);
+  const verification = verifyGoogleProfile(nextProfile, googleLocation);
 
   if (googlePublisher) {
     const [existingLink] = await db
@@ -182,10 +248,10 @@ export async function importGbpFieldsAction(input: {
         .set({
           externalId:
             googleReviewParent(
-              input.gbpLocation.gbpName,
-              input.gbpLocation.gbpAccountName,
-            ) ?? input.gbpLocation.gbpName,
-          listingUrl: input.gbpLocation.mapsUri ?? null,
+              googleLocation.gbpName,
+              googleLocation.gbpAccountName,
+            ) ?? googleLocation.gbpName,
+          listingUrl: googleLocation.mapsUri ?? null,
           status: verification.verified ? "synced" : "pending",
           lastCheckedAt: new Date(),
           updatedAt: new Date(),
@@ -197,10 +263,10 @@ export async function importGbpFieldsAction(input: {
         publisherId: googlePublisher.id,
         externalId:
           googleReviewParent(
-            input.gbpLocation.gbpName,
-            input.gbpLocation.gbpAccountName,
-          ) ?? input.gbpLocation.gbpName,
-        listingUrl: input.gbpLocation.mapsUri ?? null,
+            googleLocation.gbpName,
+            googleLocation.gbpAccountName,
+          ) ?? googleLocation.gbpName,
+        listingUrl: googleLocation.mapsUri ?? null,
         status: verification.verified ? "synced" : "pending",
         lastCheckedAt: new Date(),
       });
@@ -215,6 +281,7 @@ export async function importGbpFieldsAction(input: {
   revalidatePath(`/dashboard/locations/${location.id}/listings`);
 
   return {
+    linked: Boolean(googlePublisher),
     changed: diff.length > 0,
     fieldCount: diff.length,
     verified: verification.verified,

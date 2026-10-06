@@ -114,10 +114,12 @@ function comparisonForField(
       field,
       label: FIELD_LABELS[field],
       masterValue: formatRegularHours(master.regularHours),
-      googleValue: formatRegularHours(google.regularHours),
+      googleValue:
+        google.hoursDisplay ?? formatRegularHours(google.regularHours),
       matches:
+        !google.hoursImportWarning &&
         normalizedHours(master.regularHours) ===
-        normalizedHours(google.regularHours),
+          normalizedHours(google.regularHours),
     };
   }
 

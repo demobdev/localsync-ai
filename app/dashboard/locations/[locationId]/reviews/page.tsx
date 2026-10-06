@@ -54,7 +54,7 @@ export default async function LocationReviewsPage({
         <UpgradeBanner
           badge="Pro plan"
           title="Reply to every review in minutes, not hours"
-          description="Draft replies manually for free. Pro writes on-brand AI drafts for every review — you approve, we publish."
+          description="Try AI reply drafts for free. Pro offers unlimited on-brand drafts for your review. Approved replies are saved in LocalSync; posting to Google is not enabled."
           ctaLabel="Upgrade to Pro"
         />
       ) : null}
