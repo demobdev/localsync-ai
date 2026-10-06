@@ -56,7 +56,7 @@ export function ConnectionsHub({
   });
   const model = operatingContext?.operatingModel ?? "storefront";
   const googleConnected = googleState.status === "connected";
-  const googleQuotaPending =
+  const googleQuotaLimited =
     googleConnected &&
     Boolean(
       googleState.status === "connected" && googleState.fetchError?.code === "quota_exceeded",
@@ -74,8 +74,8 @@ export function ConnectionsHub({
       icon: GlobeIcon,
       publisherSlug: "google-business-profile",
       done: googleConnected,
-      statusLabel: googleQuotaPending
-        ? "Quota pending"
+      statusLabel: googleQuotaLimited
+        ? "Rate or quota limit reached"
         : googleConnected
           ? "Connected"
           : "Not connected",

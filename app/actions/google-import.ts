@@ -4,7 +4,12 @@ import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { getDb } from "@/db";
-import { locationPublishers, locationVersions, locations, publishers } from "@/db/schema";
+import {
+  locationPublishers,
+  locationVersions,
+  locations,
+  publishers,
+} from "@/db/schema";
 import { requireOrgAuth } from "@/lib/auth/org";
 import {
   applyGbpFields,
@@ -16,6 +21,10 @@ import {
   type GbpFetchErrorCode,
   type GbpLocation,
 } from "@/lib/connectors/google";
+import {
+  googleLocationName,
+  googleReviewParent,
+} from "@/lib/connectors/google-resource-names";
 import { verifyGoogleProfile } from "@/lib/connectors/google-profile-diff";
 import { patchGbpLocationSafe } from "@/lib/connectors/google-write";
 import { getWorkspacePlan } from "@/lib/billing/plans";
@@ -67,7 +76,7 @@ export async function getGoogleImportStateAction(): Promise<GoogleImportState> {
 
   if (!result.ok) {
     if (result.error.code === "quota_exceeded") {
-      console.warn("[google-import] GBP API quota not available yet");
+      console.warn("[google-import] GBP API rate or quota limit reached");
     } else {
       console.warn("[google-import] GBP fetch failed:", result.error.code);
     }
@@ -171,7 +180,11 @@ export async function importGbpFieldsAction(input: {
       await db
         .update(locationPublishers)
         .set({
-          externalId: input.gbpLocation.gbpName,
+          externalId:
+            googleReviewParent(
+              input.gbpLocation.gbpName,
+              input.gbpLocation.gbpAccountName,
+            ) ?? input.gbpLocation.gbpName,
           listingUrl: input.gbpLocation.mapsUri ?? null,
           status: verification.verified ? "synced" : "pending",
           lastCheckedAt: new Date(),
@@ -182,7 +195,11 @@ export async function importGbpFieldsAction(input: {
       await db.insert(locationPublishers).values({
         locationId: location.id,
         publisherId: googlePublisher.id,
-        externalId: input.gbpLocation.gbpName,
+        externalId:
+          googleReviewParent(
+            input.gbpLocation.gbpName,
+            input.gbpLocation.gbpAccountName,
+          ) ?? input.gbpLocation.gbpName,
         listingUrl: input.gbpLocation.mapsUri ?? null,
         status: verification.verified ? "synced" : "pending",
         lastCheckedAt: new Date(),
@@ -276,12 +293,19 @@ export async function pushGbpFieldsAction(input: {
     throw new Error("Choose the Google listing to update first.");
   }
 
-  if (!link?.externalId || link.externalId !== targetExternalId) {
+  const targetLocationName = googleLocationName(targetExternalId);
+  if (!targetLocationName)
+    throw new Error("Invalid Google location link. Re-import this location.");
+
+  if (
+    !link?.externalId ||
+    googleLocationName(link.externalId) !== targetLocationName
+  ) {
     const authorized = await fetchGbpLocationsSafe(accessToken);
     const authorizedMatch = authorized.ok
       ? authorized.locations.some(
           (publisherLocation) =>
-            publisherLocation.gbpName === targetExternalId,
+            publisherLocation.gbpName === targetLocationName,
         )
       : false;
 
@@ -306,8 +330,7 @@ export async function pushGbpFieldsAction(input: {
   const refreshed = await fetchGbpLocationsSafe(accessToken);
   const verifiedLocation = refreshed.ok
     ? refreshed.locations.find(
-        (publisherLocation) =>
-          publisherLocation.gbpName === targetExternalId,
+        (publisherLocation) => publisherLocation.gbpName === targetLocationName,
       )
     : null;
   const verification = verifiedLocation
@@ -315,7 +338,16 @@ export async function pushGbpFieldsAction(input: {
     : null;
 
   const publisherState = {
-    externalId: targetExternalId,
+    externalId:
+      (verifiedLocation &&
+        googleReviewParent(
+          verifiedLocation.gbpName,
+          verifiedLocation.gbpAccountName,
+        )) ||
+      (link?.externalId &&
+      googleLocationName(link.externalId) === targetLocationName
+        ? link.externalId
+        : targetExternalId),
     status: verification?.verified ? ("synced" as const) : ("pending" as const),
     ...(verifiedLocation
       ? {

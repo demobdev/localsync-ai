@@ -27,6 +27,7 @@ import {
   startAuditAction,
   updateListingUrlAction,
 } from "@/app/actions/audits";
+import { googleLocationName } from "@/lib/connectors/google-resource-names";
 import type { GoogleImportState } from "@/app/actions/google-import";
 import { createChecklistTasksAction } from "@/app/actions/tasks";
 import { PublisherIcon } from "@/components/brand/publisher-icon";
@@ -201,7 +202,7 @@ export function AutomatedListingsWorkspace({
   const matchedGoogleLocation =
     googleState.status === "connected" && googleRow?.externalId
       ? googleState.locations.find(
-          (location) => location.gbpName === googleRow.externalId,
+          (location) => location.gbpName === googleLocationName(googleRow.externalId!),
         )
       : undefined;
   const googleVerification = matchedGoogleLocation

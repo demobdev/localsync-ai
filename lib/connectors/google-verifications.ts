@@ -1,4 +1,4 @@
-import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google";
+import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google-errors";
 
 export type GbpVerificationAction =
   | "none"
@@ -112,7 +112,7 @@ export async function fetchVoiceOfMerchantStateSafe(
     const body = await response.text();
     return {
       ok: false,
-      error: classifyGbpFetchError(body),
+      error: classifyGbpFetchError(body, response.status),
     };
   }
 

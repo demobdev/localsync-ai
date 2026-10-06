@@ -1,8 +1,11 @@
-# Gift a Story — GBP baseline (pre-LocalSync)
+# Gift a Story — historical GBP baseline (pre-LocalSync)
+
+**Historical record, not the current demo setup.** As of **2026-10-06**, Owner's Box is the chosen GBP / demo business. The observations below belong only to Gift a Story and must not be reused as an Owner's Box baseline. Current approval and setup are tracked in [gbp-api-request.md](./gbp-api-request.md).
 
 **Captured:** 2026-07-13  
-**Purpose:** Before/after case study once LocalSync connects and we optimize the profile.  
-**GBP API access:** Case `0-0182000041521` · GCP project number `684836579110` (`gift-a-story`) · review ~7–10 business days.
+**Original purpose:** Planned before/after case study following an import and approved profile optimization; no later results are recorded here.
+
+**Historical GBP API request:** Case `0-0182000041521` · GCP project number `684836579110` (`gift-a-story`) · the July confirmation estimated review at ~7–10 business days. This is not the current approved LocalSync project.
 
 ## Identity
 
@@ -40,9 +43,9 @@ Google surfaces **“Claim your $500 advertising credit”** / “$500 when you 
 
 **Product note:** This is manager/Ads UI, not a Business Profile API field. LocalSync should treat it as a checklist opportunity (“check Performance / Ads for new-advertiser credit”) until/unless Ads account linkage can confirm claimed vs available.
 
-## Snapshot checklist for “after”
+## Historical snapshot checklist for “after”
 
-Re-capture the same fields after LocalSync import + approved optimizations:
+Retained from the original Gift a Story case-study plan. These items do not imply an active task or apply to Owner's Box:
 
 - [ ] Hours set
 - [ ] Profile strength / completeness
@@ -53,5 +56,5 @@ Re-capture the same fields after LocalSync import + approved optimizations:
 
 ## Related
 
-- [gbp-api-request.md](./gbp-api-request.md) — access form + quota checks  
-- LocalSync Connect → Google (OAuth) — expect “API quota pending” until ~300 QPM  
+- [gbp-api-request.md](./gbp-api-request.md) — current Owner's Box setup, approved LocalSync project, and quota troubleshooting
+- The original “API quota pending” demo assumption is superseded: a quota error alone does not establish approval status

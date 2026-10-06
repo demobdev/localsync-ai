@@ -14,7 +14,14 @@ import {
   TruckIcon,
   XCircleIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { startGraderAuditAction } from "@/app/actions/grader";
@@ -429,14 +436,39 @@ export function GraderStart({
     !resolvingUrl &&
     (Boolean(selectedPlace) || canSubmitWebsiteOnly);
 
+  // Reset request UI when its inputs change, before the debounce starts.
+  const resetSearchState = useCallback(
+    (nextQuery: string) => {
+      requestSeq.current += 1;
+      urlResolveSeq.current += 1;
+      const urlMode = looksLikeUrl(nextQuery);
+      const length = nextQuery.trim().length;
+      setSearching(mapsEnabled && !urlMode && length >= 2);
+      setResolvingUrl(mapsEnabled && urlMode && length >= 4);
+      setNotFound(false);
+      setLookupError(null);
+      if (urlMode || length < 2) {
+        setSuggestions([]);
+        setDropdownOpen(false);
+      }
+      if (urlMode) setSelectedPlace(null);
+    },
+    [mapsEnabled],
+  );
+
+  const handleLocation = useEffectEvent((pos: GeolocationPosition) => {
+    resetSearchState(query);
+    setLocationBias({
+      latitude: pos.coords.latitude,
+      longitude: pos.coords.longitude,
+    });
+  });
+
   useEffect(() => {
     if (!mapsEnabled || !navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLocationBias({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
+        handleLocation(pos);
       },
       () => {
         // Proximity bias is optional — search still works without it.
@@ -449,24 +481,10 @@ export function GraderStart({
     if (!mapsEnabled) return;
 
     if (isUrlMode) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale name-search UI before the debounced URL lookup begins
-      setSuggestions([]);
-      setDropdownOpen(false);
-      setSearching(false);
-      setLookupError(null);
-
       const trimmed = query.trim();
-      if (trimmed.length < 4) {
-        setSelectedPlace(null);
-        setNotFound(false);
-        return;
-      }
+      if (trimmed.length < 4) return;
 
       const seq = ++urlResolveSeq.current;
-      setResolvingUrl(true);
-      setNotFound(false);
-      setLookupError(null);
-      setSelectedPlace(null);
 
       const timer = setTimeout(async () => {
         try {
@@ -490,22 +508,15 @@ export function GraderStart({
         }
       }, 450);
 
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        if (urlResolveSeq.current === seq) urlResolveSeq.current += 1;
+      };
     }
 
-    if (query.trim().length < 2) {
-      setSuggestions([]);
-      setDropdownOpen(false);
-      setSearching(false);
-      setNotFound(false);
-      setLookupError(null);
-      return;
-    }
+    if (query.trim().length < 2) return;
 
     const seq = ++requestSeq.current;
-    setSearching(true);
-    setNotFound(false);
-    setLookupError(null);
 
     const timer = setTimeout(async () => {
       try {
@@ -527,7 +538,10 @@ export function GraderStart({
       }
     }, 280);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (requestSeq.current === seq) requestSeq.current += 1;
+    };
   }, [query, mapsEnabled, isUrlMode, locationBias, retryToken]);
 
   useEffect(() => {
@@ -541,10 +555,9 @@ export function GraderStart({
   }, []);
 
   const selectPlace = useCallback(async (placeId: string, label: string) => {
+    resetSearchState(label);
     setDropdownOpen(false);
     setQuery(label);
-    setNotFound(false);
-    setLookupError(null);
     setSearching(true);
     try {
       const place = await fetchPlaceDetails(placeId);
@@ -564,7 +577,7 @@ export function GraderStart({
     } finally {
       setSearching(false);
     }
-  }, []);
+  }, [resetSearchState]);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -599,11 +612,9 @@ export function GraderStart({
   }
 
   function clearSelection() {
+    resetSearchState("");
     setSelectedPlace(null);
-    setNotFound(false);
-    setLookupError(null);
     setQuery("");
-    setSuggestions([]);
   }
 
   if (!mapsEnabled) {
@@ -632,8 +643,8 @@ export function GraderStart({
             autoComplete="off"
             value={query}
             onChange={(e) => {
+              resetSearchState(e.target.value);
               setQuery(e.target.value);
-              setLookupError(null);
               if (selectedPlace && e.target.value !== selectedPlace.name) {
                 setSelectedPlace(null);
               }
@@ -824,7 +835,7 @@ export function GraderStart({
               type="button"
               className="mt-2 font-semibold underline underline-offset-2"
               onClick={() => {
-                setLookupError(null);
+                resetSearchState(query);
                 setRetryToken((value) => value + 1);
               }}
             >

@@ -1,6 +1,6 @@
 # localmap.co → LocalMap platform transfer
 
-Scraped with Firecrawl (Jul 15, 2026). Domain `localmap.co` points at this app.
+Historical migration notes from a Firecrawl scrape on Jul 15, 2026. The production app base verified in Vercel on **2026-10-06** is **`https://app.localmap.co`**; these notes do not establish the current apex / www DNS routing.
 
 ## What the old site offered
 
@@ -22,9 +22,11 @@ Scraped with Firecrawl (Jul 15, 2026). Domain `localmap.co` points at this app.
 - `/contact` — Greenville office + phones/emails
 - Shared `MarketingFooter` with legal + product links
 
-## After DNS cutover
+## Current app base and future DNS cutovers
 
-1. Point `localmap.co` (and www) to this Vercel project.
-2. Set `NEXT_PUBLIC_APP_URL=https://localmap.co`.
-3. Update Google OAuth redirect URIs + consent screen privacy/homepage URLs.
-4. Redirect legacy paths if needed: `/privacy-policy` → `/privacy`, `/terms-conditions` → `/terms`.
+1. Keep production `NEXT_PUBLIC_APP_URL=https://app.localmap.co`, matching the verified Vercel configuration. The old proposal to use the bare `https://localmap.co` base is superseded.
+2. The expected production Google OAuth redirect is **`https://app.localmap.co/api/connectors/google/callback`**. Development uses **`http://localhost:3002/api/connectors/google/callback`**. Verify the registered values on the deployed OAuth client; this document does not claim Console settings were checked or changed.
+3. Before any future domain change, verify apex / www routing and explicitly coordinate the app base, Google redirect URIs, and consent-screen homepage / privacy URLs. Do not change OAuth or DNS settings as part of a documentation correction.
+4. Retain or add legacy path redirects as needed for an authorized cutover: `/privacy-policy` → `/privacy`, `/terms-conditions` → `/terms`.
+
+Owner's Box is the current GBP / demo business. The approved Google Cloud project is `localsync-501521` / `249394741886`; the business identity does not rename the platform or its OAuth app. See [GBP approval and remaining verification](./gbp-api-request.md).

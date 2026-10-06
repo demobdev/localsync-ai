@@ -1,6 +1,11 @@
 # LocalMap Demo Walkthrough
 
-**URL:** http://localhost:3002  
+**Local demo URL:** http://localhost:3002
+
+**Production app:** https://app.localmap.co
+
+**Chosen GBP / demo business:** Owner's Box
+
 **Audience:** Don / agency stakeholders  
 **Duration:** ~8 minutes
 
@@ -8,9 +13,11 @@
 
 ## Before you start
 
-1. Run `npm run dev` (port **3002**).
+1. Run `npm run dev` (port **3002**) with `NEXT_PUBLIC_APP_URL=http://localhost:3002`.
 2. Sign in with a Clerk test user that has an org (or let onboarding create one).
 3. Optional: delete duplicate test locations from **Locations** (trash icon).
+4. Use verified Owner's Box business details. Its pre-optimization baseline and successful Google import are not yet established by these docs; Gift a Story data is historical.
+5. Before a live Google demo, check the [OAuth / API verification checklist](./gbp-api-request.md). Expected callbacks are `http://localhost:3002/api/connectors/google/callback` and `https://app.localmap.co/api/connectors/google/callback`; Google Console registration still needs verification.
 
 ---
 
@@ -51,12 +58,13 @@
 
 ---
 
-## Act 4 — Google import (expect quota message)
+## Act 4 — Google import (verify the live connection)
 
 | Step | Where | What to say |
 |------|--------|-------------|
-| 1 | `/dashboard/import/google` | OAuth works today. |
-| 2 | After connect | If **429 / quota**: Basic API Access submitted (Gift a Story, case `0-0182000041521`, project `684836579110`). Import lists locations once Google approves (check Quotas for 300 QPM). See [gift-a-story-baseline.md](./gift-a-story-baseline.md). |
+| 1 | `/dashboard/import/google` | Owner's Box is the chosen business. Connect with an authorized Google account; do not claim OAuth or import works until tested. |
+| 2 | After connect | Basic API Access is **approved** for `localsync-501521` / `249394741886`, case `1-3775000042082`, dated **2026-10-06**, default **300 QPM**. If locations load, show the actual Owner's Box listing and review the field diff. |
+| 3 | If a quota error occurs | A **429 / quota** response is not proof of missing approval. Check the deployed OAuth client's project, the failing API's effective quota / usage, and error details; do not reapply automatically. OAuth verification and API enablement remain separate. See [setup and troubleshooting](./gbp-api-request.md). |
 
 ---
 
@@ -76,7 +84,9 @@
 
 - **LocalMap** = brand + agency demo  
 - **LocalSync** = this repo / engine  
-- **Restore / Tim** = separate — use generic HVAC examples only  
+- **Owner's Box** = chosen GBP / demo business; use verified details only
+- **Gift a Story** = historical business and baseline, not current demo data
+- **Restore / Tim** = separate; not the live GBP demo
 
 ---
 

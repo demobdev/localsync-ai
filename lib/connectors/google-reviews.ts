@@ -1,4 +1,5 @@
-import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google";
+import { googleReviewParent } from "./google-resource-names";
+import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google-errors";
 
 export type GoogleReviewRecord = {
   externalId: string;
@@ -17,6 +18,7 @@ export type FetchGoogleReviewsResult =
     };
 
 type GbpReviewPayload = {
+  nextPageToken?: string;
   reviews?: Array<{
     reviewId?: string;
     reviewer?: { displayName?: string };
@@ -35,79 +37,74 @@ const STAR_MAP: Record<string, number> = {
   FIVE: 5,
 };
 
-function parseGbpLocationPath(gbpResourceName: string): {
-  accountId: string;
-  locationId: string;
-} | null {
-  // locations/{locationId} or accounts/{accountId}/locations/{locationId}
-  const shortMatch = gbpResourceName.match(/^locations\/([^/]+)$/);
-  if (shortMatch) {
-    return { accountId: "-", locationId: shortMatch[1]! };
-  }
-
-  const fullMatch = gbpResourceName.match(
-    /^accounts\/([^/]+)\/locations\/([^/]+)$/,
-  );
-  if (fullMatch) {
-    return { accountId: fullMatch[1]!, locationId: fullMatch[2]! };
-  }
-
-  return null;
-}
-
 export async function fetchGoogleReviewsSafe(
   accessToken: string,
   gbpResourceName: string,
 ): Promise<FetchGoogleReviewsResult> {
-  const parsed = parseGbpLocationPath(gbpResourceName);
+  const parent = googleReviewParent(gbpResourceName);
 
-  if (!parsed) {
+  if (!parent) {
     return {
       ok: false,
       error: {
         code: "unknown",
         message:
-          "Invalid Google location link. Re-import from Google Business Profile first.",
+          "The Google location link is missing its account ID or is invalid. Re-import this location from Google Business Profile to update the link before syncing reviews.",
       },
     };
   }
 
-  const parent =
-    parsed.accountId === "-"
-      ? `locations/${parsed.locationId}`
-      : `accounts/${parsed.accountId}/locations/${parsed.locationId}`;
-
-  const response = await fetch(
-    `https://mybusiness.googleapis.com/v4/${parent}/reviews?pageSize=50`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
-
-  if (!response.ok) {
-    const body = await response.text();
-    return {
-      ok: false,
-      error: classifyGbpFetchError(body),
-    };
-  }
-
-  const payload = (await response.json()) as GbpReviewPayload;
   const reviews: GoogleReviewRecord[] = [];
+  const seenPageTokens = new Set<string>();
+  let pageToken: string | undefined;
+  do {
+    const params = new URLSearchParams({ pageSize: "50" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await fetch(
+      `https://mybusiness.googleapis.com/v4/${parent}/reviews?${params}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
 
-  for (const review of payload.reviews ?? []) {
-    const rating = review.starRating ? STAR_MAP[review.starRating] : undefined;
-    if (!rating || !review.reviewId) {
-      continue;
+    if (!response.ok) {
+      const body = await response.text();
+      return {
+        ok: false,
+        error: classifyGbpFetchError(body, response.status),
+      };
     }
 
-    reviews.push({
-      externalId: review.reviewId,
-      authorName: review.reviewer?.displayName?.trim() || "Google user",
-      rating,
-      text: review.comment?.trim() || "(No comment)",
-      publishedAt: review.createTime ? new Date(review.createTime) : null,
-      existingReply: review.reviewReply?.comment ?? null,
-    });
-  }
+    const payload = (await response.json()) as GbpReviewPayload;
+    for (const review of payload.reviews ?? []) {
+      const rating = review.starRating
+        ? STAR_MAP[review.starRating]
+        : undefined;
+      if (!rating || !review.reviewId) {
+        continue;
+      }
+
+      reviews.push({
+        externalId: review.reviewId,
+        authorName: review.reviewer?.displayName?.trim() || "Google user",
+        rating,
+        text: review.comment?.trim() || "(No comment)",
+        publishedAt: review.createTime ? new Date(review.createTime) : null,
+        existingReply: review.reviewReply?.comment ?? null,
+      });
+    }
+
+    pageToken = payload.nextPageToken;
+    if (pageToken && seenPageTokens.has(pageToken)) {
+      return {
+        ok: false,
+        error: {
+          code: "unknown",
+          message:
+            "Google returned a repeated reviews page token. Retry the sync; partial results were not saved.",
+        },
+      };
+    }
+    if (pageToken) seenPageTokens.add(pageToken);
+  } while (pageToken);
 
   return { ok: true, reviews };
 }

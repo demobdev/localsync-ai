@@ -18,11 +18,15 @@ import {
 function fetchErrorTitle(code: GbpFetchErrorCode) {
   switch (code) {
     case "quota_exceeded":
-      return "Google connected — API quota pending";
+      return "Google connected — API rate or quota limit reached";
     case "permission_denied":
-      return "Google connected — no listing access";
-    case "api_not_approved":
-      return "Google connected — APIs not ready";
+      return "Google connected — permission check needed";
+    case "api_disabled":
+      return "Google connected — API activation needed";
+    case "not_found":
+      return "Google connected — resource not found";
+    case "unauthenticated":
+      return "Google authorization needs attention";
     default:
       return "Google connected — could not load locations";
   }
@@ -46,8 +50,9 @@ export function GoogleConnectionStatus({
         <CardHeader>
           <CardTitle>Google OAuth not configured</CardTitle>
           <CardDescription>
-            Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local, then
-            restart the dev server. See docs/gbp-api-request.md.
+            Configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and a valid
+            NEXT_PUBLIC_APP_URL for this environment. Its callback must match
+            the Google OAuth client. See docs/gbp-api-request.md.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -95,7 +100,9 @@ export function GoogleConnectionStatus({
           <PublisherIcon slug="google-business-profile" badge size={32} />
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-lg">Google account connected</CardTitle>
+              <CardTitle className="text-lg">
+                Google account connected
+              </CardTitle>
               <Badge variant="secondary">Linked to this workspace</Badge>
             </div>
             <CardDescription>
@@ -121,7 +128,9 @@ export function GoogleConnectionStatus({
             <p className="font-medium text-foreground">
               {fetchErrorTitle(state.fetchError.code)}
             </p>
-            <p className="mt-2 text-muted-foreground">{state.fetchError.message}</p>
+            <p className="mt-2 text-muted-foreground">
+              {state.fetchError.message}
+            </p>
           </div>
         </CardContent>
       ) : null}
@@ -205,8 +214,8 @@ export function GoogleConnectionStatus({
           <div className="rounded-xl border border-dashed p-4 text-sm">
             <p className="font-medium">No Business Profile locations found</p>
             <p className="mt-2 text-muted-foreground">
-              The connected Google account does not manage any listings yet. Create
-              a profile at{" "}
+              The connected Google account does not manage any listings yet.
+              Create a profile at{" "}
               <a
                 href="https://business.google.com"
                 target="_blank"

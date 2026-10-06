@@ -1,3 +1,5 @@
+import { buildGoogleRedirectUri } from "./google-oauth-config";
+import { classifyGbpFetchError, type GbpFetchErrorCode } from "./google-errors";
 import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
@@ -9,22 +11,36 @@ import {
   type GbpVerificationAction,
   type GbpVerificationStatus,
 } from "@/lib/connectors/google-verifications";
-import type { LocationProfileSnapshot, RegularHours } from "@/lib/types/location-profile";
+import type {
+  LocationProfileSnapshot,
+  RegularHours,
+} from "@/lib/types/location-profile";
+
+export { classifyGbpFetchError, type GbpFetchErrorCode } from "./google-errors";
 
 const GBP_SCOPE = "https://www.googleapis.com/auth/business.manage";
 export const SEARCH_CONSOLE_SCOPE =
   "https://www.googleapis.com/auth/webmasters.readonly";
 
 export function isGoogleConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID?.trim() &&
-      process.env.GOOGLE_CLIENT_SECRET?.trim(),
-  );
+  if (
+    !process.env.GOOGLE_CLIENT_ID?.trim() ||
+    !process.env.GOOGLE_CLIENT_SECRET?.trim()
+  )
+    return false;
+  try {
+    getRedirectUri();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-function getRedirectUri(): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3002";
-  return `${base.replace(/\/$/, "")}/api/connectors/google/callback`;
+export function getRedirectUri(): string {
+  return buildGoogleRedirectUri(
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.NODE_ENV,
+  );
 }
 
 export function getGoogleAuthUrl(
@@ -114,52 +130,6 @@ export async function saveGoogleCredentials(
   }
 }
 
-export type GbpFetchErrorCode =
-  | "quota_exceeded"
-  | "api_not_approved"
-  | "permission_denied"
-  | "unknown";
-
-export function classifyGbpFetchError(error: unknown): {
-  code: GbpFetchErrorCode;
-  message: string;
-} {
-  const raw = typeof error === "string" ? error : error instanceof Error ? error.message : String(error);
-
-  if (
-    raw.includes("Quota exceeded") ||
-    raw.includes("RESOURCE_EXHAUSTED") ||
-    raw.includes('"code": 429')
-  ) {
-    return {
-      code: "quota_exceeded",
-      message:
-        "Google Business Profile API quota is not available yet. Submit the Basic API Access request in Google Cloud and wait for approval (often 2–6 weeks). OAuth connected successfully — location import will work once quota is granted.",
-    };
-  }
-
-  if (raw.includes("403") || raw.includes("PERMISSION_DENIED")) {
-    return {
-      code: "permission_denied",
-      message:
-        "This Google account does not have permission to read Business Profile data. The account must be an owner or manager on at least one verified listing.",
-    };
-  }
-
-  if (raw.includes("404") || raw.includes("NOT_FOUND")) {
-    return {
-      code: "api_not_approved",
-      message:
-        "Business Profile APIs may not be enabled or approved for this Google Cloud project. Enable Account Management and Business Information APIs, then submit the GBP API access form.",
-    };
-  }
-
-  return {
-    code: "unknown",
-    message: raw.slice(0, 280) || "Could not load Google Business Profile locations.",
-  };
-}
-
 export async function hasGoogleCredentials(
   organizationId: string,
 ): Promise<boolean> {
@@ -242,6 +212,8 @@ export async function getValidGoogleAccessToken(
 
 export type GbpLocation = {
   gbpName: string;
+  /** Account parent needed by the v4 reviews API; location APIs use gbpName. */
+  gbpAccountName?: string;
   title: string;
   phone?: string;
   website?: string;
@@ -306,7 +278,7 @@ export async function fetchGbpLocationsSafe(
     const body = await accountsResponse.text();
     return {
       ok: false,
-      error: classifyGbpFetchError(body),
+      error: classifyGbpFetchError(body, accountsResponse.status),
     };
   }
 
@@ -326,7 +298,13 @@ export async function fetchGbpLocationsSafe(
     );
 
     if (!locationsResponse.ok) {
-      continue;
+      return {
+        ok: false,
+        error: classifyGbpFetchError(
+          await locationsResponse.text(),
+          locationsResponse.status,
+        ),
+      };
     }
 
     const payload = (await locationsResponse.json()) as {
@@ -387,6 +365,7 @@ export async function fetchGbpLocationsSafe(
 
       locations.push({
         gbpName: location.name,
+        gbpAccountName: account.name,
         title: location.title ?? "Untitled location",
         phone: location.phoneNumbers?.primaryPhone,
         website: location.websiteUri,
