@@ -15,6 +15,7 @@ import {
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { ProductFamilyNav } from "@/components/marketing/product-family-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -137,16 +138,18 @@ export default async function ReputationProductPage() {
   return (
     <div className="flex min-h-full flex-col">
       <MarketingHeader signedIn={signedIn} />
+      <ProductFamilyNav active="reputation" />
 
       <main className="flex-1">
-        <section className="localmap-mesh relative overflow-hidden border-b">
-          <div className="localmap-grid absolute inset-0 opacity-40" />
+        <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(255,177,92,0.18),transparent_33%),radial-gradient(circle_at_82%_75%,rgba(32,201,181,0.18),transparent_30%)]" />
+          <div className="localmap-grid absolute inset-0 opacity-[0.07]" />
           <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="max-w-xl space-y-6">
                 <Badge
                   variant="secondary"
-                  className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary"
+                  className="rounded-full border border-[#ffd39a]/35 bg-[#f1c27d]/12 px-3 py-1 text-[#ffd9a6]"
                 >
                   <StarIcon className="mr-1.5 inline size-3.5" />
                   Reputation · included with Pro
@@ -154,7 +157,7 @@ export default async function ReputationProductPage() {
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
                   Every review answered. Nothing published without you.
                 </h1>
-                <p className="text-lg leading-relaxed text-muted-foreground sm:text-xl">
+                <p className="text-lg leading-relaxed text-white/68 sm:text-xl">
                   One inbox for Google, Facebook, and Yelp. AI drafts replies in
                   your voice. You approve before anything goes live. Reply
                   fatigue ends; reputation risk doesn&apos;t begin.
@@ -162,6 +165,7 @@ export default async function ReputationProductPage() {
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <Button
                     size="lg"
+                    className="bg-[#f1c27d] text-[#193844] hover:bg-[#f8d9a9]"
                     nativeButton={false}
                     render={<Link href={primaryHref} />}
                   >
@@ -171,13 +175,14 @@ export default async function ReputationProductPage() {
                   <Button
                     size="lg"
                     variant="outline"
+                    className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                     nativeButton={false}
                     render={<Link href="/pricing" />}
                   >
                     See Pro pricing
                   </Button>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-white/48">
                   Part of Pro Listings · $79/location/mo · month-to-month
                 </p>
               </div>

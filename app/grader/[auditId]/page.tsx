@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
+import { unlockGraderForSignedInUser } from "@/app/actions/grader";
 import { getDb } from "@/db";
 import { graderAudits } from "@/db/schema";
 import { GraderReportGate } from "@/components/grader/report/report-gate";
 import { ScanExperience } from "@/components/grader/scan-experience";
+import { getAuditClaimContext } from "@/lib/grader/claim-context";
 import { emptyPageSpeed } from "@/lib/grader/pagespeed";
 import { gradeForScore } from "@/lib/grader/scoring";
 import { resolveGraderDashboardHref } from "@/lib/onboarding/grader-entry";
@@ -24,13 +26,16 @@ const UUID_PATTERN =
 
 export default async function GraderReportPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ auditId: string }>;
+  searchParams: Promise<{ add?: string }>;
 }) {
-  const { auditId } = await params;
+  const [{ auditId }, query] = await Promise.all([params, searchParams]);
   if (!UUID_PATTERN.test(auditId)) notFound();
 
   const session = await auth();
+  const addBusiness = query.add === "1";
   const db = getDb();
   const audit = await db.query.graderAudits.findFirst({
     where: eq(graderAudits.id, auditId),
@@ -112,20 +117,53 @@ export default async function GraderReportPage({
     auditTier: audit.progress?.auditTier,
   };
 
+  const signedIn = Boolean(session.userId);
+
+  // Signed-in users skip the anonymous lead modal.
+  if (signedIn && !report.leadCaptured) {
+    const unlocked = await unlockGraderForSignedInUser(audit.id);
+    if (unlocked) report.leadCaptured = true;
+  }
+
+  const claimContext = session.userId
+    ? await getAuditClaimContext(audit.id, {
+        userId: session.userId,
+        orgId: session.orgId ?? null,
+      })
+    : null;
+
+  const alreadyInWorkspace = claimContext?.claimStatus === "claimed_same_org";
+  const workspaceAction: "signup" | "add" | "continue" = !signedIn
+    ? "signup"
+    : alreadyInWorkspace
+      ? "continue"
+      : "add";
+
   const [dashboardHref, fixHref] = await Promise.all([
     resolveGraderDashboardHref({
       auditId: audit.id,
       userId: session.userId,
       orgId: session.orgId ?? null,
       intent: "organic",
+      add: addBusiness || workspaceAction === "add",
     }),
     resolveGraderDashboardHref({
       auditId: audit.id,
       userId: session.userId,
       orgId: session.orgId ?? null,
       intent: "fix",
+      add: addBusiness || workspaceAction === "add",
     }),
   ]);
 
-  return <GraderReportGate report={report} signedIn={Boolean(session.userId)} dashboardHref={dashboardHref} fixHref={fixHref} />;
+  return (
+    <GraderReportGate
+      report={report}
+      signedIn={signedIn}
+      dashboardHref={dashboardHref}
+      fixHref={fixHref}
+      workspaceAction={workspaceAction}
+      businessName={report.businessName}
+    />
+  );
 }

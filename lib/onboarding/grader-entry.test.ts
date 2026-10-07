@@ -79,15 +79,23 @@ describe("resolveGraderEntryRoute", () => {
     }
   });
 
-  it("blocks when audit claimed by another org", () => {
+  it("still claims audits when adding another business", () => {
     const route = resolveGraderEntryRoute({
-      claimContext: mockClaimContext({ claimStatus: "claimed_other_org" }),
+      claimContext: mockClaimContext(),
       session: { userId: "user-1", orgId: "org-1" },
-      existingLocations: [],
-      addingAnother: false,
+      existingLocations: [
+        {
+          id: "loc-1",
+          name: "Gift A Story",
+          city: "Greenville",
+          state: "SC",
+          matchScore: 10,
+        },
+      ],
+      addingAnother: true,
       setupComplete: false,
     });
 
-    expect(route.type).toBe("already_claimed");
+    expect(route.type).toBe("claim_onboarding");
   });
 });

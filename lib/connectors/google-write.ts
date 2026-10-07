@@ -1,9 +1,13 @@
+import { googleLocationName } from "./google-resource-names";
 import {
   classifyGbpFetchError,
   type GbpFetchErrorCode,
   type GbpFieldKey,
 } from "./google";
-import type { LocationProfileSnapshot, RegularHours } from "@/lib/types/location-profile";
+import type {
+  LocationProfileSnapshot,
+  RegularHours,
+} from "@/lib/types/location-profile";
 
 export type GbpWriteFieldKey = GbpFieldKey;
 
@@ -86,13 +90,16 @@ export function buildGbpPatchPayload(
       case "state":
       case "postalCode": {
         body.storefrontAddress = {
-          ...(typeof body.storefrontAddress === "object" && body.storefrontAddress
+          ...(typeof body.storefrontAddress === "object" &&
+          body.storefrontAddress
             ? (body.storefrontAddress as Record<string, unknown>)
             : {}),
           ...(field === "addressLine1" && profile.addressLine1
             ? { addressLines: [profile.addressLine1] }
             : {}),
-          ...(field === "city" && profile.city ? { locality: profile.city } : {}),
+          ...(field === "city" && profile.city
+            ? { locality: profile.city }
+            : {}),
           ...(field === "state" && profile.state
             ? { administrativeArea: profile.state }
             : {}),
@@ -138,6 +145,17 @@ export async function patchGbpLocationSafe(
     };
   }
 
+  const locationName = googleLocationName(gbpName);
+  if (!locationName)
+    return {
+      ok: false,
+      error: {
+        code: "not_found",
+        message:
+          "Invalid Google location link. Re-import this location before pushing changes.",
+      },
+    };
+
   const { body, updateMask } = buildGbpPatchPayload(profile, fields);
 
   if (updateMask.length === 0) {
@@ -159,7 +177,7 @@ export async function patchGbpLocationSafe(
   }
 
   const response = await fetch(
-    `https://mybusinessbusinessinformation.googleapis.com/v1/${gbpName}?${params.toString()}`,
+    `https://mybusinessbusinessinformation.googleapis.com/v1/${locationName}?${params.toString()}`,
     {
       method: "PATCH",
       headers: {
@@ -174,7 +192,7 @@ export async function patchGbpLocationSafe(
     const errorBody = await response.text();
     return {
       ok: false,
-      error: classifyGbpFetchError(errorBody),
+      error: classifyGbpFetchError(errorBody, response.status),
     };
   }
 

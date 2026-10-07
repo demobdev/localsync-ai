@@ -92,6 +92,7 @@ export function GraderClaimOnboarding({
   organizationType,
   organizationName,
   onboardingIntent = "fix",
+  preferCreateNew = false,
 }: {
   claimContext: AuditClaimContext;
   categories: BusinessCategoryOption[];
@@ -102,6 +103,8 @@ export function GraderClaimOnboarding({
   organizationType: OrganizationType | null;
   organizationName: string | null;
   onboardingIntent?: OnboardingIntent;
+  /** From "Run visibility audit" — open create-new instead of link picker. */
+  preferCreateNew?: boolean;
 }) {
   const [step, setStep] = useState<GraderClaimStep>(() =>
     resolveInitialGraderClaimStep({
@@ -117,7 +120,7 @@ export function GraderClaimOnboarding({
   });
   const [agencyName, setAgencyName] = useState(organizationName ?? "");
   const [showCreateForm, setShowCreateForm] = useState(
-    existingLocations.length === 0,
+    existingLocations.length === 0 || preferCreateNew,
   );
 
   if (claimContext.claimStatus === "claimed_other_org") {

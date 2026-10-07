@@ -13,13 +13,52 @@ import { useEffect, useState } from "react";
 import type { AuditReport } from "@/lib/grader/types";
 import { SCORE_LABELS } from "@/lib/scores/labels";
 
+export type WorkspaceAction = "signup" | "add" | "continue";
+
+function workspaceCtaCopy(
+  action: WorkspaceAction,
+  businessName: string,
+): { primary: string; sticky: string; eyebrow: string; body: string } {
+  if (action === "add") {
+    return {
+      eyebrow: "Add to your workspace",
+      primary: `Add ${businessName} to workspace`,
+      sticky: "Add to workspace",
+      body: "Attach this audit to your organization as a new location. No extra signup — you are already in.",
+    };
+  }
+  if (action === "continue") {
+    return {
+      eyebrow: "Already in your workspace",
+      primary: "Continue fixing visibility",
+      sticky: "Continue fixing",
+      body: "This business is already linked. Jump back to the fix queue and master profile.",
+    };
+  }
+  return {
+    eyebrow: "Fix it with LocalMap",
+    primary: "Start fixing my visibility",
+    sticky: "Fix my visibility",
+    body: "Approve-first sync to every major listing, AI-drafted descriptions and review responses, and honest rails — nothing publishes without your sign-off.",
+  };
+}
+
 export function ImproveWithAICTA({
   report,
   fixHref,
+  workspaceAction = "signup",
+  businessName,
 }: {
   report: AuditReport;
   fixHref: string;
+  workspaceAction?: WorkspaceAction;
+  businessName?: string;
 }) {
+  const copy = workspaceCtaCopy(
+    workspaceAction,
+    businessName ?? report.businessName,
+  );
+
   return (
     <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 shadow-sm">
       <div
@@ -33,16 +72,16 @@ export function ImproveWithAICTA({
         <div>
           <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-emerald-100">
             <SparklesIcon className="size-3.5" />
-            Fix it with LocalSync
+            {copy.eyebrow}
           </p>
           <h2 className="mt-4 text-2xl font-bold text-white sm:text-3xl">
-            Fix your visibility leaks with LocalSync
+            {workspaceAction === "add"
+              ? `Add ${businessName ?? report.businessName} to your workspace`
+              : workspaceAction === "continue"
+                ? "Keep fixing visibility leaks"
+                : "Fix your visibility leaks with LocalMap"}
           </h2>
-          <p className="mt-2 max-w-lg text-emerald-100/90">
-            Approve-first sync to every major listing, AI-drafted descriptions
-            and review responses, and honest rails — nothing publishes without
-            your sign-off.
-          </p>
+          <p className="mt-2 max-w-lg text-emerald-100/90">{copy.body}</p>
           <ul className="mt-4 space-y-1.5">
             {[
               `Fix the ${report.failedChecks} issues found in this audit`,
@@ -62,12 +101,11 @@ export function ImproveWithAICTA({
             href={fixHref}
             className="mt-6 inline-flex h-12 items-center gap-2 rounded-2xl bg-white px-6 text-base font-semibold text-emerald-900 transition-colors hover:bg-emerald-50"
           >
-            Start fixing my visibility
+            {copy.primary}
             <ArrowRightIcon className="size-4" />
           </Link>
         </div>
 
-        {/* Phone mockup */}
         <div className="mx-auto hidden w-56 lg:block">
           <div className="rounded-[2rem] border-4 border-white/20 bg-zinc-900/80 p-3 shadow-2xl">
             <div className="space-y-2.5">
@@ -111,11 +149,19 @@ export function ImproveWithAICTA({
 export function StickyFixCTA({
   report,
   fixHref,
+  workspaceAction = "signup",
+  businessName,
 }: {
   report: AuditReport;
   fixHref: string;
+  workspaceAction?: WorkspaceAction;
+  businessName?: string;
 }) {
   const [visible, setVisible] = useState(false);
+  const copy = workspaceCtaCopy(
+    workspaceAction,
+    businessName ?? report.businessName,
+  );
 
   useEffect(() => {
     function onScroll() {
@@ -137,14 +183,16 @@ export function StickyFixCTA({
             {report.estimatedMonthlyLoss.toLocaleString()}/mo at stake
           </p>
           <p className="hidden text-xs text-zinc-500 sm:block">
-            LocalSync fixes these with approve-first sync and AI drafts
+            {workspaceAction === "add"
+              ? "Add this business to your organization — no extra signup"
+              : "LocalMap fixes these with approve-first sync and AI drafts"}
           </p>
         </div>
         <Link
           href={fixHref}
           className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-700"
         >
-          Fix my visibility
+          {copy.sticky}
           <ArrowRightIcon className="size-4" />
         </Link>
       </div>

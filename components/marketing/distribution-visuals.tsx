@@ -10,37 +10,39 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "relative mx-auto w-full max-w-lg rounded-3xl border bg-card/80 p-6 shadow-xl shadow-primary/5 backdrop-blur-sm",
+        "relative mx-auto w-full max-w-lg rounded-3xl border border-[#7cbdb2]/35 bg-[linear-gradient(145deg,rgba(238,255,250,.98),rgba(215,243,237,.96))] p-6 text-[#062f3a] shadow-[0_30px_90px_rgba(5,83,82,.18)] backdrop-blur-sm",
         className,
       )}
     >
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-[#c9f0e9] text-[#078b83] ring-1 ring-[#7bcfc1]/35">
           <SparklesIcon className="size-4" />
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#087e78]">
             Master profile
           </p>
-          <p className="font-semibold">Your business · one source of truth</p>
+          <p className="font-semibold text-[#062f3a]">
+            Your business · one source of truth
+          </p>
         </div>
       </div>
 
-      <div className="space-y-2 rounded-xl border bg-muted/30 p-3 text-sm">
+      <div className="space-y-2 rounded-xl border border-[#88c9bd]/35 bg-white/45 p-3 text-sm">
         {["Name & NAP", "Hours & services", "Photos & FAQs"].map((field) => (
           <div
             key={field}
-            className="flex items-center justify-between rounded-lg bg-background px-3 py-2"
+            className="flex items-center justify-between rounded-lg border border-white/70 bg-white/80 px-3 py-2 shadow-[0_5px_18px_rgba(6,47,58,.04)]"
           >
-            <span className="text-muted-foreground">{field}</span>
-            <span className="text-xs font-medium text-primary">Synced</span>
+            <span className="text-[#526d72]">{field}</span>
+            <span className="text-xs font-medium text-[#008b80]">Synced</span>
           </div>
         ))}
       </div>
 
       <div className="relative my-6 h-8">
-        <div className="absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="absolute left-1/2 top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-primary" />
+        <div className="absolute inset-x-8 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-transparent via-[#1b9a8f]/45 to-transparent" />
+        <div className="absolute left-1/2 top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-[#13998e]" />
       </div>
 
       <div className="grid grid-cols-4 gap-3 sm:grid-cols-4">
@@ -50,15 +52,20 @@ export function DistributionFlowVisual({ className }: { className?: string }) {
             className="flex flex-col items-center gap-2"
             style={{ animationDelay: `${index * 80}ms` }}
           >
-            <BrandIconBadge brand={brand} size={32} showCheck />
-            <span className="text-center text-[10px] leading-tight text-muted-foreground">
+            <BrandIconBadge
+              brand={brand}
+              size={32}
+              showCheck
+              className="border-[#9dcfc7]/45 bg-white/90 text-[#062f3a]"
+            />
+            <span className="text-center text-[10px] leading-tight text-[#587078]">
               {brand.label}
             </span>
           </div>
         ))}
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
+      <p className="mt-4 text-center text-xs text-[#526d72]">
         Audits verify live listings · AI pages feed LLM crawlers
       </p>
     </div>

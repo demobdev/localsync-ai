@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import { generateObject } from "ai";
 import { eq, desc } from "drizzle-orm";
 import { after } from "next/server";
@@ -1037,4 +1038,30 @@ export async function captureGraderLeadAction(input: {
     .where(eq(graderAudits.id, input.auditId));
 
   return { ok: true };
+}
+
+/**
+ * Signed-in users skip the anonymous lead gate. Unlocks the report without
+ * collecting name/email/relationship again (those belong on location attach).
+ */
+export async function unlockGraderForSignedInUser(
+  auditId: string,
+): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+
+  const db = getDb();
+  const audit = await db.query.graderAudits.findFirst({
+    where: eq(graderAudits.id, auditId),
+    columns: { id: true, leadCaptured: true },
+  });
+  if (!audit) return false;
+  if (audit.leadCaptured) return true;
+
+  await db
+    .update(graderAudits)
+    .set({ leadCaptured: true })
+    .where(eq(graderAudits.id, auditId));
+
+  return true;
 }

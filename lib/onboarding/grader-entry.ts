@@ -28,10 +28,9 @@ export function resolveGraderEntryRoute(input: {
   addingAnother: boolean;
   setupComplete: boolean;
 }): GraderEntryRoute {
-  const { claimContext, session, existingLocations, addingAnother, setupComplete } =
-    input;
+  const { claimContext, session, existingLocations, setupComplete } = input;
 
-  if (setupComplete || addingAnother || !claimContext?.auditId) {
+  if (setupComplete || !claimContext?.auditId) {
     return { type: "generic_onboarding" };
   }
 
@@ -81,6 +80,8 @@ export async function resolveGraderDashboardHref(input: {
   orgId: string | null;
   intent?: OnboardingIntent;
   existingLocations?: OrgLocationOption[];
+  /** Create a new location instead of linking an existing one. */
+  add?: boolean;
 }): Promise<string> {
   if (!input.userId) {
     return buildSignupUrl(input.auditId);
@@ -99,7 +100,7 @@ export async function resolveGraderDashboardHref(input: {
     claimContext,
     session: { userId: input.userId, orgId: input.orgId },
     existingLocations: input.existingLocations ?? [],
-    addingAnother: false,
+    addingAnother: Boolean(input.add),
     setupComplete: false,
   });
 
@@ -114,5 +115,6 @@ export async function resolveGraderDashboardHref(input: {
   return buildFixOnboardingUrl({
     auditId: input.auditId,
     intent: input.intent ?? "fix",
+    add: input.add,
   });
 }

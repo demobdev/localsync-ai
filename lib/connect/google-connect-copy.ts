@@ -1,5 +1,4 @@
 import type { GoogleImportState } from "@/app/actions/google-import";
-import type { GraderOperatingModel } from "@/lib/grader/types";
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { modelLabel } from "@/lib/onboarding/routing";
 
@@ -23,16 +22,16 @@ export function googleConnectCopyForContext(input: {
     (!input.context.gbpLinkedAtAudit ||
       input.context.auditTier === "website_local");
   const connected = input.googleState.status === "connected";
-  const quotaPending =
+  const quotaLimited =
     connected &&
     input.googleState.status === "connected" &&
     Boolean(input.googleState.fetchError?.code === "quota_exceeded");
 
-  if (quotaPending) {
+  if (quotaLimited) {
     return {
-      headline: "Google connected — waiting on API approval",
+      headline: "Google connected — API rate or quota limit reached",
       description:
-        "OAuth is linked. Full import/sync unlocks once Google approves your Business Profile API quota (see docs/gbp-api-request.md).",
+        "Google's API rate or quota limit was reached. Retry later and check the calling project's quota and usage. This error alone does not mean API access is unapproved. If the project is already approved, verify the OAuth project and effective quota instead of applying again.",
       cta: "View connection status",
       helper: `You can still add listing URLs and run audits manually meanwhile. ${ADS_CREDIT_HELPER}`,
     };
@@ -55,7 +54,7 @@ export function googleConnectCopyForContext(input: {
         "Storefront businesses need a verified Google profile for map pack visibility. Connect an existing listing, or create one on Google first.",
       cta: "Connect Google account",
       helper:
-        "Use the Google account that manages the Business Profile — read-only OAuth first.",
+        "Use the Google account that manages the Business Profile. Connecting loads your listing; changes are sent to Google only when you approve a push.",
     };
   }
 

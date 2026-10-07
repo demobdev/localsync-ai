@@ -31,7 +31,7 @@ export default async function ClientsPage() {
             size="sm"
             variant="outline"
             nativeButton={false}
-            render={<Link href="/grader" />}
+            render={<Link href="/grader?add=1" />}
           >
             <FileBarChart2Icon className="size-4" />
             New prospect audit

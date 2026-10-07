@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import type { GbpFetchErrorCode } from "@/lib/connectors/google";
 import type { GoogleImportState } from "@/app/actions/google-import";
 import { googleConnectCopyForContext } from "@/lib/connect/google-connect-copy";
@@ -18,11 +16,15 @@ import {
 function fetchErrorTitle(code: GbpFetchErrorCode) {
   switch (code) {
     case "quota_exceeded":
-      return "Google connected — API quota pending";
+      return "Google connected — API rate or quota limit reached";
     case "permission_denied":
-      return "Google connected — no listing access";
-    case "api_not_approved":
-      return "Google connected — APIs not ready";
+      return "Google connected — permission check needed";
+    case "api_disabled":
+      return "Google connected — API activation needed";
+    case "not_found":
+      return "Google connected — resource not found";
+    case "unauthenticated":
+      return "Google authorization needs attention";
     default:
       return "Google connected — could not load locations";
   }
@@ -46,8 +48,9 @@ export function GoogleConnectionStatus({
         <CardHeader>
           <CardTitle>Google OAuth not configured</CardTitle>
           <CardDescription>
-            Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local, then
-            restart the dev server. See docs/gbp-api-request.md.
+            Configure GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and a valid
+            NEXT_PUBLIC_APP_URL for this environment. Its callback must match
+            the Google OAuth client. See docs/gbp-api-request.md.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -69,7 +72,7 @@ export function GoogleConnectionStatus({
         <CardContent className="space-y-3">
           <Button
             nativeButton={false}
-            render={<Link href="/api/connectors/google" />}
+            render={<a href="/api/connectors/google" />}
           >
             {copy.cta}
           </Button>
@@ -79,7 +82,7 @@ export function GoogleConnectionStatus({
             <p className="text-xs text-muted-foreground">
               Sign in with a Google account that is a test user in your Cloud
               project and an owner/manager on at least one Business Profile.
-              Read only — nothing is written back to Google until you push from
+              Nothing is written back to Google until you push from
               Premium.
             </p>
           )}
@@ -95,11 +98,21 @@ export function GoogleConnectionStatus({
           <PublisherIcon slug="google-business-profile" badge size={32} />
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-lg">Google account connected</CardTitle>
-              <Badge variant="secondary">Linked to this workspace</Badge>
+              <CardTitle className="text-lg">
+                {state.fetchError?.code === "unauthenticated"
+                  ? "Reconnect your Google account"
+                  : "Google account connected"}
+              </CardTitle>
+              <Badge variant="secondary">
+                {state.fetchError?.code === "unauthenticated"
+                  ? "Authorization needs attention"
+                  : "Linked to this workspace"}
+              </Badge>
             </div>
             <CardDescription>
-              {state.locations.length > 0
+              {state.fetchError?.code === "unauthenticated"
+                ? "The saved connection no longer has valid authorization. Reconnect to load your Business Profile locations."
+                : state.locations.length > 0
                 ? `Found ${state.locations.length} Business Profile location${state.locations.length === 1 ? "" : "s"}.`
                 : "OAuth succeeded. Location data depends on listing access and API approval below."}
             </CardDescription>
@@ -109,7 +122,7 @@ export function GoogleConnectionStatus({
           size="sm"
           variant="outline"
           nativeButton={false}
-          render={<Link href="/api/connectors/google" />}
+          render={<a href="/api/connectors/google" />}
         >
           Reconnect
         </Button>
@@ -121,7 +134,9 @@ export function GoogleConnectionStatus({
             <p className="font-medium text-foreground">
               {fetchErrorTitle(state.fetchError.code)}
             </p>
-            <p className="mt-2 text-muted-foreground">{state.fetchError.message}</p>
+            <p className="mt-2 text-muted-foreground">
+              {state.fetchError.message}
+            </p>
           </div>
         </CardContent>
       ) : null}
@@ -205,8 +220,8 @@ export function GoogleConnectionStatus({
           <div className="rounded-xl border border-dashed p-4 text-sm">
             <p className="font-medium">No Business Profile locations found</p>
             <p className="mt-2 text-muted-foreground">
-              The connected Google account does not manage any listings yet. Create
-              a profile at{" "}
+              The connected Google account does not manage any listings yet.
+              Create a profile at{" "}
               <a
                 href="https://business.google.com"
                 target="_blank"

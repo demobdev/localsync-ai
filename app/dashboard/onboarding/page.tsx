@@ -136,7 +136,7 @@ export default async function DashboardOnboardingPage({
 
   return (
     <div className="localmap-mesh min-h-screen">
-      <div className="mx-auto flex min-h-screen max-w-xl flex-col px-4 py-8 sm:px-6">
+      <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-8 sm:px-6">
         <div className="mb-8 flex items-center justify-between">
           <LocalMapLogo />
           <ThemeToggle />
@@ -165,6 +165,7 @@ export default async function DashboardOnboardingPage({
               organizationType={organization?.type ?? null}
               organizationName={organization?.name ?? null}
               onboardingIntent={onboardingIntent}
+              preferCreateNew={addingAnother}
             />
           ) : entryRoute.type === "already_claimed" && claimContext ? (
             <GraderClaimOnboarding
@@ -177,6 +178,7 @@ export default async function DashboardOnboardingPage({
               organizationType={organization?.type ?? null}
               organizationName={organization?.name ?? null}
               onboardingIntent={onboardingIntent}
+              preferCreateNew={addingAnother}
             />
           ) : (
             <>

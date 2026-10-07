@@ -38,12 +38,33 @@ export function scorePlaceMatch(query: string, candidateName: string): number {
   if (!q || !name) return 0;
 
   if (name === q) return 100;
-  if (name.startsWith(q) || q.startsWith(name)) return 92;
-  if (name.includes(q) || q.includes(name)) return 85;
 
   const qTokens = q.split(" ").filter((t) => t.length > 1);
-  const nameTokens = new Set(name.split(" "));
+  const candidateTokens = name.split(" ").filter((t) => t.length > 1);
+  const nameTokens = new Set(candidateTokens);
   if (qTokens.length === 0) return 0;
+
+  const shorterTokenCount = Math.min(qTokens.length, candidateTokens.length);
+  const longerTokenCount = Math.max(qTokens.length, candidateTokens.length);
+  const prefixCoverage =
+    longerTokenCount > 0 ? shorterTokenCount / longerTokenCount : 0;
+
+  // Prefix/contains matches are only high-confidence when most of both names
+  // overlap. This prevents "Gift a story" from promoting "The Gift".
+  if (
+    (name.startsWith(q) || q.startsWith(name)) &&
+    shorterTokenCount >= 2 &&
+    prefixCoverage >= 0.66
+  ) {
+    return 92;
+  }
+  if (
+    (name.includes(q) || q.includes(name)) &&
+    shorterTokenCount >= 2 &&
+    prefixCoverage >= 0.66
+  ) {
+    return 85;
+  }
 
   let matched = 0;
   for (const token of qTokens) {

@@ -10,21 +10,24 @@ export function GoogleImportToast() {
   const handled = useRef(false);
 
   useEffect(() => {
+    if (searchParams.get("connected") !== "1") {
+      handled.current = false;
+      return;
+    }
     if (handled.current) {
       return;
     }
 
-    if (searchParams.get("connected") === "1") {
-      handled.current = true;
+    handled.current = true;
+    if (!searchParams.has("error")) {
       toast.success("Google account connected", {
         description:
           "Loading your Business Profile locations. If none appear, see the status message below.",
       });
-
-      const url = new URL(window.location.href);
-      url.searchParams.delete("connected");
-      router.replace(url.pathname + url.search, { scroll: false });
     }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("connected");
+    router.replace(url.pathname + url.search + url.hash, { scroll: false });
   }, [router, searchParams]);
 
   return null;

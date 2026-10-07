@@ -1,40 +1,85 @@
-import { OrganizationProfile } from "@clerk/nextjs";
-import { UsersIcon } from "lucide-react";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
-export default function TeamPage() {
+import {
+  TeamWorkspace,
+  type TeamInvitationView,
+  type TeamMemberView,
+} from "@/components/team/team-workspace";
+import { visibleInvitationHistory } from "@/lib/team/invitation-flow";
+
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "numeric",
+  day: "numeric",
+  year: "numeric",
+});
+
+export default async function TeamPage() {
+  const session = await auth();
+
+  if (!session.userId || !session.orgId) {
+    return null;
+  }
+
+  const client = await clerkClient();
+  const [organization, membershipResponse, invitationResponse] = await Promise.all([
+    client.organizations.getOrganization({ organizationId: session.orgId }),
+    client.organizations.getOrganizationMembershipList({
+      organizationId: session.orgId,
+      limit: 100,
+      orderBy: "+created_at",
+    }),
+    client.organizations.getOrganizationInvitationList({
+      organizationId: session.orgId,
+      limit: 100,
+    }),
+  ]);
+
+  const members: TeamMemberView[] = membershipResponse.data.map((membership) => {
+    const person = membership.publicUserData;
+    const isCurrentUser = person?.userId === session.userId;
+    const name =
+      [person?.firstName, person?.lastName].filter(Boolean).join(" ") ||
+      person?.identifier ||
+      "Team member";
+
+    return {
+      id: membership.id,
+      userId: person?.userId ?? membership.id,
+      name,
+      email: person?.identifier ?? "No email available",
+      imageUrl: person?.imageUrl ?? "",
+      role:
+        membership.role === "org:admin"
+          ? isCurrentUser
+            ? "Owner"
+            : "Admin"
+          : "Member",
+      joinedAt: dateFormatter.format(new Date(membership.createdAt)),
+      isCurrentUser,
+    };
+  });
+
+  const invitations: TeamInvitationView[] = visibleInvitationHistory(
+    invitationResponse.data.map((invitation) => ({
+      id: invitation.id,
+      email: invitation.emailAddress,
+      role:
+        invitation.role === "org:admin"
+          ? ("Admin" as const)
+          : ("Member" as const),
+      status: invitation.status ?? "pending",
+      sentAt: dateFormatter.format(new Date(invitation.createdAt)),
+      expiresAt: dateFormatter.format(new Date(invitation.expiresAt)),
+    })),
+  );
+
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-            <UsersIcon className="size-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-semibold">Team</h1>
-            <p className="text-muted-foreground">
-              Invite teammates, manage roles, and update your workspace name
-              and logo.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <OrganizationProfile
-        routing="path"
-        path="/dashboard/team"
-        afterLeaveOrganizationUrl="/dashboard/onboarding"
-        appearance={{
-          elements: {
-            rootBox: "w-full",
-            cardBox:
-              "w-full max-w-none rounded-2xl border border-border shadow-none localmap-card-glow bg-card",
-            navbar:
-              "bg-muted/30 border-r border-border [&_h1]:text-foreground",
-            scrollBox: "bg-card rounded-none",
-            pageScrollBox: "px-6 py-6",
-          },
-        }}
-      />
-    </div>
+    <TeamWorkspace
+      workspaceName={organization.name}
+      members={members}
+      invitations={invitations}
+      seatLimit={organization.maxAllowedMemberships}
+      canManage={session.orgRole === "org:admin"}
+    />
   );
 }

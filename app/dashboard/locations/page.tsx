@@ -38,7 +38,7 @@ export default async function LocationsPage() {
           <Button
             size="sm"
             nativeButton={false}
-            render={<Link href="/grader" />}
+            render={<Link href="/grader?add=1" />}
           >
             Run visibility audit
           </Button>

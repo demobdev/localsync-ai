@@ -2,16 +2,13 @@ import {
   ClipboardList,
   CreditCard,
   Download,
-  FileBarChart2,
   LayoutDashboard,
   MapPin,
-  Share2,
+  Settings,
   UserPlus,
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-
-import { SCORE_LABELS } from "@/lib/scores/labels";
 
 export type DashboardNavItem = {
   title: string;
@@ -21,7 +18,7 @@ export type DashboardNavItem = {
 
 const baseDashboardNav: DashboardNavItem[] = [
   {
-    title: "Dashboard",
+    title: "Overview",
     href: "/dashboard",
     icon: LayoutDashboard,
   },
@@ -31,17 +28,12 @@ const baseDashboardNav: DashboardNavItem[] = [
     icon: MapPin,
   },
   {
-    title: "Publishers",
-    href: "/dashboard/publishers",
-    icon: Share2,
-  },
-  {
-    title: "Tasks",
+    title: "Fix queue",
     href: "/dashboard/tasks",
     icon: ClipboardList,
   },
   {
-    title: "Connect",
+    title: "Connections",
     href: "/dashboard/connect",
     icon: Download,
   },
@@ -65,10 +57,10 @@ const billingNavItem: DashboardNavItem = {
   icon: CreditCard,
 };
 
-const visibilityAuditNavItem: DashboardNavItem = {
-  title: SCORE_LABELS.marketAuditShort,
-  href: "/grader",
-  icon: FileBarChart2,
+const settingsNavItem: DashboardNavItem = {
+  title: "Settings",
+  href: "/dashboard/settings",
+  icon: Settings,
 };
 
 export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
@@ -77,20 +69,20 @@ export function getDashboardNav(isAgency: boolean): DashboardNavItem[] {
   if (!isAgency) {
     return [
       baseDashboardNav[0]!,
-      visibilityAuditNavItem,
-      teamItem,
       ...baseDashboardNav.slice(1),
+      teamItem,
       billingNavItem,
+      settingsNavItem,
     ];
   }
 
   return [
     baseDashboardNav[0]!,
-    visibilityAuditNavItem,
     clientsNavItem,
-    teamItem,
     ...baseDashboardNav.slice(1),
+    teamItem,
     billingNavItem,
+    settingsNavItem,
   ];
 }
 

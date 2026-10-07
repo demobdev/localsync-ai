@@ -15,6 +15,7 @@ import { requireOrgAuth } from "@/lib/auth/org";
 import { getWorkspacePlan } from "@/lib/billing/plans";
 import { fetchGoogleReviewsSafe } from "@/lib/connectors/google-reviews";
 import { getValidGoogleAccessToken } from "@/lib/connectors/google";
+import { googleReviewParent } from "@/lib/connectors/google-resource-names";
 import { buildDemoReviews } from "@/lib/reviews/demo-seed";
 import { generateReviewReplyDraft } from "@/lib/reviews/reply-generate";
 import {
@@ -271,30 +272,84 @@ async function getGooglePublisherLink(locationId: string) {
   return row?.externalId ?? null;
 }
 
-export async function syncGoogleReviewsAction(locationId: string) {
+export type SyncGoogleReviewsResult =
+  | {
+      ok: true;
+      source: "google";
+      inserted: number;
+      updated: number;
+      unchanged: number;
+      total: number;
+      skipped: number;
+      pagesFetched: number;
+      googleTotalReviewCount: number | null;
+      googleAverageRating: number | null;
+    }
+  | { ok: false; error: string };
+
+export async function syncGoogleReviewsAction(
+  locationId: string,
+): Promise<SyncGoogleReviewsResult> {
   const { orgId } = await requireOrgAuth();
   await assertLocationInOrg(locationId, orgId);
   const db = getDb();
 
   const gbpResourceName = await getGooglePublisherLink(locationId);
   if (!gbpResourceName) {
-    throw new Error(
-      "Link this location to Google first — import fields from Connect → Google.",
-    );
+    return {
+      ok: false,
+      error: "Link this location to Google first. Import fields from Connect → Google.",
+    };
+  }
+  if (!googleReviewParent(gbpResourceName)) {
+    return {
+      ok: false,
+      error: "This Google location link is missing its account ID. Re-import this location from Connect → Google before syncing reviews.",
+    };
   }
 
-  const accessToken = await getValidGoogleAccessToken(orgId);
+  let accessToken: string | null;
+  try {
+    accessToken = await getValidGoogleAccessToken(orgId);
+  } catch {
+    return {
+      ok: false,
+      error: "Could not refresh your Google connection. Try again or reconnect Google in Connect.",
+    };
+  }
   if (!accessToken) {
-    throw new Error("Google is not connected. Link your account in Connect.");
+    return { ok: false, error: "Google is not connected. Link your account in Connect." };
   }
 
   const result = await fetchGoogleReviewsSafe(accessToken, gbpResourceName);
   if (!result.ok) {
-    throw new Error(result.error.message);
+    // Expected failures must be returned, not thrown: production Server Actions
+    // redact thrown error messages, hiding the useful reconnect/re-import step.
+    return { ok: false, error: result.error.message };
   }
 
   let inserted = 0;
   let updated = 0;
+
+  // Approved drafts are LocalSync-only. Keep that saved work when refreshing
+  // Google data; the approval record is the existing durable provenance.
+  const approvedDrafts = result.reviews.length
+    ? await db.select().from(approvalRequests).where(and(
+        eq(approvalRequests.organizationId, orgId),
+        eq(approvalRequests.locationId, locationId),
+        eq(approvalRequests.requestType, "review_reply_draft"),
+        eq(approvalRequests.status, "approved"),
+      ))
+    : [];
+  const localReplyTexts = new Map<string, Set<string>>();
+  for (const request of approvedDrafts) {
+    const { reviewId, draftReply } = request.payload;
+    if (typeof reviewId === "string" && typeof draftReply === "string") {
+      const texts = localReplyTexts.get(reviewId) ?? new Set<string>();
+      texts.add(draftReply);
+      localReplyTexts.set(reviewId, texts);
+    }
+  }
 
   for (const review of result.reviews) {
     const [existing] = await db
@@ -302,6 +357,7 @@ export async function syncGoogleReviewsAction(locationId: string) {
       .from(locationReviews)
       .where(
         and(
+          eq(locationReviews.organizationId, orgId),
           eq(locationReviews.locationId, locationId),
           eq(locationReviews.source, "google"),
           eq(locationReviews.externalId, review.externalId),
@@ -309,21 +365,34 @@ export async function syncGoogleReviewsAction(locationId: string) {
       )
       .limit(1);
 
+    const fields = {
+      authorName: review.authorName,
+      rating: review.rating,
+      text: review.text,
+      publishedAt: review.publishedAt,
+    };
+
     if (existing) {
-      if (
-        review.existingReply &&
-        existing.replyStatus === "unreplied" &&
-        !existing.replyText
-      ) {
-        await db
-          .update(locationReviews)
-          .set({
-            replyStatus: "replied",
-            replyText: review.existingReply,
-            replyPostedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(locationReviews.id, existing.id));
+      const keepLocalReply = existing.replyStatus === "draft_pending" ||
+        Boolean(existing.replyText && localReplyTexts.get(existing.id)?.has(existing.replyText));
+      const replyFields = keepLocalReply ? {} : {
+        replyStatus: review.existingReply ? "replied" as const :
+          existing.replyStatus === "skipped" ? "skipped" as const : "unreplied" as const,
+        replyText: review.existingReply,
+        // This is Google's reply timestamp, never the time of our import.
+        replyPostedAt: review.existingReply ? review.replyUpdatedAt : null,
+      };
+      const changes = { ...fields, ...replyFields };
+      const changed = Object.entries(changes).some(([key, value]) => {
+        const previous = existing[key as keyof typeof changes];
+        return previous instanceof Date || value instanceof Date
+          ? (previous instanceof Date ? previous.getTime() : previous) !==
+              (value instanceof Date ? value.getTime() : value)
+          : previous !== value;
+      });
+      if (changed) {
+        await db.update(locationReviews).set({ ...changes, updatedAt: new Date() })
+          .where(and(eq(locationReviews.id, existing.id), eq(locationReviews.organizationId, orgId)));
         updated += 1;
       }
       continue;
@@ -334,13 +403,10 @@ export async function syncGoogleReviewsAction(locationId: string) {
       locationId,
       source: "google",
       externalId: review.externalId,
-      authorName: review.authorName,
-      rating: review.rating,
-      text: review.text,
-      publishedAt: review.publishedAt,
+      ...fields,
       replyStatus: review.existingReply ? "replied" : "unreplied",
-      replyText: review.existingReply ?? null,
-      replyPostedAt: review.existingReply ? new Date() : null,
+      replyText: review.existingReply,
+      replyPostedAt: review.existingReply ? review.replyUpdatedAt : null,
     });
     inserted += 1;
   }
@@ -348,7 +414,18 @@ export async function syncGoogleReviewsAction(locationId: string) {
   revalidatePath(`/dashboard/locations/${locationId}/reviews`);
   revalidatePath("/dashboard");
 
-  return { inserted, updated, total: result.reviews.length };
+  return {
+    ok: true,
+    source: "google",
+    inserted,
+    updated,
+    unchanged: result.reviews.length - inserted - updated,
+    total: result.reviews.length,
+    skipped: result.skipped,
+    pagesFetched: result.pagesFetched,
+    googleTotalReviewCount: result.totalReviewCount,
+    googleAverageRating: result.averageRating,
+  };
 }
 
 /** Free AI reply drafts before the Pro plan is required. */

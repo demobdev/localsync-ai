@@ -42,15 +42,17 @@ npm run db:seed
 
 ```bash
 npm run dev
+npm run dev:jobs
 ```
 
-5. **GBP API access:** submitted 2026-07-13 (Gift a Story dogfood, case `0-0182000041521`) — see [docs/gbp-api-request.md](docs/gbp-api-request.md). Pre-optimization snapshot: [docs/gift-a-story-baseline.md](docs/gift-a-story-baseline.md).
+5. **GBP API access:** approved 2026-10-06 for LocalSync project `localsync-501521` / `249394741886` (case `1-3775000042082`, default 300 QPM). **Owner’s Box** is the current demo business. See [setup and remaining verification](docs/gbp-api-request.md); OAuth client ownership, registered callbacks, API enablement, and live access still need verification. Gift a Story is historical only.
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `npm run dev` | Next.js dev server |
+| `npm run dev:jobs` | Inngest development worker for audits and background jobs |
 | `npm run db:push` | Push Drizzle schema to Neon |
 | `npm run db:generate` | Generate migrations |
 | `npm run db:studio` | Drizzle Studio |

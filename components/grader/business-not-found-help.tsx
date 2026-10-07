@@ -29,8 +29,8 @@ export function BusinessNotFoundHelp({
 
   const premiumLabel =
     operatingModel === "mobile" || operatingModel === "service_area"
-      ? "We'll set up your Google profile & listings"
-      : "We'll set up your profile for you";
+      ? "Start automated profile & listings setup"
+      : "Start automated Google profile setup";
 
   if (variant === "dropdown") {
     return (
@@ -40,7 +40,9 @@ export function BusinessNotFoundHelp({
           className,
         )}
       >
-        <p className="text-zinc-500">Can&apos;t find your business?</p>
+        <p className="text-zinc-500">
+          Can&apos;t find it? Try the exact name plus city or ZIP.
+        </p>
         <div className="mt-1.5 flex flex-col gap-1">
           <a
             href={googleUrl}
@@ -71,7 +73,10 @@ export function BusinessNotFoundHelp({
         className,
       )}
     >
-      <p className="text-sm text-zinc-500">Can&apos;t find your business?</p>
+      <p className="text-sm text-zinc-500">
+        Can&apos;t find it? If you already have a profile, try the exact name plus
+        city or ZIP before creating another one.
+      </p>
       <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
         <a
           href={googleUrl}
@@ -90,6 +95,11 @@ export function BusinessNotFoundHelp({
           {premiumLabel}
         </Link>
       </div>
+      <p className="mt-2 text-xs text-zinc-500">
+        If no profile exists, LocalMap prepares it from your approved Master
+        Profile and keeps verification in the Fix Queue. Google may still require
+        owner verification before publishing.
+      </p>
       {operatingModel !== "storefront" ? (
         <p className="mt-2 text-xs text-zinc-500">
           Or paste your website above — we can still run a website &amp; local

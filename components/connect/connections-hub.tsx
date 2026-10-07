@@ -56,7 +56,7 @@ export function ConnectionsHub({
   });
   const model = operatingContext?.operatingModel ?? "storefront";
   const googleConnected = googleState.status === "connected";
-  const googleQuotaPending =
+  const googleQuotaLimited =
     googleConnected &&
     Boolean(
       googleState.status === "connected" && googleState.fetchError?.code === "quota_exceeded",
@@ -74,8 +74,8 @@ export function ConnectionsHub({
       icon: GlobeIcon,
       publisherSlug: "google-business-profile",
       done: googleConnected,
-      statusLabel: googleQuotaPending
-        ? "Quota pending"
+      statusLabel: googleQuotaLimited
+        ? "Rate or quota limit reached"
         : googleConnected
           ? "Connected"
           : "Not connected",
@@ -85,29 +85,29 @@ export function ConnectionsHub({
     },
     {
       id: "listings",
-      title: "Directory listings",
-      description: listingsDescriptionForModel(model),
+      title: "Audit-only directories",
+      description: `${listingsDescriptionForModel(model)} Use this only when direct publisher management is unavailable.`,
       icon: Link2Icon,
       done: listingStep?.done ?? false,
-      statusLabel: listingStep?.done ? "URLs added" : "Add URLs",
+      statusLabel: listingStep?.done ? "Monitoring" : "Optional",
       href: primaryLocationId
         ? `/dashboard/locations/${primaryLocationId}/listings`
         : "/dashboard/locations",
-      cta: "Manage listings",
+      cta: "Manage fallback",
       tone: "text-chart-2",
     },
     {
       id: "audits",
-      title: "Listing audits",
+      title: "Audit-only checks",
       description:
-        "Firecrawl + AI extraction flags wrong phone, address, or hours on public listings.",
+        "Check saved public URLs for wrong phone, address, or hours without implying write access.",
       icon: RadarIcon,
       done: auditStep?.done ?? false,
       statusLabel: auditStep?.done ? "Audit complete" : "Not run yet",
       href: primaryLocationId
         ? `/dashboard/locations/${primaryLocationId}/listings`
         : "/dashboard/locations",
-      cta: "Run audit",
+      cta: "Check listings",
       tone: "text-chart-3",
     },
     {
@@ -126,8 +126,6 @@ export function ConnectionsHub({
     },
   ];
 
-  const doneCount = cards.filter((card) => card.done).length;
-
   return (
     <div className="space-y-6">
       <div className="localmap-mesh rounded-2xl border bg-card p-6">
@@ -135,15 +133,15 @@ export function ConnectionsHub({
           variant="secondary"
           className="mb-3 rounded-full border border-primary/20 bg-primary/10 text-primary"
         >
-          {doneCount}/{cards.length} connected
+          {googleConnected ? "Google account connected" : "Google account not connected"}
         </Badge>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Connections & data sources
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
           {operatingContext
-            ? `${googleCopy.headline}. Link external profiles, import canonical data, audit directories, and publish your AI-readable visibility page.`
-            : "Link external profiles, import canonical data, audit directories, and publish your AI-readable visibility page — in order or as you go."}
+            ? `${googleCopy.headline}. Confirm the correct listing, review field differences, and verify the result before expanding coverage.`
+            : "Connect a real publisher account first, then use audit-only monitoring only where direct management is unavailable."}
         </p>
         {googleCopy.helper ? (
           <p className="mt-2 text-xs text-muted-foreground">{googleCopy.helper}</p>
@@ -196,14 +194,19 @@ export function ConnectionsHub({
           <CardHeader>
             <CardTitle className="text-base">Recommended order</CardTitle>
             <CardDescription>
-              Complete profile fields first, then connect Google, add listing URLs,
-              audit, and publish.
+              Connect Google, confirm the listing, then review existing details
+              before filling in anything missing. Saving in LocalMap and sending
+              approved changes to Google are separate steps. Audit-only URLs are optional.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ol className="space-y-2 text-sm text-muted-foreground">
               {setupProgress.steps
                 .filter((step) => !step.optional)
+                .sort((a, b) => {
+                  const order = (id: string) => id === "connect-google" ? 0 : id === "import-google" ? 1 : 2;
+                  return order(a.id) - order(b.id);
+                })
                 .slice(0, 6)
                 .map((step, index) => (
                   <li key={step.id} className="flex items-center gap-2">

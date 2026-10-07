@@ -1,6 +1,11 @@
 # LocalMap Demo Guide (for Don)
 
-**URL:** http://localhost:3002  
+**Local demo URL:** http://localhost:3002
+
+**Production app:** https://app.localmap.co
+
+**Chosen GBP / demo business:** Owner's Box
+
 **What this is:** LocalMap OS — the local intelligence platform. LocalSync is the software engine; LocalMap is the agency + product brand.
 
 ---
@@ -29,7 +34,7 @@
 
 ### 3. Locations (`/dashboard/locations`)
 
-- Create a client + location (HVAC use case — no Tim/Restore needed)
+- Use the Owner's Box location if it is available; otherwise prepare it only from verified business details
 - Open location → **Master Business Profile** editor (NAP, hours, services, photos)
 
 ### 4. Listings & Audits (location → Listings tab)
@@ -40,8 +45,8 @@
 
 ### 5. Google Import (`/dashboard/import/google`)
 
-- OAuth connect flow (needs verified GBP on the Google account)
-- Field-by-field diff/merge into master profile
+- Connect with the Google account that can manage Owner's Box, after verifying the current OAuth client and callback setup
+- Show field-by-field diff/merge only after locations load successfully; do not assume approval alone proves a working import
 
 ---
 
@@ -49,10 +54,11 @@
 
 | Shipped now | Next |
 |-------------|------|
-| Master profile + versioning | GBP write sync (after API approval) |
+| Master profile + versioning | GBP write sync (requires implementation, verified configuration, and user-approved writes; Basic API Access is already approved) |
 | Publisher registry (~20, honest rails) | Review monitoring + AI replies |
 | Firecrawl listing audits | CallRail / CRM learning loop |
 | AI visibility pages + scores + llms.txt | Agency bulk onboarding |
+| Search Intelligence website audits | Cross-client search opportunity queue |
 | FAQ drafts with approve-before-publish | IndexNow (set `INDEXNOW_KEY` in prod) |
 | Google OAuth import scaffold | |
 | Solo onboarding + smart routing | |
@@ -61,11 +67,15 @@
 
 ## GBP note (internal)
 
-Google API access requires a **verified Business Profile** where your Google account is owner/manager, active 60+ days, with a website listed.
+**Current business:** Owner's Box. Verify the signed-in Google account's owner/manager access and the actual profile before the demo. No Owner's Box pre-optimization baseline has been captured in these docs.
 
-**Current dogfood:** Gift a Story (managed GBP + GCP project `gift-a-story`). Baseline: [gift-a-story-baseline.md](./gift-a-story-baseline.md). API allowlist case `0-0182000041521` (submitted 2026-07-13).
+**API approval:** `localsync-501521` / project number `249394741886`, approved **2026-10-06**, case **`1-3775000042082`**, default **300 QPM**. This is separate from OAuth app verification, API enablement, and any quota increase. The live app/client names, deployed client's project association, registered redirects, and actual quotas remain unverified.
 
-**Also fine:** LocalMap agency GBP or One Dessert Place — **not** Tim’s Restore account. Tim stays a future HVAC use case only.
+**Callbacks:** `http://localhost:3002/api/connectors/google/callback` for development and `https://app.localmap.co/api/connectors/google/callback` for production. A read-only Vercel check confirmed the production app base and protected Google credential entries, not the Google Console settings.
+
+If a **429 / quota** error appears, explain that quota troubleshooting is still needed. It does **not** mean approval is pending or the user should reapply. Use the [current setup and troubleshooting guide](./gbp-api-request.md).
+
+The [Gift a Story baseline](./gift-a-story-baseline.md) and July application are **historical**, for a different business and project. Do not present those measurements as Owner's Box results. Tim remains a future HVAC use case only.
 
 ---
 

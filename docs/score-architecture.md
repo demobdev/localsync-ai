@@ -9,6 +9,7 @@ LocalSync shows several **0–100 style numbers**. They measure different things
 | **Market visibility audit** | `lib/grader/scoring.ts` | 0–100 | External snapshot: local rankings, website quality, GBP/public signals. Produced by `/grader`, not the dashboard. |
 | **Workspace health** | `lib/visibility/score.ts` | 0–100 | In-app readiness: **profile completeness (50)** + **listing consistency (50)** from Firecrawl listing audits run in the product. |
 | **Reputation score** | `lib/reviews/score.ts` | 0–100 | Review average + reply rate. Lives on Reviews; **not** part of workspace health today. |
+| **Website health** | `lib/search-intelligence/scoring.ts` | 0–100 | Technical crawlability, local schema, identity consistency, and page health. Lives in Search Intelligence and remains separate from Workspace health. |
 
 ### Workspace health breakdown
 
@@ -26,6 +27,10 @@ Publishing an AI page or completing grader tasks does **not** automatically chan
 - **Workspace health** answers: “How much have we fixed and verified inside LocalSync?”
 
 A location can have a high market audit and low workspace health (strong presence, empty profile) or the reverse after heavy in-app setup but no fresh grader run.
+
+Website health answers: “Can search engines and customers reliably understand
+and use this location’s website?” Search Console demand and opportunities
+provide evidence beside the score but do not inflate the score itself.
 
 ## UI naming rules (Phase 1)
 

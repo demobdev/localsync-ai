@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { StarIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,6 +14,7 @@ import {
   skipReviewAction,
   syncGoogleReviewsAction,
   type LocationReviewRow,
+  type SyncGoogleReviewsResult,
 } from "@/app/actions/reviews";
 import { ActionLoadingOverlay } from "@/components/ui/action-loading-overlay";
 import { Badge } from "@/components/ui/badge";
@@ -57,40 +59,88 @@ function formatReviewDate(date: Date | null) {
   });
 }
 
-export function ReviewsPanel({
-  locationId,
-  reviews,
-  summary,
-  googleLinked,
-}: {
+type ReviewsPanelProps = {
   locationId: string;
   reviews: LocationReviewRow[];
   summary: ReviewScoreBreakdown;
   googleLinked: boolean;
-}) {
+};
+
+function syncMessage(result: SyncGoogleReviewsResult): string {
+  if (!result.ok) throw new Error(result.error);
+  const skipped = result.skipped > 0
+    ? ` ${result.skipped} review(s) had unsupported data and were skipped.`
+    : "";
+  if (result.total === 0) {
+    return (result.skipped > 0
+      ? "Google returned no importable reviews. Existing saved reviews were kept."
+      : "Google returned no reviews for this location. Existing saved reviews were kept.") + skipped;
+  }
+  return `Read ${result.total} Google review(s): ${result.inserted} added, ${result.updated} updated, ${result.unchanged} unchanged.` + skipped;
+}
+
+export function ReviewsPanel(props: ReviewsPanelProps) {
+  // A different location must never inherit the previous location's sync status.
+  return <ReviewsPanelContent key={props.locationId} {...props} />;
+}
+
+function ReviewsPanelContent({
+  locationId,
+  reviews,
+  summary,
+  googleLinked,
+}: ReviewsPanelProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [workingLabel, setWorkingLabel] = useState("Working on reviews…");
+  const [outcome, setOutcome] = useState<{ error: boolean; message: string } | null>(null);
+  const actionInFlight = useRef(false);
+  const mounted = useRef(true);
+  const googleCount = reviews.filter((review) => review.source === "google").length;
+  const demoCount = reviews.filter((review) => review.source === "demo").length;
 
-  function run(action: () => Promise<unknown>, success: string) {
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+
+  function run<T>(
+    action: () => Promise<T>,
+    success: string | ((result: T) => string),
+    label = "Working on reviews…",
+  ) {
+    // A synchronous guard also covers clicks before React commits disabled state.
+    if (actionInFlight.current || isPending) return;
+    actionInFlight.current = true;
+    setWorkingLabel(label);
+    setOutcome(null);
     startTransition(async () => {
       try {
-        await action();
-        toast.success(success);
+        const result = await action();
+        if (!mounted.current) return;
+        const message = typeof success === "function" ? success(result) : success;
+        setOutcome({ error: false, message });
+        toast.success(message);
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Action failed");
+        if (!mounted.current) return;
+        const message = error instanceof Error ? error.message : "Action failed. Please try again.";
+        setOutcome({ error: true, message });
+        toast.error(message);
+      } finally {
+        actionInFlight.current = false;
       }
     });
   }
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6" aria-busy={isPending}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           {
             label: "Review score",
             value: summary.totalCount > 0 ? String(summary.score) : "—",
-            hint: "Rating + response rate (0–100)",
+            hint: "Rating + saved-reply coverage (0–100)",
           },
           {
             label: "Average rating",
@@ -103,7 +153,7 @@ export function ReviewsPanel({
           {
             label: "Response rate",
             value: summary.totalCount > 0 ? `${summary.responseRate}%` : "—",
-            hint: "Replied vs total reviews",
+            hint: "Includes local saves; not a Google posting rate",
           },
           {
             label: "Needs reply",
@@ -128,8 +178,9 @@ export function ReviewsPanel({
           <div>
             <CardTitle>Review inbox</CardTitle>
             <CardDescription>
-              AI drafts replies — you approve before anything is saved. Google
-              posting requires GBP write access (Phase 2).
+              Sync reads reviews and existing replies from Google only when you
+              click. Approving an AI reply saves it in LocalSync; it does not post
+              to Google.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -150,21 +201,41 @@ export function ReviewsPanel({
               onClick={() =>
                 run(
                   () => syncGoogleReviewsAction(locationId),
-                  "Google reviews synced",
+                  syncMessage,
+                  "Reading reviews from Google…",
                 )
               }
             >
-              Sync from Google
+              {isPending && workingLabel === "Reading reviews from Google…"
+                ? "Syncing from Google…"
+                : "Sync from Google"}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {outcome ? (
+            <p
+              role={outcome.error ? "alert" : "status"}
+              className={cn("rounded-xl border px-4 py-3 text-sm", outcome.error && "border-destructive/40 text-destructive")}
+            >
+              {outcome.message}
+            </p>
+          ) : null}
+          <p className="text-sm text-muted-foreground">
+            {googleCount} Google review(s) saved · {demoCount} demo review(s)
+          </p>
+          {demoCount > 0 ? (
+            <p className="rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm">
+              Demo reviews are sample data. The summary figures above include
+              these samples, so they do not represent your Google-only results.
+            </p>
+          ) : null}
           {!googleLinked ? (
             <p className="rounded-xl border border-dashed bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
               Import from Google in{" "}
-              <span className="font-medium text-foreground">Connect → Google</span>{" "}
-              to link this location for review sync. Until GBP API quota is
-              approved, use demo reviews to try the reply flow.
+              <Link href="/dashboard/connect/google" className="font-medium text-foreground underline">Connect → Google</Link>{" "}
+              to link this location for review sync. You can also load clearly
+              labeled demo reviews to try the reply flow.
             </p>
           ) : null}
 
@@ -186,10 +257,10 @@ export function ReviewsPanel({
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{review.authorName}</p>
                       <Badge variant="outline" className="capitalize">
-                        {review.source}
+                        {review.source === "demo" ? "Demo data" : review.source}
                       </Badge>
                       {review.replyStatus === "replied" ? (
-                        <Badge>Replied</Badge>
+                        <Badge>Reply saved</Badge>
                       ) : null}
                       {review.replyStatus === "skipped" ? (
                         <Badge variant="secondary">Skipped</Badge>
@@ -245,7 +316,8 @@ export function ReviewsPanel({
                       {review.replyText}
                     </p>
                     <p className="mt-2 text-xs text-muted-foreground">
-                      Stored in LocalSync — GBP auto-post lands in Phase 2.
+                      This may be an imported Google reply or a reply saved here.
+                      Approving a draft in LocalSync does not publish it to Google.
                     </p>
                   </div>
                 ) : null}
@@ -299,7 +371,7 @@ export function ReviewsPanel({
 
       <ActionLoadingOverlay
         active={isPending}
-        label="Working on reviews…"
+        label={workingLabel}
       />
     </div>
   );

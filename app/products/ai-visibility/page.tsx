@@ -15,6 +15,7 @@ import {
 
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { ProductFamilyNav } from "@/components/marketing/product-family-nav";
 import { AiVisibilityShowcase } from "@/components/marketing/distribution-visuals";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -114,15 +115,17 @@ export default async function AiVisibilityProductPage() {
   return (
     <div className="flex min-h-full flex-col">
       <MarketingHeader signedIn={signedIn} />
+      <ProductFamilyNav active="ai-visibility" />
 
       <main className="flex-1">
-        <section className="localmap-mesh relative overflow-hidden border-b">
-          <div className="localmap-grid absolute inset-0 opacity-40" />
+        <section className="relative overflow-hidden border-b border-white/10 bg-[#071f2d] text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(135,116,255,0.20),transparent_34%),radial-gradient(circle_at_80%_80%,rgba(32,201,181,0.17),transparent_30%)]" />
+          <div className="localmap-grid absolute inset-0 opacity-[0.07]" />
           <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
             <div className="mx-auto max-w-3xl space-y-6 text-center">
               <Badge
                 variant="secondary"
-                className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary"
+                className="rounded-full border border-[#c1b7ff]/35 bg-[#9d8cff]/12 px-3 py-1 text-[#d7d1ff]"
               >
                 <BrainCircuitIcon className="mr-1.5 inline size-3.5" />
                 AI Visibility · included with Pro
@@ -130,7 +133,7 @@ export default async function AiVisibilityProductPage() {
               <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
                 When customers ask AI, make sure it answers with you
               </h1>
-              <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
+              <p className="mx-auto max-w-2xl text-lg leading-relaxed text-white/68 sm:text-xl">
                 Discovery is moving from blue links to AI answers. LocalMap
                 publishes a machine-readable citation source for your business:
                 hosted pages, schema.org, llms.txt, IndexNow. It measures
@@ -139,6 +142,7 @@ export default async function AiVisibilityProductPage() {
               <div className="flex flex-col justify-center gap-3 pt-2 sm:flex-row">
                 <Button
                   size="lg"
+                  className="bg-[#b7aaff] text-[#18223e] hover:bg-[#d2caff]"
                   nativeButton={false}
                   render={<Link href="/grader" />}
                 >
@@ -148,6 +152,7 @@ export default async function AiVisibilityProductPage() {
                 <Button
                   size="lg"
                   variant="outline"
+                  className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
                   nativeButton={false}
                   render={<Link href={primaryHref} />}
                 >

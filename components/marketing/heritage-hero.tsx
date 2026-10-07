@@ -1,11 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRightIcon } from "lucide-react";
+import {
+  ArrowRightIcon,
+  BadgeCheckIcon,
+  CheckIcon,
+  ShieldCheckIcon,
+} from "lucide-react";
 
-import { SurfaceGrain } from "@/components/marketing/surface-grain";
 import { Button } from "@/components/ui/button";
-import { COMPANY } from "@/lib/brand/company";
-import { HERO_TEXTURE } from "@/lib/brand/texture-assets";
+
+const proofPoints = [
+  "Google connected",
+  "Approve every change",
+  "Verified after sync",
+];
 
 export function HeritageHero({
   signedIn,
@@ -15,112 +23,121 @@ export function HeritageHero({
   workspaceHref: string;
 }) {
   return (
-    <section className="relative isolate min-h-[min(92vh,880px)] overflow-hidden border-b">
-      {/* Full-bleed photographic plane */}
+    <section className="relative isolate min-h-[760px] overflow-hidden border-b bg-[#062f3a] text-white lg:min-h-[820px]">
       <div className="absolute inset-0">
         <Image
-          src={HERO_TEXTURE.primary}
-          alt=""
+          src="/marketing/localmap-signal-main-street-hero.png"
+          alt="A local main street connected by signals from one trusted business profile"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-[48%_35%] localmap-kenburns"
+          className="object-cover object-[66%_center] sm:object-[63%_center]"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/92 via-zinc-950/72 to-zinc-950/35" />
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-zinc-950/40" />
-        <SurfaceGrain opacity={0.35} className="mix-blend-overlay" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,#042b35_0%,rgba(4,43,53,.98)_24%,rgba(4,43,53,.78)_48%,rgba(4,43,53,.16)_76%,rgba(4,43,53,.04)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,#042b35_0%,transparent_28%,rgba(4,43,53,.28)_100%)]" />
+        <div className="absolute -left-32 top-24 size-80 rounded-full bg-cyan-400/15 blur-3xl" />
       </div>
 
-      {/* Supporting photos — atmosphere, not cards */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 hidden w-[46%] lg:block"
-      >
-        <div className="absolute right-[6%] top-[18%] h-[38%] w-[72%] overflow-hidden rounded-sm opacity-90 shadow-2xl shadow-black/40 localmap-float-a">
-          <Image
-            src={HERO_TEXTURE.secondary}
-            alt=""
-            fill
-            sizes="40vw"
-            className="object-cover"
-            priority
-          />
-        </div>
-        <div className="absolute bottom-[14%] right-[18%] h-[32%] w-[58%] overflow-hidden rounded-sm opacity-85 shadow-2xl shadow-black/40 localmap-float-b">
-          <Image
-            src={HERO_TEXTURE.accent}
-            alt=""
-            fill
-            sizes="32vw"
-            className="object-cover"
-          />
-        </div>
-        <div className="absolute right-[42%] top-[52%] h-[22%] w-[36%] overflow-hidden rounded-sm opacity-75 shadow-xl shadow-black/30 localmap-float-c">
-          <Image
-            src={HERO_TEXTURE.tertiary}
-            alt=""
-            fill
-            sizes="20vw"
-            className="object-cover"
-          />
-        </div>
-      </div>
+      <div className="relative mx-auto flex min-h-[760px] max-w-7xl items-center px-4 pb-16 pt-28 sm:px-6 lg:min-h-[820px] lg:px-8 lg:pt-24">
+        <div className="grid w-full gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(380px,.72fr)] lg:items-end">
+          <div className="max-w-2xl localmap-hero-rise">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-[0.16em] text-cyan-100 uppercase backdrop-blur-md">
+              <span className="size-1.5 rounded-full bg-lime-300 shadow-[0_0_14px_rgba(190,242,100,.8)]" />
+              Local business truth, everywhere
+            </div>
 
-      <div className="relative mx-auto flex min-h-[min(92vh,880px)] max-w-6xl flex-col justify-end px-4 pb-10 pt-28 sm:px-6 sm:pb-16 lg:justify-center lg:pb-24 lg:pt-24">
-        <div className="max-w-xl space-y-6 text-white localmap-hero-rise">
-          <p className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            {COMPANY.brandName}
-          </p>
-          <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-[2.75rem] lg:leading-[1.08]">
-            What does the internet know about your business?
-          </h1>
-          <p className="max-w-md text-lg leading-relaxed text-white/75 sm:text-xl">
-            One master profile. Honest listings across Google, Apple, Yelp, and
-            the directories that matter, since {COMPANY.foundedYear}.
-          </p>
-          <div className="flex flex-col gap-3 pt-1 sm:flex-row">
-            <Button
-              size="lg"
-              className="bg-white text-zinc-950 hover:bg-white/90"
-              nativeButton={false}
-              render={<Link href={workspaceHref} />}
-            >
-              {signedIn ? "Open workspace" : "Start free workspace"}
-              <ArrowRightIcon className="size-4" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/35 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              nativeButton={false}
-              render={<Link href="/grader" />}
-            >
-              Free visibility audit
-            </Button>
-          </div>
-        </div>
+            <h1 className="mt-7 max-w-2xl text-5xl font-semibold leading-[0.98] tracking-[-0.055em] text-balance sm:text-6xl lg:text-[5.25rem]">
+              Be the business the internet gets right.
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-relaxed text-white/72 sm:text-xl">
+              One approved profile keeps your Google listing accurate today—and
+              gives every other directory a clear source of truth tomorrow.
+              You see every difference. You approve every move.
+            </p>
 
-        {/* Mobile texture strip — desktop uses floating frames instead */}
-        <div
-          aria-hidden
-          className="mt-10 grid grid-cols-3 gap-2 lg:hidden"
-        >
-          {[HERO_TEXTURE.secondary, HERO_TEXTURE.accent, HERO_TEXTURE.tertiary].map(
-            (src) => (
-              <div
-                key={src}
-                className="relative aspect-[4/3] overflow-hidden rounded-sm"
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                className="h-12 rounded-full bg-[#d9ff6f] px-6 font-semibold text-[#062f3a] shadow-[0_14px_40px_rgba(190,242,100,.2)] hover:bg-[#e5ff99]"
+                nativeButton={false}
+                render={<Link href={signedIn ? workspaceHref : "/grader"} />}
               >
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  sizes="33vw"
-                  className="object-cover"
-                />
+                {signedIn ? "Open workspace" : "Check my visibility"}
+                <ArrowRightIcon className="size-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-12 rounded-full border-white/25 bg-white/5 px-6 text-white backdrop-blur-sm hover:bg-white/12 hover:text-white"
+                nativeButton={false}
+                render={<Link href={signedIn ? "/grader" : workspaceHref} />}
+              >
+                {signedIn ? "Run a visibility audit" : "Create free workspace"}
+              </Button>
+            </div>
+
+            <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/62">
+              {proofPoints.map((point) => (
+                <li key={point} className="flex items-center gap-2">
+                  <CheckIcon className="size-3.5 text-cyan-300" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="hidden justify-self-end lg:block">
+            <div className="w-[390px] overflow-hidden rounded-[1.75rem] border border-white/16 bg-[#052a33]/70 p-4 shadow-[0_30px_90px_rgba(1,20,25,.45)] backdrop-blur-xl">
+              <div className="flex items-center justify-between border-b border-white/10 px-2 pb-4">
+                <div>
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-cyan-200 uppercase">
+                    Live status
+                  </p>
+                  <p className="mt-1 font-semibold">Your business profile</p>
+                </div>
+                <div className="flex size-10 items-center justify-center rounded-full bg-lime-300 text-[#062f3a]">
+                  <BadgeCheckIcon className="size-5" />
+                </div>
               </div>
-            ),
-          )}
+
+              <div className="space-y-2.5 py-4">
+                <div className="rounded-2xl border border-white/10 bg-white/8 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">Master Profile</p>
+                      <p className="mt-1 text-xs text-white/50">
+                        Name, phone, hours, services
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-cyan-300/15 px-2.5 py-1 text-[11px] font-semibold text-cyan-200">
+                      Approved
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-lime-300/30 bg-lime-300/10 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">Google Business Profile</p>
+                      <p className="mt-1 text-xs text-white/50">
+                        Re-read after the latest update
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-lime-300 px-2.5 py-1 text-[11px] font-bold text-[#062f3a]">
+                      Synced
+                    </span>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheckIcon className="size-5 text-cyan-300" />
+                    <p className="text-xs leading-relaxed text-white/62">
+                      “Live &amp; synced” appears only after publisher verification.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

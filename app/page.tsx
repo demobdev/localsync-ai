@@ -3,526 +3,371 @@ import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import {
   ArrowRightIcon,
-  BrainCircuitIcon,
+  BadgeCheckIcon,
   CheckIcon,
-  GlobeIcon,
-  RadarIcon,
-  WorkflowIcon,
+  EyeIcon,
+  LinkIcon,
+  ShieldCheckIcon,
 } from "lucide-react";
 
-import { HeritageHero } from "@/components/marketing/heritage-hero";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import {
-  AiVisibilityShowcase,
-  DistributionFlowVisual,
-} from "@/components/marketing/distribution-visuals";
-import { PhotoMarquee } from "@/components/marketing/photo-marquee";
-import { PublisherNetworkGrid } from "@/components/marketing/publisher-network-grid";
-import { SurfaceGrain } from "@/components/marketing/surface-grain";
-import { YextComparisonSection } from "@/components/marketing/yext-comparison-section";
 import { Button } from "@/components/ui/button";
-import { COMPANY, HERITAGE_STATS } from "@/lib/brand/company";
-import {
-  HOMEPAGE_REVIEWS,
-  SOCIAL_PRESENCE,
-} from "@/lib/brand/external-reviews";
-import { HERITAGE_STRIP } from "@/lib/brand/texture-assets";
-import { LISTING_PLANS } from "@/lib/billing/plan-catalog";
-import { cn } from "@/lib/utils";
+import { HOMEPAGE_REVIEWS, SOCIAL_PRESENCE } from "@/lib/brand/external-reviews";
+import { CLIENT_ARCHIVE_WORK } from "@/lib/brand/texture-assets";
 
-const pillars = [
-  {
-    icon: GlobeIcon,
-    title: "Identity",
-    body: "Master Business Profile with versioned NAP, hours, services, and photos as the single source of truth.",
-    href: "/products/listings",
-    linkLabel: "Listings product",
-  },
-  {
-    icon: RadarIcon,
-    title: "Distribution",
-    body: "Honest listing rails across Google, Apple, Yelp, and directories, labeled API, guided, manual, or audit-only.",
-    href: "/products/listings",
-    linkLabel: "Explore Listings",
-  },
-  {
-    icon: BrainCircuitIcon,
-    title: "Intelligence",
-    body: "Listing audits with evidence, visibility scores, and AI citation pages so search and assistants stay accurate.",
-    href: "/products/ai-visibility",
-    linkLabel: "AI Visibility",
-  },
-  {
-    icon: WorkflowIcon,
-    title: "Automation",
-    body: "Notice → recommend → approve → execute. AI drafts profile fixes and review replies; humans stay in control.",
-    href: "/products/reputation",
-    linkLabel: "Reputation in Pro",
-  },
-];
+const productionHero = "/marketing/localmap-signal-main-street-hero.png";
 
-const howItWorks = [
+const workflow = [
   {
+    icon: LinkIcon,
     step: "01",
-    title: "Master profile",
-    body: "Capture the canonical entity: name, address, phone, hours, services, and photos.",
+    title: "Connect the account",
+    body: "Authorize Google and choose the exact listing you manage. No pasted URL required for the direct workflow.",
   },
   {
+    icon: EyeIcon,
     step: "02",
-    title: "Audit & sync",
-    body: "Compare publishers to the master profile. Approve-first updates, never surprise edits.",
+    title: "Review the truth",
+    body: "Compare every supported field against your Master Profile, then choose which direction each change should go.",
   },
   {
+    icon: BadgeCheckIcon,
     step: "03",
-    title: "Publishers",
-    body: "Google, Apple, Bing, Facebook, Yelp, and the extended map graph. Honest rails, no fake syndication.",
+    title: "Verify the result",
+    body: "LocalMap re-reads the publisher after an update. Only a confirmed match earns the Live & synced label.",
+  },
+] as const;
+
+const statuses = [
+  ["Connected", "The publisher account is authorized and the listing is linked."],
+  ["Needs review", "LocalMap found a real difference and is waiting for your decision."],
+  ["Pending verification", "An update was sent; the fresh publisher read has not confirmed it yet."],
+  ["Live & synced", "The listing is verified and every supported field matches."],
+] as const;
+
+const plans = [
+  {
+    name: "Basic Listings",
+    description: "Citation cleanup on your own steam",
+    price: 19,
+    featured: false,
+    features: [
+      "Secondary + audit-only publishers",
+      "NAP consistency tracking",
+      "Manual & guided checklists",
+    ],
   },
   {
-    step: "04",
-    title: "Scores & AI",
-    body: "Visibility and review scores, plus machine-readable pages assistants can cite.",
+    name: "Premium Listings",
+    description: "The majors, synced and monitored",
+    price: 49,
+    featured: true,
+    features: [
+      "Google, Apple, Bing, Facebook, Yelp + map graph",
+      "Approve-first profile sync",
+      "Visibility score & history",
+    ],
   },
-];
+  {
+    name: "Pro Listings",
+    description: "Automation + AI discovery layer",
+    price: 79,
+    featured: false,
+    features: [
+      "Analytics & duplicate detection",
+      "Expanded publisher set",
+      "AI visibility pages (/l/[id], llms.txt)",
+    ],
+  },
+] as const;
 
-const flywheel = [
-  "Import profile",
-  "Audit listings",
-  "Fix inconsistencies",
-  "Generate AI assets",
-  "Improve visibility",
-  "Measure results",
-];
+function ProfileStatusCard() {
+  return (
+    <div className="w-full max-w-sm rounded-[1.6rem] border border-white/15 bg-[#103e48]/80 p-5 text-white shadow-2xl backdrop-blur-xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[0.65rem] font-bold tracking-[0.18em] text-cyan-200 uppercase">
+            Live status
+          </p>
+          <p className="mt-1 text-sm font-medium">Your business profile</p>
+        </div>
+        <div className="flex size-9 items-center justify-center rounded-full bg-lime-300 text-[#062f3a]">
+          <BadgeCheckIcon className="size-5" />
+        </div>
+      </div>
+      <div className="mt-5 space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Master Profile</p>
+              <p className="text-[0.68rem] text-white/45">Name, phone, hours, services</p>
+            </div>
+            <span className="rounded-full bg-white/10 px-2 py-1 text-[0.62rem] text-lime-200">
+              Approved
+            </span>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-lime-200/20 bg-lime-200/5 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Google Business Profile</p>
+              <p className="text-[0.68rem] text-white/45">Re-read after the latest update</p>
+            </div>
+            <span className="rounded-full bg-lime-300 px-2 py-1 text-[0.62rem] font-semibold text-[#062f3a]">
+              Synced
+            </span>
+          </div>
+        </div>
+      </div>
+      <p className="mt-4 flex gap-2 text-[0.68rem] leading-relaxed text-white/45">
+        <ShieldCheckIcon className="mt-0.5 size-3.5 shrink-0 text-cyan-200" />
+        “Live & synced” appears only after publisher verification.
+      </p>
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const session = await auth();
-  const workspaceHref = session.userId ? "/dashboard" : "/sign-up";
+  const signedIn = Boolean(session.userId);
+  const workspaceHref = signedIn ? "/dashboard" : "/sign-up";
 
   return (
     <div className="flex min-h-full flex-col">
-      <MarketingHeader signedIn={Boolean(session.userId)} />
-
+      <MarketingHeader signedIn={signedIn} />
       <main className="flex-1">
-        <HeritageHero
-          signedIn={Boolean(session.userId)}
-          workspaceHref={workspaceHref}
-        />
-
-        <PhotoMarquee />
-
-        <section className="localmap-mesh relative overflow-hidden border-b">
-          <div className="localmap-grid absolute inset-0 opacity-30" />
-          <SurfaceGrain opacity={0.2} className="mix-blend-multiply dark:mix-blend-soft-light" />
-          <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-14">
-            <div className="max-w-xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                The product
+        <section className="relative isolate overflow-hidden bg-[#062f3a] text-white">
+          <Image
+            src={productionHero}
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="-z-30 object-cover object-center"
+          />
+          <div className="absolute inset-0 -z-20 bg-[linear-gradient(90deg,#062f3a_0%,rgba(6,47,58,.96)_42%,rgba(6,47,58,.42)_100%)]" />
+          <div className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,rgba(6,47,58,.1),rgba(6,47,58,.2))]" />
+          <div className="mx-auto grid min-h-[620px] max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_.72fr] lg:px-8">
+            <div className="max-w-2xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-cyan-100/15 bg-white/8 px-3 py-1.5 text-[0.68rem] font-bold tracking-[0.18em] text-cyan-100 uppercase">
+                <span className="size-1.5 rounded-full bg-lime-300" />
+                Local business truth, everywhere
               </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                One profile in. Honest rails out.
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Capture NAP, hours, services, and photos once. Audit publishers
-                against the master, approve every change, and feed search plus
-                AI the same facts.{" "}
-                <span className="text-foreground/80">
-                  {SOCIAL_PRESENCE.bark.rating}/5 on{" "}
-                  <a
-                    href={SOCIAL_PRESENCE.bark.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="font-medium text-primary hover:underline"
-                  >
-                    Bark
-                  </a>{" "}
-                  ·{" "}
-                  <Link
-                    href="/reviews"
-                    className="font-medium text-primary hover:underline"
-                  >
-                    see proof
-                  </Link>
-                </span>
+              <h1 className="mt-6 max-w-xl text-5xl font-semibold tracking-[-0.055em] text-balance sm:text-6xl lg:text-7xl lg:leading-[0.94]">
+                Be the business the internet gets right.
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
+                One approved profile keeps your Google listing accurate today—and
+                gives every other directory a clear source of truth tomorrow. You
+                see every difference. You approve every move.
               </p>
-              <Button
-                className="mt-6"
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/products/listings" />}
-              >
-                Explore Listings
-                <ArrowRightIcon className="size-4" />
-              </Button>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  size="lg"
+                  className="rounded-full bg-lime-300 text-[#062f3a] hover:bg-lime-200"
+                  nativeButton={false}
+                  render={<Link href="/grader" />}
+                >
+                  Check my visibility
+                  <ArrowRightIcon className="size-4" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  nativeButton={false}
+                  render={<Link href={workspaceHref} />}
+                >
+                  {signedIn ? "Open workspace" : "Create free workspace"}
+                </Button>
+              </div>
+              <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/55">
+                {["Google connected", "Approve every change", "Verified after sync"].map(
+                  (item) => (
+                    <span key={item} className="flex items-center gap-1.5">
+                      <CheckIcon className="size-3.5 text-cyan-200" />
+                      {item}
+                    </span>
+                  ),
+                )}
+              </div>
             </div>
-            <DistributionFlowVisual className="lg:justify-self-end" />
+            <div className="flex justify-center lg:justify-end">
+              <ProfileStatusCard />
+            </div>
           </div>
         </section>
 
-        <PublisherNetworkGrid />
-
-        <section className="border-b">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="max-w-xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  Client proof
-                </p>
-                <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                  What owners say when they get found
+        <section className="border-b bg-[#071f26] py-12 text-white">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <p className="text-xs font-semibold tracking-[0.18em] text-cyan-200 uppercase">
+              Client work · recent + archive
+            </p>
+            <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <h2 className="text-3xl font-semibold tracking-tight">
+                  The work that built the playbook.
                 </h2>
-                <p className="mt-3 text-muted-foreground">
-                  Real reviews from BBB, Google Maps, and Facebook.{" "}
-                  {SOCIAL_PRESENCE.bark.rating}/5 across{" "}
-                  {SOCIAL_PRESENCE.bark.reviewCount} on Bark.
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/50">
+                  Recent launches lead the reel, followed by selected projects
+                  from our earlier agency years. Every project adds something to
+                  the LocalMap playbook.
                 </p>
               </div>
-              <Link
-                href="/reviews"
-                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                All reviews &amp; case studies
-                <ArrowRightIcon className="size-3.5" />
-              </Link>
+              <p className="text-xs text-white/35">Swipe to explore client work</p>
             </div>
-            <div className="grid gap-10 sm:grid-cols-2">
-              {HOMEPAGE_REVIEWS.map((review) => (
-                <figure key={`${review.author}-${review.date}`}>
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-teal-700 dark:text-teal-300">
-                    {"★".repeat(review.stars)} · {review.source}
-                  </p>
-                  <blockquote className="mt-3 text-base leading-relaxed text-foreground/90">
-                    “{review.quote}”
-                  </blockquote>
-                  <figcaption className="mt-4 text-sm">
-                    <span className="font-medium text-foreground">
-                      {review.author}
+            <div className="-mx-4 mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 xl:mx-0 xl:px-0">
+              {CLIENT_ARCHIVE_WORK.map((work) => (
+                <article
+                  key={work.src}
+                  className="group relative aspect-[4/3] w-[82vw] max-w-[390px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 sm:w-[320px] xl:w-[calc((100%-3rem)/4)] xl:max-w-none"
+                >
+                  <Image
+                    src={work.src}
+                    alt={work.alt}
+                    fill
+                    sizes="(max-width: 640px) 82vw, (max-width: 1279px) 320px, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                  {"era" in work && work.era === "Recent" ? (
+                    <span className="absolute top-4 right-4 rounded-full border border-white/30 bg-lime-300 px-2.5 py-1 text-[0.62rem] font-bold tracking-[0.14em] text-[#062f3a] uppercase shadow-sm">
+                      Recent
                     </span>
-                  </figcaption>
+                  ) : null}
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <p className="text-[0.65rem] font-bold tracking-[0.16em] text-cyan-200 uppercase">
+                      {work.kind}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold">{work.client}</h3>
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/60">
+                      {work.caption}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,.08),transparent_36%)]">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+            <div className="grid gap-12 lg:grid-cols-[.78fr_1.22fr]">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">A clearer workflow</p>
+                <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">
+                  One source of truth. Three deliberate moves.
+                </h2>
+                <p className="mt-5 max-w-lg leading-relaxed text-muted-foreground">
+                  Local listings software should remove uncertainty, not hide it.
+                  The product always tells you what is connected, what differs,
+                  what needs approval, and what has actually been verified.
+                </p>
+                <Link href="/products/listings" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  Explore the listings workflow <ArrowRightIcon className="size-4" />
+                </Link>
+              </div>
+              <ol className="grid gap-4 sm:grid-cols-3">
+                {workflow.map(({ icon: Icon, step, title, body }) => (
+                  <li key={step} className="rounded-[1.6rem] border bg-background/82 p-6 shadow-[0_18px_60px_rgba(8,52,60,.06)]">
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><Icon className="size-5" /></div>
+                      <span className="text-xs font-bold tracking-[0.18em] text-muted-foreground/55">{step}</span>
+                    </div>
+                    <h3 className="mt-7 text-xl font-semibold">{title}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{body}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b bg-[#082b34] text-white">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+            <p className="text-xs font-semibold tracking-[0.18em] text-lime-200 uppercase">Honest by design</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Statuses that mean something.</h2>
+            <p className="mt-5 max-w-2xl text-white/55">
+              You should never have to guess whether “done” means connected,
+              submitted, or actually correct. LocalMap makes the state visible.
+            </p>
+            <div className="mt-10 grid gap-px overflow-hidden rounded-[1.6rem] bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+              {statuses.map(([title, body]) => (
+                <div key={title} className="bg-[#082b34] p-6 sm:p-7">
+                  <BadgeCheckIcon className="size-5 text-lime-300" />
+                  <h3 className="mt-5 font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">{body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+            <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Proof from business owners</p>
+                <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Getting found changes the conversation.</h2>
+                <p className="mt-4 text-muted-foreground">
+                  Real feedback from the client relationships that shaped our local search playbook. {SOCIAL_PRESENCE.bark.rating}/5 across {SOCIAL_PRESENCE.bark.reviewCount} Bark reviews.
+                </p>
+              </div>
+              <Link href="/reviews" className="inline-flex items-center gap-2 text-sm font-semibold text-primary">Read all proof <ArrowRightIcon className="size-4" /></Link>
+            </div>
+            <div className="mt-10 grid gap-5 md:grid-cols-3">
+              {HOMEPAGE_REVIEWS.slice(0, 3).map((review) => (
+                <figure key={`${review.author}-${review.date}`} className="rounded-[1.6rem] border bg-card p-6">
+                  <p className="text-xs font-semibold tracking-[0.12em] text-primary uppercase">{"★".repeat(review.stars)} · {review.source}</p>
+                  <blockquote className="mt-5 leading-relaxed">“{review.quote}”</blockquote>
+                  <figcaption className="mt-5 text-sm font-semibold">{review.author}</figcaption>
                 </figure>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="border-b">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="mb-10 max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                How it works
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                From master profile to publishers, in four steps
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Capture once, audit and sync with approval, distribute honestly,
-                then score and publish for search and AI.
-              </p>
-            </div>
-            <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {howItWorks.map((item) => (
-                <li key={item.step} className="relative">
-                  <p className="text-xs font-semibold tracking-[0.18em] text-primary">
-                    {item.step}
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {item.body}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            <Link
-              href="/products/listings"
-              className="mt-8 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-            >
-              See Listings Management
-              <ArrowRightIcon className="size-3.5" />
-            </Link>
-          </div>
-        </section>
-
         <section className="border-b bg-muted/30">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="mb-10 max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                Plans
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                Modular listings. Pay for the tier you need
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Reputation is included in Pro. Vertical networks are +$15/mo à
-                la carte, not buried in a $999 bundle.
-              </p>
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+            <div className="text-center">
+              <p className="text-xs font-semibold tracking-[0.18em] text-primary uppercase">Start at the right depth</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] sm:text-5xl">Clear plans. No enterprise maze.</h2>
+              <p className="mx-auto mt-5 max-w-2xl text-muted-foreground">Begin with visibility and manual tools, or unlock direct sync and deeper automation when the workflow earns it.</p>
             </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              {LISTING_PLANS.map((plan) => (
-                <div
-                  key={plan.slug}
-                  className={cn(
-                    "flex flex-col rounded-2xl border bg-card p-5",
-                    plan.tier === "premium" && "border-primary/40 shadow-sm",
-                  )}
-                >
-                  {plan.tier === "premium" ? (
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">
-                      Most popular
-                    </p>
-                  ) : null}
-                  <h3 className="font-semibold">{plan.name}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {plan.tagline}
-                  </p>
-                  <p className="mt-3">
-                    <span className="text-3xl font-bold">
-                      ${plan.priceMonthly}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      /location/mo
-                    </span>
-                  </p>
-                  <ul className="mt-4 flex-1 space-y-2 text-sm text-muted-foreground">
-                    {plan.highlights.slice(0, 3).map((line) => (
-                      <li key={line} className="flex items-start gap-2">
-                        <CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                        <span>{line}</span>
-                      </li>
-                    ))}
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              {plans.map((plan) => (
+                <div key={plan.name} className={`relative flex flex-col rounded-[1.6rem] border bg-card p-6 ${plan.featured ? "ring-2 ring-primary" : ""}`}>
+                  {plan.featured && <span className="absolute -top-3 left-6 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">Best place to start</span>}
+                  <h3 className="text-xl font-semibold">{plan.name}</h3>
+                  <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+                  <p className="mt-6"><span className="text-4xl font-semibold tracking-tight">${plan.price}</span><span className="text-sm text-muted-foreground">/location/mo</span></p>
+                  <ul className="mt-6 flex-1 space-y-3 text-sm text-muted-foreground">
+                    {plan.features.map((feature) => <li key={feature} className="flex items-start gap-2.5"><CheckIcon className="mt-0.5 size-4 shrink-0 text-primary" /><span>{feature}</span></li>)}
                   </ul>
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Reputation in Pro · Verticals +$15/mo
-              </p>
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/pricing" />}
-              >
-                See full pricing
-                <ArrowRightIcon className="size-4" />
-              </Button>
-            </div>
+            <div className="mt-7 text-center"><Button variant="outline" className="rounded-full" nativeButton={false} render={<Link href="/pricing" />}>Compare every plan <ArrowRightIcon className="size-4" /></Button></div>
           </div>
         </section>
 
-        <YextComparisonSection />
-
-        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="mb-10 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              Four pillars
-            </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              Listings first, then reputation, AI, and verticals
-            </h2>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Packaged as{" "}
-              <Link
-                href="/products/listings"
-                className="font-medium text-primary hover:underline"
-              >
-                Listings
-              </Link>
-              ,{" "}
-              <Link
-                href="/products/reputation"
-                className="font-medium text-primary hover:underline"
-              >
-                Reputation
-              </Link>
-              ,{" "}
-              <Link
-                href="/products/ai-visibility"
-                className="font-medium text-primary hover:underline"
-              >
-                AI Visibility
-              </Link>
-              , and{" "}
-              <Link
-                href="/products/verticals"
-                className="font-medium text-primary hover:underline"
-              >
-                Vertical Networks
-              </Link>
-              .
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {pillars.map((item) => (
-              <div
-                key={item.title}
-                className="localmap-card-glow group rounded-2xl border bg-card p-5 transition-transform hover:-translate-y-0.5"
-              >
-                <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <item.icon className="size-5" />
-                </div>
-                <h3 className="font-semibold">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {item.body}
-                </p>
-                <Link
-                  href={item.href}
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-                >
-                  {item.linkLabel}
-                  <ArrowRightIcon className="size-3" />
-                </Link>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-y bg-muted/30">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  For agencies &amp; multi-location brands
-                </p>
-                <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                  Every location follows the same playbook
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  Import once, audit listings everywhere, fix what matters, and
-                  turn recommendations into clear next steps for your team or
-                  your clients.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {flywheel.map((step, index) => (
-                  <div key={step} className="flex items-center gap-2">
-                    <span className="rounded-full border bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-                      {step}
-                    </span>
-                    {index < flywheel.length - 1 && (
-                      <ArrowRightIcon className="hidden size-4 text-muted-foreground sm:block" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="mb-10 max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                AI visibility
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                Structured for assistants, after listings are clean
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Once the master profile and directories agree, publish
-                machine-readable pages so ChatGPT, Gemini, and Google AI cite
-                accurate facts.
-              </p>
-              <Link
-                href="/products/ai-visibility"
-                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-              >
-                Explore AI Visibility
-                <ArrowRightIcon className="size-3.5" />
-              </Link>
-            </div>
-            <AiVisibilityShowcase />
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden border-b">
-          <div className="absolute inset-0 grid grid-cols-4 opacity-[0.18] dark:opacity-[0.22]">
-            {HERITAGE_STRIP.map((src) => (
-              <div key={src} className="relative min-h-[220px]">
-                <Image
-                  src={src}
-                  alt=""
-                  fill
-                  sizes="25vw"
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/92 to-background" />
-          <SurfaceGrain opacity={0.25} className="mix-blend-multiply dark:mix-blend-soft-light" />
-          <div className="relative mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="max-w-xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  Proven locally
-                </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                  A Greenville agency, now a listings platform
-                </h2>
-                <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-                  Since {COMPANY.foundedYear}, Local Map Co. has helped local
-                  brands get found with SEO, listings, and reputation. LocalMap
-                  turns that operating model into software: approve-first sync,
-                  real audits, and no fake syndication claims.{" "}
-                  <Link
-                    href="/about"
-                    className="font-medium text-primary hover:underline"
-                  >
-                    Read the story
-                  </Link>
-                  .
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {HERITAGE_STATS.map((stat) => (
-                  <div key={stat.label}>
-                    <p className="text-2xl font-semibold tracking-tight text-teal-700 dark:text-teal-300">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="relative mx-auto max-w-6xl overflow-hidden px-4 py-14 sm:px-6 sm:py-20">
-          <div className="localmap-card-glow relative overflow-hidden rounded-3xl border">
-            <div className="absolute inset-0">
-              <Image
-                src="/texture/hero-still.jpg"
-                alt=""
-                fill
-                sizes="1152px"
-                className="object-cover object-[50%_30%] opacity-35 dark:opacity-25"
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-background via-background/90 to-primary/15" />
-              <SurfaceGrain opacity={0.3} className="mix-blend-overlay" />
-            </div>
-            <div className="relative p-8 sm:p-10">
-              <div className="max-w-2xl">
-                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  Start with your real business
-                </h2>
-                <p className="mt-3 text-muted-foreground">
-                  Connect Google, audit your publishers, and tighten the master
-                  profile, then watch visibility improve with evidence you can
-                  share.
-                </p>
-                <Button
-                  className="mt-6"
-                  nativeButton={false}
-                  render={<Link href={workspaceHref} />}
-                >
-                  {session.userId ? "Open workspace" : "Create free workspace"}
-                  <ArrowRightIcon className="size-4" />
-                </Button>
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+          <div className="relative isolate overflow-hidden rounded-[2rem] bg-[#062f3a] px-6 py-12 text-white shadow-[0_30px_90px_rgba(8,52,60,.18)] sm:px-10 sm:py-16 lg:px-14">
+            <Image src={productionHero} alt="" fill sizes="1280px" className="-z-20 object-cover object-[72%_center] opacity-55" />
+            <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#062f3a_0%,rgba(6,47,58,.98)_34%,rgba(6,47,58,.55)_72%,rgba(6,47,58,.3)_100%)]" />
+            <div className="max-w-2xl">
+              <p className="text-xs font-semibold tracking-[0.2em] text-cyan-200 uppercase">See what the internet sees</p>
+              <h2 className="mt-3 text-4xl font-semibold tracking-[-0.045em] text-balance sm:text-5xl">Start with your real business.</h2>
+              <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/68">Run a free visibility check, find the facts that drifted, and turn the result into one clear next move.</p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button className="rounded-full bg-lime-300 text-[#062f3a] hover:bg-lime-200" nativeButton={false} render={<Link href="/grader" />}>Check my visibility <ArrowRightIcon className="size-4" /></Button>
+                <Button variant="outline" className="rounded-full border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white" nativeButton={false} render={<Link href={workspaceHref} />}>{signedIn ? "Open workspace" : "Create free workspace"}</Button>
               </div>
             </div>
           </div>
         </section>
       </main>
-
       <MarketingFooter />
     </div>
   );

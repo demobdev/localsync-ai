@@ -1,11 +1,15 @@
 import type { LocationOperatingContext } from "@/lib/profile/operating-model-meta";
 import { buildOperatingModelSetupSteps } from "@/lib/profile/model-setup-steps";
-import { buildGraderFixSteps, buildGraderTaskQueueStep } from "@/lib/grader/location-audit-bridge";
+import {
+  buildGraderFixSteps,
+  buildGraderTaskQueueStep,
+} from "@/lib/grader/location-audit-bridge";
 import type { AuditCheck } from "@/lib/grader/types";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { computeProfileScore } from "@/lib/visibility/score";
 
-export type SetupPhase = "audit" | "profile" | "connect" | "visibility" | "reviews";
+export type SetupPhase =
+  "audit" | "profile" | "connect" | "visibility" | "reviews";
 
 export type SetupStep = {
   id: string;
@@ -69,6 +73,8 @@ export function buildConnectionSteps(input: {
   locationId: string;
   googleConnected: boolean;
   googleCanImport: boolean;
+  googleListingLinked?: boolean;
+  googleListingReady?: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
   listingAuditScore?: number;
@@ -77,6 +83,8 @@ export function buildConnectionSteps(input: {
     locationId,
     googleConnected,
     googleCanImport,
+    googleListingLinked = false,
+    googleListingReady = false,
     listingUrlsConfigured,
     auditRunsCompleted,
     listingAuditScore = 0,
@@ -89,47 +97,59 @@ export function buildConnectionSteps(input: {
       title: "Connect Google Business Profile",
       description: googleConnected
         ? "Google account linked to this workspace"
-        : "OAuth link — read-only until API quota is approved",
+        : "Authorize the account that owns or manages the listing",
       done: googleConnected,
       href: "/dashboard/connect/google",
     },
     {
       id: "import-google",
       phase: "connect",
-      title: "Import fields from Google",
-      description: googleCanImport
-        ? "Merge GBP data into your master profile"
-        : "Available once Google API quota is approved",
-      done: false,
-      href: "/dashboard/connect/google",
-      optional: !googleCanImport,
+      title: googleListingReady
+        ? "Google listing confirmed"
+        : googleListingLinked
+          ? "Review Google listing status"
+          : "Confirm listing and review differences",
+      description: googleListingReady
+        ? "Your saved Google listing is verified and matches the Master Profile"
+        : googleListingLinked
+          ? "Your listing is linked. Review remaining differences or verification needs in Listings"
+          : googleCanImport
+            ? "Choose the correct record and approve each field direction"
+            : "Check Google connection status before choosing a listing",
+      done: googleListingReady,
+      href: googleListingLinked
+        ? `/dashboard/locations/${locationId}/listings`
+        : "/dashboard/connect/google",
+      optional: !googleCanImport && !googleListingLinked,
     },
     {
       id: "listing-urls",
       phase: "connect",
-      title: "Add listing URLs",
+      title: "Add an audit-only listing",
       description:
         listingUrlsConfigured > 0
-          ? `${listingUrlsConfigured} publisher URL${listingUrlsConfigured === 1 ? "" : "s"} saved`
-          : "Paste Yelp, BBB, or other directory links to audit",
+          ? `${listingUrlsConfigured} audit-only URL${listingUrlsConfigured === 1 ? "" : "s"} saved`
+          : "Optional fallback for publishers LocalMap cannot write to",
       done: listingUrlsConfigured > 0,
       href: `/dashboard/locations/${locationId}/listings`,
+      optional: true,
     },
     {
       id: "first-audit",
       phase: "connect",
       title:
         auditRunsCompleted > 0
-          ? "Improve listing consistency"
-          : "Run your first listing audit",
+          ? "Recheck audit-only listings"
+          : "Check audit-only listings",
       description:
         auditRunsCompleted === 0
-          ? "Crawl listings and compare against your master profile (unlocks up to 50 pts)"
+          ? "Compare saved public URLs against the Master Profile"
           : listingAuditScore > 0
             ? `${listingAuditScore}/50 listing consistency — re-run after fixing findings`
             : `${auditRunsCompleted} audit${auditRunsCompleted === 1 ? "" : "s"} done — fix mismatches and re-run to score`,
       done: auditRunsCompleted > 0 && listingAuditScore > 0,
       href: `/dashboard/locations/${locationId}/listings`,
+      optional: listingUrlsConfigured === 0,
     },
   ];
 }
@@ -220,7 +240,10 @@ export function mergeSetupProgress(steps: SetupStep[]): SetupProgress {
   const totalCount = required.length;
   const percent =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const nextStep = steps.find((step) => !step.done && !step.optional) ?? null;
+  // Reuse connected business facts before asking the owner to enter them again.
+  const nextStep = ["connect-google", "import-google"]
+    .map((id) => required.find((step) => step.id === id && !step.done))
+    .find(Boolean) ?? required.find((step) => !step.done) ?? null;
 
   return {
     steps,
@@ -239,6 +262,8 @@ export function buildLocationSetupProgress(input: {
   graderOpenTaskCount?: number;
   googleConnected: boolean;
   googleCanImport: boolean;
+  googleListingLinked?: boolean;
+  googleListingReady?: boolean;
   listingUrlsConfigured: number;
   auditRunsCompleted: number;
   listingAuditScore?: number;
@@ -285,6 +310,8 @@ export function buildLocationSetupProgress(input: {
       locationId: input.locationId,
       googleConnected: input.googleConnected,
       googleCanImport: input.googleCanImport,
+      googleListingLinked: input.googleListingLinked,
+      googleListingReady: input.googleListingReady,
       listingUrlsConfigured: input.listingUrlsConfigured,
       auditRunsCompleted: input.auditRunsCompleted,
       listingAuditScore: input.listingAuditScore,

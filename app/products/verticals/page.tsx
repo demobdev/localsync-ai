@@ -4,88 +4,87 @@ import { auth } from "@clerk/nextjs/server";
 import {
   ArrowRightIcon,
   BadgeCheckIcon,
-  GavelIcon,
-  LandmarkIcon,
-  LayersIcon,
-  StethoscopeIcon,
-  UtensilsIcon,
-  WrenchIcon,
+  CheckCircle2Icon,
+  ClipboardCheckIcon,
+  Layers3Icon,
+  LocateFixedIcon,
+  RouteIcon,
+  ScanSearchIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
 } from "lucide-react";
 
+import { CategoryPackExplorer } from "@/components/marketing/category-pack-explorer";
 import { MarketingFooter } from "@/components/marketing/marketing-footer";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
+import { ProductFamilyNav } from "@/components/marketing/product-family-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  CATEGORY_PACK_PRICE_MONTHLY,
+  CATEGORY_PACKS,
+} from "@/lib/verticals/category-pack-catalog";
 
 export const metadata: Metadata = {
-  title: "Vertical Networks | LocalMap",
+  title: "Category Packs | LocalMap",
   description:
-    "Industry directory networks as $15/mo add-ons: Healthcare, Legal, Home Services, Restaurant, and Financial Services. Pay for the network your category needs, not a Yext bundle.",
+    "Industry-specific profile fields, priority publishers, guided work, and evidence-backed results for $15 per location per month.",
 };
 
-const VERTICALS = [
+const CATEGORY_COUNT = new Set(
+  CATEGORY_PACKS.flatMap((pack) => pack.categorySlugs),
+).size;
+
+const PACK_VALUE = [
   {
-    icon: StethoscopeIcon,
-    name: "Healthcare",
-    who: "Practices, clinics, and providers",
-    publishers: "Healthgrades, WebMD, Vitals, Zocdoc-class directories",
-    fields:
-      "Provider profiles, specialties, insurance acceptance, appointment info",
+    icon: Layers3Icon,
+    title: "A category-ready profile",
+    body: "The fields your niche needs but a generic name-address-phone record cannot hold.",
   },
   {
-    icon: GavelIcon,
-    name: "Legal",
-    who: "Firms and solo attorneys",
-    publishers: "Avvo, FindLaw, Justia, Martindale-class directories",
-    fields: "Practice areas, attorney profiles, bar listings, consultations",
+    icon: LocateFixedIcon,
+    title: "A priority publisher plan",
+    body: "The useful category surfaces, ranked by the role they play in discovery and trust.",
   },
   {
-    icon: WrenchIcon,
-    name: "Home Services",
-    who: "Contractors, plumbers, electricians, HVAC",
-    publishers: "Angi, HomeAdvisor, Thumbtack, Houzz-class directories",
-    fields: "Service areas, licenses, emergency hours, project galleries",
+    icon: RouteIcon,
+    title: "The right delivery rail",
+    body: "Direct, guided, manual, or audit-only is shown before the work starts, never hidden.",
   },
   {
-    icon: UtensilsIcon,
-    name: "Restaurant",
-    who: "Restaurants, cafés, and hospitality",
-    publishers: "Menu platforms, reservation rails, delivery platform links",
-    fields: "Menus, reservations, ordering links, holiday hours",
+    icon: ClipboardCheckIcon,
+    title: "An evidence-backed result",
+    body: "A status, proof of what is live, and the next action for every publisher in the pack.",
   },
-  {
-    icon: LandmarkIcon,
-    name: "Financial Services",
-    who: "Advisors, branches, and agencies",
-    publishers: "Advisor and branch directories, insurance networks",
-    fields: "Advisor profiles, products, compliance-oriented disclosures",
-  },
-];
+] as const;
 
 const FAQS = [
   {
-    q: "How do vertical add-ons work?",
-    a: "Each add-on is $15/location/mo on top of any listing tier. It extends your workspace with the industry directories that matter for your category: tracked, audited, and managed through the same honest rails as everything else.",
+    q: "Is a Category Pack just a list of directory links?",
+    a: "No. The publisher list is only one layer. A pack also adds the category-specific fields to collect, a prioritized work plan, honest delivery rails, and a result record with evidence and next actions.",
   },
   {
-    q: "Why not just bundle them like Yext does?",
-    a: "Because a plumber shouldn't pay for healthcare directories. Yext folds vertical networks into its top tiers and enterprise deals, so you buy the whole bundle to get one industry. Modular add-ons keep the base price low and the bill legible.",
+    q: "Does every category publisher sync automatically?",
+    a: "No. Google is the direct core connector today. Category publishers are labeled guided, manual, or audit-only depending on what each platform actually supports. We never call an audit or checklist a sync.",
   },
   {
-    q: "Can I add more than one vertical?",
-    a: "Yes. Add-ons stack. A med-spa might run Healthcare plus Restaurant-style booking rails; an agency can mix add-ons per client location. Each is $15/mo and can be dropped anytime.",
+    q: "What does the $15 per month pay for?",
+    a: "It activates the category profile, priority publisher workflow, recurring checks, and evidence history for one location. It is operational software and ongoing monitoring, not a one-time PDF.",
   },
   {
-    q: "Do vertical directories really matter for rankings?",
-    a: "For regulated and high-consideration categories, yes. Search engines and AI assistants weight category-authoritative sources. A dentist cited consistently on healthcare directories reads as more trustworthy than one who only exists on generic maps.",
+    q: "Do I need more than one pack?",
+    a: "Usually no. A dentist needs Healthcare; a plumber needs Home services. A genuinely multi-category location can add another pack, but the default is one clear pack matched to its primary business category.",
   },
   {
-    q: "What do I need before adding a vertical?",
-    a: "Any listing tier works. Basic gets vertical tracking and guided checklists; Premium and Pro layer approve-first sync and the AI visibility stack on top. Most vertical directories use guided or manual rails today, labeled honestly, as always.",
+    q: "Are all industries covered?",
+    a:
+      "The current catalog covers all " +
+      CATEGORY_COUNT +
+      " categories available during LocalMap onboarding. New categories should only launch after their profile fields, publishers, delivery rails, and evidence rules are defined.",
   },
   {
-    q: "I'm an agency with clients in different industries. How does this price?",
-    a: "Per location, per add-on, so each client only carries the network their category needs. Volume discounts apply at 10 / 50 / 100+ locations across your workspace.",
+    q: "Can an agency mix packs across clients?",
+    a: "Yes. Packs attach per location, so an agency can run Legal for one client and Restaurant for another without upgrading every client into the same oversized bundle.",
   },
 ];
 
@@ -95,227 +94,246 @@ export default async function VerticalsProductPage() {
   const primaryHref = signedIn ? "/dashboard" : "/sign-up";
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col bg-[#f5faf9]">
       <MarketingHeader signedIn={signedIn} />
+      <ProductFamilyNav active="verticals" />
 
       <main className="flex-1">
-        <section className="localmap-mesh relative overflow-hidden border-b">
-          <div className="localmap-grid absolute inset-0 opacity-40" />
-          <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:px-6 sm:py-24">
-            <Badge
-              variant="secondary"
-              className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-primary"
-            >
-              <LayersIcon className="mr-1.5 inline size-3.5" />
-              Vertical networks · $15/mo add-ons
-            </Badge>
-            <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl lg:leading-[1.08]">
-              The directories your industry trusts, à la carte
-            </h1>
-            <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-              A dentist needs Healthgrades. A plumber needs Angi. Nobody needs
-              both, so we don&apos;t sell them as a bundle. Add the network
-              your category needs for $15/location/mo.
-            </p>
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                size="lg"
-                nativeButton={false}
-                render={<Link href={primaryHref} />}
-              >
-                {signedIn ? "Open workspace" : "Start free workspace"}
-                <ArrowRightIcon className="size-4" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/pricing" />}
-              >
-                See full pricing
-              </Button>
+        <section className="relative overflow-hidden bg-[#071f2d] text-white">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(32,201,181,0.20),transparent_34%),radial-gradient(circle_at_82%_70%,rgba(255,177,92,0.15),transparent_32%)]" />
+          <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.8)_1px,transparent_1px)] [background-size:52px_52px]" />
+          <div className="relative mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div>
+              <Badge className="rounded-full border-[#65dfd0]/35 bg-[#65dfd0]/12 px-3 py-1 text-[#9ff3e8]">
+                <SparklesIcon className="mr-1.5 inline size-3.5" />
+                {CATEGORY_COUNT} categories ready today
+              </Badge>
+              <h1 className="mt-7 max-w-3xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl sm:leading-[1.02]">
+                Your category changes the work.{" "}
+                <span className="text-[#73e2d5]">Not the price.</span>
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-white/68 sm:text-xl">
+                Core Listings controls the facts. A Category Pack adds the
+                fields, publishers, checks, and tasks your niche needs—for{" "}
+                <strong className="font-semibold text-white">
+                  {"$"}
+                  {CATEGORY_PACK_PRICE_MONTHLY}/location/mo
+                </strong>
+                .
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  size="lg"
+                  className="bg-[#67e3d5] text-[#062b31] hover:bg-[#91eee4]"
+                  nativeButton={false}
+                  render={<Link href={primaryHref} />}
+                >
+                  {signedIn ? "Open workspace" : "Match my category"}
+                  <ArrowRightIcon className="size-4" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  nativeButton={false}
+                  render={<Link href="#explore-packs" />}
+                >
+                  Explore every pack
+                </Button>
+              </div>
             </div>
-          </div>
-        </section>
 
-        <section className="border-b bg-muted/30">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-10 sm:grid-cols-3 sm:px-6">
-            <div>
-              <h2 className="font-semibold">Five networks, one price each</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Healthcare, Legal, Home Services, Restaurant, and Financial
-                Services, each a flat $15/location/mo on any tier.
-              </p>
-            </div>
-            <div>
-              <h2 className="font-semibold">Category authority is a signal</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Search engines and AI assistants weight industry directories
-                when ranking regulated, high-trust categories.
-              </p>
-            </div>
-            <div>
-              <h2 className="font-semibold">Built for mixed-client agencies</h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                Assign add-ons per location, so every client pays only for
-                their industry&apos;s network.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-          <div className="mb-10 max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-              The networks
-            </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight">
-              Pick your industry. Skip the rest.
-            </h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {VERTICALS.map((vertical) => (
-              <div
-                key={vertical.name}
-                className="localmap-card-glow flex flex-col rounded-2xl border bg-card p-5"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                    <vertical.icon className="size-5" />
+            <div className="relative mx-auto w-full max-w-lg lg:mr-0">
+              <div className="absolute -inset-6 rounded-[3rem] bg-[#20c9b5]/10 blur-2xl" />
+              <div className="relative overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.07] p-3 shadow-2xl backdrop-blur-sm">
+                <div className="rounded-[1.45rem] bg-[#f7fbfa] p-5 text-[#092d3b] sm:p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0f766e]">
+                        Location match
+                      </p>
+                      <p className="mt-1 text-lg font-semibold">
+                        Bailey Plumbing Co.
+                      </p>
+                    </div>
+                    <span className="grid size-11 place-items-center rounded-2xl bg-[#dff4f0] text-[#0f766e]">
+                      <BadgeCheckIcon className="size-5" />
+                    </span>
                   </div>
-                  <Badge variant="outline">+$15/mo</Badge>
+
+                  <div className="mt-5 rounded-2xl bg-[#082b3a] p-5 text-white">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-white/50">Recommended pack</p>
+                        <p className="mt-1 font-semibold">Home services</p>
+                      </div>
+                      <Badge className="bg-[#67e3d5] text-[#073039]">
+                        +$15/mo
+                      </Badge>
+                    </div>
+                    <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+                      {[
+                        ["5", "publishers"],
+                        ["4", "profile fields"],
+                        ["3", "work rails"],
+                      ].map(([value, label]) => (
+                        <div key={label} className="rounded-xl bg-white/7 p-3">
+                          <p className="text-xl font-semibold text-[#7de8da]">
+                            {value}
+                          </p>
+                          <p className="mt-1 text-[10px] leading-tight text-white/48">
+                            {label}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {["Angi Pro", "Thumbtack", "Houzz"].map(
+                      (publisher, index) => (
+                        <div
+                          key={publisher}
+                          className="flex items-center justify-between rounded-xl border border-[#dceae8] bg-white px-3.5 py-3"
+                        >
+                          <span className="flex items-center gap-2.5 text-sm font-medium">
+                            <CheckCircle2Icon className="size-4 text-[#0f766e]" />
+                            {publisher}
+                          </span>
+                          <span className="text-[11px] text-[#668087]">
+                            {index === 2 ? "Audit-only" : "Manual"}
+                          </span>
+                        </div>
+                      ),
+                    )}
+                  </div>
                 </div>
-                <h3 className="mt-4 font-semibold">{vertical.name}</h3>
-                <p className="text-xs text-muted-foreground">{vertical.who}</p>
-                <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  <p>
-                    <span className="font-medium text-foreground">
-                      Directories:
-                    </span>{" "}
-                    {vertical.publishers}
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground">
-                      Synced fields:
-                    </span>{" "}
-                    {vertical.fields}
-                  </p>
-                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-b border-[#cfe3e0] bg-white">
+          <div className="mx-auto grid max-w-6xl gap-px bg-[#dce9e7] sm:grid-cols-2 lg:grid-cols-4">
+            {PACK_VALUE.map((item) => (
+              <div key={item.title} className="bg-white px-5 py-7 sm:px-6">
+                <item.icon className="size-5 text-[#0f766e]" />
+                <h2 className="mt-4 font-semibold text-[#092d3b]">
+                  {item.title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-[#60777e]">
+                  {item.body}
+                </p>
               </div>
             ))}
-            <div className="localmap-card-glow flex flex-col justify-center rounded-2xl border border-dashed bg-card p-5 text-center">
-              <h3 className="font-semibold">Don&apos;t see your industry?</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Category packs cover 20 niches today, and new vertical networks
-                ship as their rails come online. Tell us what you need.
+          </div>
+        </section>
+
+        <section
+          id="explore-packs"
+          className="scroll-mt-28 px-4 py-16 sm:px-6 sm:py-24"
+        >
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#0f766e]">
+                Choose a category
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mx-auto mt-4"
-                nativeButton={false}
-                render={<Link href="/sign-up" />}
-              >
-                Talk to us
-              </Button>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#092d3b] sm:text-5xl">
+                See exactly what your $15 unlocks.
+              </h2>
+              <p className="mt-4 text-lg leading-relaxed text-[#55727a]">
+                Each pack is a small operating system for one category—not a
+                vague bundle of logos. Pick an industry to inspect its fields,
+                publisher plan, delivery rails, and finished result.
+              </p>
+            </div>
+            <div className="mt-10">
+              <CategoryPackExplorer />
             </div>
           </div>
         </section>
 
-        <section className="border-y bg-muted/20">
-          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-            <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">
-                  The math vs Yext
-                </p>
-                <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-                  One industry shouldn&apos;t cost the whole bundle
-                </h2>
-                <p className="mt-4 text-muted-foreground">
-                  Yext ties vertical networks to its top tiers and enterprise
-                  agreements, to get healthcare directories you often buy a
-                  $999/yr plan or a custom deal. LocalMap prices the network
-                  itself: $15/mo on top of whatever tier you already run.
-                </p>
-                <ul className="mt-6 space-y-3 text-sm">
-                  {[
-                    "Premium + Healthcare = $64/mo, vs Yext Premium at ~$83/mo",
-                    "Add-ons stack and can be dropped anytime, per location",
-                    "Same audits, evidence, and honest rail labels as core listings",
-                    "Agencies mix add-ons across clients instead of upgrading everyone",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <BadgeCheckIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="localmap-card-glow overflow-hidden rounded-2xl border bg-card">
-                <div className="grid grid-cols-2 border-b bg-muted/40 text-sm font-semibold">
-                  <div className="px-4 py-3">Yext (bundled)</div>
-                  <div className="border-l px-4 py-3 text-primary">
-                    LocalMap (modular)
-                  </div>
+        <section className="border-y border-[#244652] bg-[#0a2c3a] px-4 py-16 text-white sm:px-6 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#73e2d5]">
+                Modular by design
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] sm:text-4xl">
+                Don&apos;t make a dentist fund a contractor directory.
+              </h2>
+              <p className="mt-4 leading-relaxed text-white/65">
+                Traditional bundles optimize for the size of the network.
+                LocalMap optimizes for relevance: one core listing system, then
+                only the category work this location can actually use.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[
+                ["Core Listings", "Google connection, master profile, audits"],
+                ["One Category Pack", "Industry fields, publishers, work plan"],
+                ["One clear bill", "$15 per selected location each month"],
+                ["One honest result", "Live status, evidence, and next action"],
+              ].map(([title, body]) => (
+                <div
+                  key={title}
+                  className="rounded-2xl border border-white/10 bg-white/[0.06] p-5"
+                >
+                  <ShieldCheckIcon className="size-5 text-[#73e2d5]" />
+                  <p className="mt-4 font-semibold">{title}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">
+                    {body}
+                  </p>
                 </div>
-                <div className="grid grid-cols-2 text-sm">
-                  <div className="space-y-2 px-4 py-4 text-muted-foreground">
-                    <p className="text-2xl font-bold text-foreground">
-                      $999<span className="text-sm font-normal">/yr</span>
-                    </p>
-                    <p>Premium tier or enterprise deal</p>
-                    <p>Every vertical, needed or not</p>
-                    <p>Annual contract, demo first</p>
-                  </div>
-                  <div className="space-y-2 border-l px-4 py-4 text-muted-foreground">
-                    <p className="text-2xl font-bold text-foreground">
-                      $34<span className="text-sm font-normal">/mo</span>
-                    </p>
-                    <p>Basic ($19) + one vertical ($15)</p>
-                    <p>Only your industry&apos;s network</p>
-                    <p>Month-to-month, self-serve</p>
-                  </div>
-                </div>
-                <div className="border-t bg-primary/5 px-4 py-3 text-center text-sm font-medium text-primary">
-                  Start vertical-first from $34/mo
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Vertical network questions
-          </h2>
-          <div className="mt-6 space-y-6">
+        <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24">
+          <div className="text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#0f766e]">
+              Straight answers
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-[#092d3b] sm:text-4xl">
+              Category Pack questions
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
             {FAQS.map((faq) => (
-              <div key={faq.q}>
-                <h3 className="font-semibold">{faq.q}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+              <div
+                key={faq.q}
+                className="rounded-2xl border border-[#c9e2df] bg-white p-6"
+              >
+                <h3 className="font-semibold text-[#092d3b]">{faq.q}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[#5a747b]">
                   {faq.a}
                 </p>
               </div>
             ))}
           </div>
-          <div className="localmap-card-glow mt-10 rounded-3xl border bg-gradient-to-br from-primary/10 via-background to-accent/10 p-8 text-center">
-            <h3 className="text-xl font-bold">
-              See how your industry presence scores today
-            </h3>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-              The free scan checks your visibility across general and
-              industry surfaces, before you add anything.
-            </p>
-            <Button
-              size="lg"
-              className="mt-5"
-              nativeButton={false}
-              render={<Link href="/grader" />}
-            >
-              Run the free scan
-              <ArrowRightIcon className="size-4" />
-            </Button>
+
+          <div className="mt-10 overflow-hidden rounded-[2rem] bg-[#f1c27d] p-7 text-[#173440] sm:p-10">
+            <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+              <div>
+                <h3 className="text-2xl font-semibold tracking-tight">
+                  Start with the facts already on the web.
+                </h3>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#37535c]">
+                  Run the free scan, see the gaps, then match the location to
+                  the category work that will actually improve it.
+                </p>
+              </div>
+              <Button
+                size="lg"
+                className="shrink-0 bg-[#082b3a] text-white hover:bg-[#0d3d4e]"
+                nativeButton={false}
+                render={<Link href="/grader" />}
+              >
+                Run the free scan
+                <ScanSearchIcon className="size-4" />
+              </Button>
+            </div>
           </div>
         </section>
       </main>

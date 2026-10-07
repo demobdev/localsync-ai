@@ -14,6 +14,7 @@ import {
   updateBillingSubscriptionByOrgPlan,
   upsertBillingSubscription,
 } from "@/lib/billing/subscriptions";
+import { sendTeamMemberWelcome } from "@/lib/email/team";
 
 /** Clerk billing payloads (typed loosely until billing APIs stabilize). */
 type BillingPayer = {
@@ -119,6 +120,22 @@ export async function POST(req: NextRequest) {
         if (event.data.id) {
           await deleteOrganization(event.data.id);
         }
+        break;
+      }
+      case "organizationInvitation.accepted": {
+        const workspaceName =
+          event.data.public_organization_data?.name ?? "your workspace";
+        await sendTeamMemberWelcome({
+          invitationId: event.data.id,
+          email: event.data.email_address,
+          organizationId: event.data.organization_id,
+          workspaceName,
+          roleName:
+            event.data.role_name ||
+            (event.data.role === "org:admin"
+              ? "Workspace admin"
+              : "Team member"),
+        });
         break;
       }
       case "subscription.created":
