@@ -240,7 +240,10 @@ export function mergeSetupProgress(steps: SetupStep[]): SetupProgress {
   const totalCount = required.length;
   const percent =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const nextStep = steps.find((step) => !step.done && !step.optional) ?? null;
+  // Reuse connected business facts before asking the owner to enter them again.
+  const nextStep = ["connect-google", "import-google"]
+    .map((id) => required.find((step) => step.id === id && !step.done))
+    .find(Boolean) ?? required.find((step) => !step.done) ?? null;
 
   return {
     steps,

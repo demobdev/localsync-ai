@@ -126,8 +126,6 @@ export function ConnectionsHub({
     },
   ];
 
-  const doneCount = cards.filter((card) => card.done).length;
-
   return (
     <div className="space-y-6">
       <div className="localmap-mesh rounded-2xl border bg-card p-6">
@@ -135,7 +133,7 @@ export function ConnectionsHub({
           variant="secondary"
           className="mb-3 rounded-full border border-primary/20 bg-primary/10 text-primary"
         >
-          {doneCount}/{cards.length} connected
+          {googleConnected ? "Google account connected" : "Google account not connected"}
         </Badge>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Connections & data sources
@@ -196,14 +194,19 @@ export function ConnectionsHub({
           <CardHeader>
             <CardTitle className="text-base">Recommended order</CardTitle>
             <CardDescription>
-              Complete the Master Profile, connect Google, confirm the listing,
-              and approve differences. Audit-only URLs are optional.
+              Connect Google, confirm the listing, then review existing details
+              before filling in anything missing. Saving in LocalMap and sending
+              approved changes to Google are separate steps. Audit-only URLs are optional.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ol className="space-y-2 text-sm text-muted-foreground">
               {setupProgress.steps
                 .filter((step) => !step.optional)
+                .sort((a, b) => {
+                  const order = (id: string) => id === "connect-google" ? 0 : id === "import-google" ? 1 : 2;
+                  return order(a.id) - order(b.id);
+                })
                 .slice(0, 6)
                 .map((step, index) => (
                   <li key={step.id} className="flex items-center gap-2">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   AlertCircleIcon,
   ArrowRightIcon,
@@ -44,7 +44,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { verifyGoogleProfile } from "@/lib/connectors/google-profile-diff";
-import { publisherSlugForListingUrl } from "@/lib/publishers/detect-listing-url";
+import { normalizeListingUrl, publisherSlugForListingUrl } from "@/lib/publishers/detect-listing-url";
 import { listingUrlPlaceholder } from "@/lib/publishers/listing-setup-copy";
 import type { LocationProfileSnapshot } from "@/lib/types/location-profile";
 import { cn } from "@/lib/utils";
@@ -102,10 +102,10 @@ function statusTone(status: string):
   | "outline"
   | "destructive" {
   if (status === "Live & synced") return "default";
-  if (status === "Needs action" || status === "Connection error") {
+  if (["Needs action", "Connection error", "Listing unavailable"].includes(status)) {
     return "destructive";
   }
-  if (status === "Pending verification" || status === "Ready to audit") {
+  if (["Pending verification", "Verification unavailable", "Differences to review", "Confirmation required", "Ready to audit"].includes(status)) {
     return "secondary";
   }
   return "outline";
@@ -189,9 +189,33 @@ export function AutomatedListingsWorkspace({
       publisherRows.map((row) => [row.id, row.listingUrl ?? ""]),
     ),
   );
+  const [savedUrlChanges, setSavedUrlChanges] = useState<
+    Record<string, { previous: string; value: string }>
+  >({});
+  // Transitions update the UI asynchronously; this lock also covers same-tick clicks.
+  const actionLock = useRef(false);
   const [savePending, startSaveTransition] = useTransition();
   const [discoverPending, startDiscoverTransition] = useTransition();
   const [auditPending, startAuditTransition] = useTransition();
+  const actionPending = savePending || discoverPending || auditPending;
+
+  function savedUrlFor(row: PublisherRow): string {
+    const serverValue = row.listingUrl ?? "";
+    const saved = savedUrlChanges[row.id];
+    return saved?.previous === serverValue ? saved.value : serverValue;
+  }
+
+  function recordSavedUrl(row: PublisherRow, value: string) {
+    const canonical = value ? normalizeListingUrl(value) ?? value : "";
+    setSavedUrlChanges((current) => ({
+      ...current,
+      [row.id]: { previous: row.listingUrl ?? "", value: canonical },
+    }));
+    // Do not overwrite an edit made while the request was in flight.
+    setUrls((current) => (current[row.id] ?? "") === (urls[row.id] ?? "")
+      ? { ...current, [row.id]: canonical }
+      : current);
+  }
 
   const googleRow = publisherRows.find(
     (row) => row.publisherSlug === GOOGLE_SLUG,
@@ -200,9 +224,12 @@ export function AutomatedListingsWorkspace({
   const googleConnectionError =
     googleState.status === "connected" ? googleState.fetchError : undefined;
   const matchedGoogleLocation =
-    googleState.status === "connected" && googleRow?.externalId
+    googleState.status === "connected" && !googleConnectionError && googleRow?.externalId
       ? googleState.locations.find(
-          (location) => location.gbpName === googleLocationName(googleRow.externalId!),
+          (location) => {
+            const linkedName = googleLocationName(googleRow.externalId!);
+            return linkedName && googleLocationName(location.gbpName) === linkedName;
+          },
         )
       : undefined;
   const googleVerification = matchedGoogleLocation
@@ -212,61 +239,64 @@ export function AutomatedListingsWorkspace({
     googleVerification?.verified && googleRow?.lastCheckedAt,
   );
   const profileReady = profileScore >= 35;
-  const listingMatched = Boolean(googleRow?.externalId);
+  const listingMatched = Boolean(matchedGoogleLocation);
+  const verificationUnavailable = !matchedGoogleLocation?.verification ||
+    matchedGoogleLocation.verification.status === "unknown";
 
   const auditOnlyRows = publisherRows.filter(
     (row) => row.publisherSlug !== GOOGLE_SLUG,
   );
   const configuredAuditOnlyCount = auditOnlyRows.filter((row) =>
-    Boolean((urls[row.id] ?? "").trim()),
+    Boolean(savedUrlFor(row).trim()),
   ).length;
   const connectedCount = (googleConnected ? 1 : 0) + configuredAuditOnlyCount;
-  const needsActionCount =
-    (liveAndSynced ? 0 : 1) +
-    auditOnlyRows.filter(
-      (row) => row.isCore && !(urls[row.id] ?? "").trim(),
-    ).length;
+  const needsActionCount = liveAndSynced ? 0 : 1;
 
-  const currentStep = !profileReady
-    ? 0
-    : !googleConnected
-      ? 1
-      : !listingMatched
-        ? 2
-        : 3;
+  const currentStep = !googleConnected || googleConnectionError
+    ? 1
+    : !listingMatched
+      ? 2
+      : !liveAndSynced
+        ? 3
+        : !profileReady ? 0 : 3;
 
-  const primaryAction = !profileReady
+  const primaryAction = !googleConnected
     ? {
-        label: "Complete Master Profile",
-        href: `/dashboard/locations/${locationId}`,
-        note: "Add the core facts publishers need before connecting an account.",
+        label: "Connect Google account",
+        href: "/dashboard/connect/google",
+        note: "Connect first to reuse your existing Google business details.",
       }
-    : !googleConnected
+    : googleConnectionError
       ? {
-          label: "Connect Google account",
+          label: "Resolve Google access",
           href: "/dashboard/connect/google",
-          note: "Authorize the account that owns or manages this listing.",
+          note: googleConnectionError.message,
         }
-      : googleConnectionError
+      : !listingMatched
         ? {
-            label: "Resolve Google access",
+            label: googleRow?.externalId ? "Review linked Google listing" : "Choose your Google listing",
             href: "/dashboard/connect/google",
-            note: googleConnectionError.message,
+            note: googleRow?.externalId
+              ? "The saved listing could not be read from this Google account. Review access or choose the correct listing."
+              : "Confirm which publisher record belongs to this Master Profile.",
           }
-        : !listingMatched
+        : !liveAndSynced
           ? {
-              label: "Choose your Google listing",
+              label: "Review & approve differences",
               href: "/dashboard/connect/google",
-              note: "Confirm which publisher record belongs to this Master Profile.",
+              note: googleVerification?.mismatchedFields.length
+                ? `${googleVerification.mismatchedFields.length} supported field${googleVerification.mismatchedFields.length === 1 ? "" : "s"} still ${googleVerification.mismatchedFields.length === 1 ? "differs" : "differ"}.`
+                : verificationUnavailable
+                  ? "The fields match, but Google’s ownership verification status is unavailable. Check the connection before continuing."
+                  : !googleVerification?.listingVerified
+                    ? matchedGoogleLocation?.verification?.label ?? "Review Google verification status."
+                    : "The fields match and Google is verified. Save the listing confirmation to continue.",
             }
-          : !liveAndSynced
+          : !profileReady
             ? {
-                label: "Review & approve differences",
-                href: "/dashboard/connect/google",
-                note:
-                  googleVerification?.mismatchedFields.length
-                    ? `${googleVerification.mismatchedFields.length} supported field${googleVerification.mismatchedFields.length === 1 ? "" : "s"} still ${googleVerification.mismatchedFields.length === 1 ? "differs" : "differ"}.`
-                    : "The fields match, but Google ownership still needs verification.",
+                label: "Complete Master Profile",
+                href: `/dashboard/locations/${locationId}`,
+                note: "Google details are confirmed. Add only the business facts still missing from your profile.",
               }
             : {
                 label: "Review publisher health",
@@ -279,11 +309,15 @@ export function AutomatedListingsWorkspace({
       if (googleState.status === "not_configured") return "Connection error";
       if (!googleConnected) return "Needs action";
       if (googleConnectionError) return "Connection error";
-      if (!listingMatched) return "Needs action";
-      return liveAndSynced ? "Live & synced" : "Pending verification";
+      if (!listingMatched) return googleRow?.externalId ? "Listing unavailable" : "Needs action";
+      if (liveAndSynced) return "Live & synced";
+      if (googleVerification?.mismatchedFields.length) return "Differences to review";
+      if (verificationUnavailable) return "Verification unavailable";
+      if (googleVerification?.listingVerified) return "Confirmation required";
+      return "Pending verification";
     }
 
-    const hasUrl = Boolean((urls[row.id] ?? "").trim());
+    const hasUrl = Boolean(savedUrlFor(row).trim());
     if (!hasUrl) return "Not configured";
     return row.lastCheckedAt ? "Audit complete" : "Ready to audit";
   }
@@ -292,8 +326,8 @@ export function AutomatedListingsWorkspace({
     const sorted = [...publisherRows].sort((a, b) => {
       if (a.publisherSlug === GOOGLE_SLUG) return -1;
       if (b.publisherSlug === GOOGLE_SLUG) return 1;
-      const aConfigured = Boolean((urls[a.id] ?? "").trim());
-      const bConfigured = Boolean((urls[b.id] ?? "").trim());
+      const aConfigured = Boolean(savedUrlFor(a).trim());
+      const bConfigured = Boolean(savedUrlFor(b).trim());
       if (aConfigured !== bConfigured) return aConfigured ? -1 : 1;
       return Number(b.isCore) - Number(a.isCore);
     });
@@ -303,14 +337,17 @@ export function AutomatedListingsWorkspace({
       if (filter === "connected") {
         return row.publisherSlug === GOOGLE_SLUG
           ? googleConnected
-          : Boolean((urls[row.id] ?? "").trim());
+          : Boolean(savedUrlFor(row).trim());
       }
       if (filter === "needs-action") {
         return (
           status === "Needs action" ||
           status === "Connection error" ||
           status === "Pending verification" ||
-          (row.isCore && status === "Not configured")
+          status === "Listing unavailable" ||
+          status === "Verification unavailable" ||
+          status === "Differences to review" ||
+          status === "Confirmation required"
         );
       }
       if (filter === "audit-only") return row.publisherSlug !== GOOGLE_SLUG;
@@ -318,7 +355,7 @@ export function AutomatedListingsWorkspace({
     });
   })();
 
-  const filteredAuditOnlyRows = useMemo(() => {
+  const filteredAuditOnlyRows = (() => {
     const query = auditOnlySearch.trim().toLowerCase();
     const rows = query
       ? auditOnlyRows.filter((row) =>
@@ -329,12 +366,12 @@ export function AutomatedListingsWorkspace({
       : auditOnlyRows;
 
     return [...rows].sort((a, b) => {
-      const aConfigured = Boolean((urls[a.id] ?? "").trim());
-      const bConfigured = Boolean((urls[b.id] ?? "").trim());
+      const aConfigured = Boolean(savedUrlFor(a).trim());
+      const bConfigured = Boolean(savedUrlFor(b).trim());
       if (aConfigured !== bConfigured) return aConfigured ? -1 : 1;
       return Number(b.isCore) - Number(a.isCore);
     });
-  }, [auditOnlyRows, auditOnlySearch, urls]);
+  })();
 
   function openAuditOnly() {
     setShowAuditOnly(true);
@@ -346,6 +383,8 @@ export function AutomatedListingsWorkspace({
   }
 
   function saveAuditOnlyUrl(row: PublisherRow) {
+    if (actionLock.current) return;
+    actionLock.current = true;
     startSaveTransition(async () => {
       try {
         const value = (urls[row.id] ?? "").trim();
@@ -355,6 +394,7 @@ export function AutomatedListingsWorkspace({
           listingUrl: value,
           status: value ? "pending" : "unknown",
         });
+        recordSavedUrl(row, value);
         toast.success(
           value
             ? `${row.publisherName} added as audit-only`
@@ -363,58 +403,66 @@ export function AutomatedListingsWorkspace({
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Could not save URL");
+      } finally {
+        actionLock.current = false;
       }
     });
   }
 
   function quickAddUrls() {
-    const pasted = parsePastedUrls(quickPaste);
+    if (actionLock.current) return;
+    const pastedText = quickPaste;
+    const pasted = parsePastedUrls(pastedText);
     if (pasted.length === 0) {
       toast.error("Paste at least one complete https:// listing URL");
       return;
     }
 
+    actionLock.current = true;
     startSaveTransition(async () => {
       let saved = 0;
-      const missed: string[] = [];
-
-      for (const url of pasted) {
-        const slug = publisherSlugForListingUrl(url);
-        const row = auditOnlyRows.find(
-          (publisher) => publisher.publisherSlug === slug,
-        );
-
-        if (!row) {
-          missed.push(url);
-          continue;
+      let index = 0;
+      const remaining: string[] = [];
+      try {
+        for (; index < pasted.length; index += 1) {
+          const url = pasted[index];
+          const slug = publisherSlugForListingUrl(url);
+          const row = auditOnlyRows.find(
+            (publisher) => publisher.publisherSlug === slug,
+          );
+          if (!row) {
+            remaining.push(url);
+            continue;
+          }
+          await updateListingUrlAction({
+            locationId,
+            locationPublisherId: row.id,
+            listingUrl: url,
+            status: "pending",
+          });
+          recordSavedUrl(row, url);
+          saved += 1;
         }
-
-        await updateListingUrlAction({
-          locationId,
-          locationPublisherId: row.id,
-          listingUrl: url,
-          status: "pending",
-        });
-        setUrls((current) => ({ ...current, [row.id]: url }));
-        saved += 1;
-      }
-
-      if (saved > 0) {
-        toast.success(
-          `Added ${saved} audit-only listing${saved === 1 ? "" : "s"}`,
-        );
-        setQuickPaste(missed.join(" "));
-        router.refresh();
-      }
-      if (missed.length > 0) {
-        toast.info(
-          `${missed.length} link${missed.length === 1 ? "" : "s"} could not be matched to a supported publisher`,
-        );
+        if (remaining.length > 0) {
+          toast.info(`${remaining.length} link${remaining.length === 1 ? "" : "s"} could not be matched to a supported publisher`);
+        }
+      } catch (error) {
+        remaining.push(...pasted.slice(index));
+        toast.error(error instanceof Error ? error.message : "Could not save listing links");
+      } finally {
+        if (saved > 0) {
+          toast.success(`Added ${saved} audit-only listing${saved === 1 ? "" : "s"}`);
+          router.refresh();
+        }
+        setQuickPaste((current) => current === pastedText ? remaining.join(" ") : current);
+        actionLock.current = false;
       }
     });
   }
 
   function discoverFromWebsite() {
+    if (actionLock.current) return;
+    actionLock.current = true;
     startDiscoverTransition(async () => {
       try {
         const result = await discoverListingUrlsAction(locationId);
@@ -425,17 +473,12 @@ export function AutomatedListingsWorkspace({
               : "Add a website to the Master Profile first, or paste listing links below",
           );
         } else {
-          setUrls((current) => {
-            const next = { ...current };
-            for (const found of result.filled) {
-              const row = publisherRows.find(
-                (publisher) =>
-                  publisher.publisherSlug === found.publisherSlug,
-              );
-              if (row) next[row.id] = found.url;
-            }
-            return next;
-          });
+          for (const found of result.filled) {
+            const row = publisherRows.find(
+              (publisher) => publisher.publisherSlug === found.publisherSlug,
+            );
+            if (row) recordSavedUrl(row, found.url);
+          }
           toast.success(
             `Found ${result.filled.length} listing${result.filled.length === 1 ? "" : "s"} on the website`,
           );
@@ -445,26 +488,38 @@ export function AutomatedListingsWorkspace({
         toast.error(
           error instanceof Error ? error.message : "Website discovery failed",
         );
+      } finally {
+        actionLock.current = false;
       }
     });
   }
 
   function runAudit() {
+    if (actionLock.current || configuredAuditOnlyCount === 0) return;
+    actionLock.current = true;
     startAuditTransition(async () => {
       try {
         toast.info("Checking audit-only listings against the Master Profile…");
         const result = await startAuditAction(locationId);
-        toast.success(
-          `Audit complete — ${result.score.auditScore}/50 consistency points`,
-        );
+        if (result.status === "failed") {
+          toast.error("The listing check failed. Your saved profile is unchanged; try again.");
+        } else {
+          toast.success(
+            `Audit complete — ${result.score.auditScore}/50 consistency points`,
+          );
+        }
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Audit failed");
+      } finally {
+        actionLock.current = false;
       }
     });
   }
 
   function createTasks(row: PublisherRow) {
+    if (actionLock.current) return;
+    actionLock.current = true;
     startSaveTransition(async () => {
       try {
         const created = await createChecklistTasksAction({
@@ -478,6 +533,8 @@ export function AutomatedListingsWorkspace({
         );
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Could not create tasks");
+      } finally {
+        actionLock.current = false;
       }
     });
   }
@@ -501,8 +558,8 @@ export function AutomatedListingsWorkspace({
                 One profile. One connection. No guesswork.
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/65 sm:text-base">
-                Approve your business facts once. LocalMap compares them with
-                Google, sends only the changes you approve, and verifies the
+                Saving business facts updates LocalMap only. Sending changes to
+                Google is a separate approval step. LocalMap checks the live
                 result before calling anything synced.
               </p>
             </div>
@@ -716,7 +773,7 @@ export function AutomatedListingsWorkspace({
             visiblePublisherRows.map((row) => {
               const status = publisherStatus(row);
               const isGoogle = row.publisherSlug === GOOGLE_SLUG;
-              const listingUrl = (urls[row.id] ?? "").trim();
+              const listingUrl = savedUrlFor(row).trim();
               const actionLabel = isGoogle
                 ? !googleConnected
                   ? "Connect"
@@ -826,7 +883,7 @@ export function AutomatedListingsWorkspace({
                           size="sm"
                           variant="ghost"
                           onClick={() => createTasks(row)}
-                          disabled={savePending}
+                          disabled={actionPending}
                         >
                           Tasks
                         </Button>
@@ -896,14 +953,14 @@ export function AutomatedListingsWorkspace({
                   }}
                 />
               </div>
-              <Button onClick={quickAddUrls} disabled={savePending}>
+              <Button onClick={quickAddUrls} disabled={actionPending}>
                 <Link2Icon className="size-4" />
                 Match links
               </Button>
               <Button
                 variant="outline"
                 onClick={discoverFromWebsite}
-                disabled={discoverPending}
+                disabled={actionPending}
               >
                 <SearchIcon className="size-4" />
                 {discoverPending ? "Scanning…" : "Find on website"}
@@ -923,7 +980,7 @@ export function AutomatedListingsWorkspace({
               <Button
                 variant="outline"
                 onClick={runAudit}
-                disabled={auditPending || configuredAuditOnlyCount === 0}
+                disabled={actionPending || configuredAuditOnlyCount === 0}
               >
                 <RadarIcon className="size-4" />
                 {auditPending
@@ -934,7 +991,7 @@ export function AutomatedListingsWorkspace({
 
             <div className="space-y-3">
               {filteredAuditOnlyRows.map((row) => {
-                const savedUrl = row.listingUrl ?? "";
+                const savedUrl = savedUrlFor(row);
                 const value = urls[row.id] ?? "";
                 const dirty = value.trim() !== savedUrl.trim();
 
@@ -976,7 +1033,7 @@ export function AutomatedListingsWorkspace({
                     </div>
                     <Button
                       variant={dirty ? "default" : "outline"}
-                      disabled={savePending || (!dirty && Boolean(savedUrl))}
+                      disabled={actionPending || !dirty}
                       onClick={() => saveAuditOnlyUrl(row)}
                     >
                       {dirty ? (value.trim() ? "Save URL" : "Remove") : savedUrl ? "Saved" : "Add"}
@@ -1006,7 +1063,7 @@ export function AutomatedListingsWorkspace({
               size="sm"
               variant="outline"
               onClick={runAudit}
-              disabled={auditPending}
+              disabled={actionPending}
             >
               <RadarIcon className="size-4" />
               Run audit-only check
