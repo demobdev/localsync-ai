@@ -28,7 +28,7 @@ function iso(value: Date | string) {
   return date.toISOString();
 }
 
-export async function listStaffFulfillmentCases(): Promise<StaffFulfillmentCase[]> {
+export async function listStaffFulfillmentCases(options: { organizationName?: string } = {}): Promise<StaffFulfillmentCase[]> {
   const db = getDb();
   const result = await db.execute(sql`
     SELECT a.id::text AS "attemptId", a.routing_run_id::text AS "routingRunId",
@@ -44,6 +44,9 @@ export async function listStaffFulfillmentCases(): Promise<StaffFulfillmentCase[
     WHERE a.status = 'ready' AND a.rail = 'manual'
       AND a.response_data->'fulfillment'->>'nextActor' = 'localmap'
       AND a.response_data->'fulfillment'->>'state' = 'needs_operator_review'
+      AND (${options.organizationName
+        ? sql`EXISTS (SELECT 1 FROM public.organizations o WHERE o.id = a.organization_id AND o.name = ${options.organizationName})`
+        : sql`true`})
     ORDER BY a.created_at ASC, a.id ASC
     LIMIT 201
   `);
@@ -87,6 +90,10 @@ export async function listStaffFulfillmentCases(): Promise<StaffFulfillmentCase[
     staffReview: parseStaffReviewState(row.staffReview),
     events: eventsByAttempt.get(row.attemptId) ?? [],
   }));
+}
+
+export function listAgentPreviewFulfillmentCases() {
+  return listStaffFulfillmentCases({ organizationName: "LocalSync QA Cafe" });
 }
 
 export async function transitionStaffFulfillmentCase(input: {

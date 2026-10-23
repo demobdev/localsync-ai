@@ -28,6 +28,13 @@ import { FormEvent, useMemo, useState } from "react";
 import styles from "@/app/agent-preview/agent-preview.module.css";
 
 type Section = "Chat" | "Memory" | "Skills" | "Playbooks" | "Capabilities" | "Inference" | "Approvals" | "Audit trail";
+export type AgentPreviewHandoff = {
+  publisherName: string;
+  staffStatus: "needs_review" | "in_progress" | "needs_information";
+  createdAt: string;
+  eventCount: number;
+};
+type QueueStatus = "ready" | "empty" | "unavailable";
 type Approval = {
   id: string;
   area: "Listings" | "Reviews";
@@ -88,16 +95,18 @@ const sectionDescriptions: Record<Section, string> = {
   "Audit trail": "A readable record of preview-only activity.",
 };
 
-export function AgentWorkspacePreview() {
+export function AgentWorkspacePreview({ queueStatus, handoffs }: { queueStatus: QueueStatus; handoffs: AgentPreviewHandoff[] }) {
   const [section, setSection] = useState<Section>("Chat");
   const [approvals, setApprovals] = useState(seedApprovals);
   const [memories, setMemories] = useState(seedMemories);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      text: "This QA workspace has one synthetic publisher handoff in progress. Google Business Profile is not connected, and no listing changes have been sent.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => [{
+    role: "assistant",
+    text: queueStatus === "unavailable"
+      ? "The synthetic handoff queue could not be reached. This preview is read-only, and no listing changes have been sent."
+      : handoffs.length
+        ? `The QA database has ${handoffs.length} synthetic manual handoff${handoffs.length === 1 ? "" : "s"}. Google Business Profile is not connected, and no listing changes have been sent.`
+        : "The QA database is reachable, but there are no synthetic manual handoffs waiting for review.",
+  }]);
   const [activity, setActivity] = useState(["Preview opened · synthetic workspace"]);
   const [request, setRequest] = useState("");
   const [approvalFilter, setApprovalFilter] = useState<"All" | "Listings" | "Reviews">("All");
@@ -238,7 +247,7 @@ export function AgentWorkspacePreview() {
 
           <div className={styles.sandboxNotice}>
             <Sparkles size={16} aria-hidden="true" />
-            <span><strong>Sandbox preview</strong> Decisions are temporary and clear on refresh. Nothing is sent to a publisher or AI service.</span>
+            <span><strong>Sandbox preview</strong> Agent actions are temporary. Handoff status is read live from the synthetic QA database; no publisher or AI calls are made.</span>
           </div>
 
           {section === "Chat" && (
@@ -275,7 +284,7 @@ export function AgentWorkspacePreview() {
                   <dl className={styles.contextFacts}>
                     <div><dt>Locations</dt><dd>1</dd></div>
                     <div><dt>Google Business Profile</dt><dd><span className={styles.statusWarning}>Needs setup</span></dd></div>
-                    <div><dt>Manual handoff</dt><dd><span className={styles.statusInfo}>In progress</span></dd></div>
+                    <div><dt>Manual handoff</dt><dd><span className={queueStatus === "ready" ? styles.statusInfo : styles.statusWarning}>{handoffSummary(queueStatus, handoffs)}</span></dd></div>
                   </dl>
                   <Link className={styles.textLink} href="/internal/publisher-fulfillment">Open handoff queue <ArrowRight size={14} /></Link>
                 </section>
@@ -290,7 +299,7 @@ export function AgentWorkspacePreview() {
 
                 <section className={styles.activityPreview}>
                   <div className={styles.activityHeader}><h2>Recent activity</h2><button type="button" onClick={() => setSection("Audit trail")}>View all <ArrowRight size={13} /></button></div>
-                  <div className={styles.activityLine}><span className={styles.activityIcon}><FileCheck2 size={15} /></span><span><strong>Example Directory handoff in progress</strong><small>LocalSync QA Cafe · synthetic</small></span></div>
+                  {handoffs[0] ? <div className={styles.activityLine}><span className={styles.activityIcon}><FileCheck2 size={15} /></span><span><strong>{handoffs[0].publisherName} handoff · {handoffStatusLabel(handoffs[0].staffStatus)}</strong><small>Persistent QA queue · {handoffs[0].eventCount} staff event{handoffs[0].eventCount === 1 ? "" : "s"}</small></span></div> : <div className={styles.activityLine}><span className={styles.activityIcon}><FileCheck2 size={15} /></span><span><strong>{queueStatus === "unavailable" ? "QA handoff queue unavailable" : "No QA handoffs waiting"}</strong><small>Read-only synthetic workspace data</small></span></div>}
                   <div className={styles.activityLine}><span className={styles.activityIconBlue}><CheckCircle2 size={15} /></span><span><strong>Test workspace ready</strong><small>Preview mode · no publisher writes</small></span></div>
                 </section>
               </aside>
@@ -328,7 +337,7 @@ export function AgentWorkspacePreview() {
           {section === "Capabilities" && (
             <section className={styles.sectionSurface}>
               <div className={styles.sectionToolbar}><div><h2>Capabilities</h2><p>External tools are intentionally disconnected in this preview.</p></div><span className={styles.disabledPill}>No external connections</span></div>
-              <div className={styles.capabilityList}><div className={styles.capabilityRow}><span className={styles.capabilityIcon}><BookOpen size={17} /></span><span><strong>Business profile</strong><small>Direct account access is not connected.</small></span><span className={styles.notConnected}>Not connected</span></div><div className={styles.capabilityRow}><span className={styles.capabilityIconBlue}><MessageSquareText size={17} /></span><span><strong>Reviews</strong><small>Example drafts only. No review provider is connected.</small></span><span className={styles.notConnected}>Not connected</span></div><div className={styles.capabilityRow}><span className={styles.capabilityIconOrange}><Activity size={17} /></span><span><strong>Publisher handoffs</strong><small>Read the QA queue; no publisher submission tools are enabled.</small></span><Link className={styles.rowAction} href="/internal/publisher-fulfillment">Open queue <ArrowRight size={14} /></Link></div></div>
+              <div className={styles.capabilityList}><div className={styles.capabilityRow}><span className={styles.capabilityIcon}><BookOpen size={17} /></span><span><strong>Business profile</strong><small>Direct account access is not connected.</small></span><span className={styles.notConnected}>Not connected</span></div><div className={styles.capabilityRow}><span className={styles.capabilityIconBlue}><MessageSquareText size={17} /></span><span><strong>Reviews</strong><small>Example drafts only. No review provider is connected.</small></span><span className={styles.notConnected}>Not connected</span></div><div className={styles.capabilityRow}><span className={styles.capabilityIconOrange}><Activity size={17} /></span><span><strong>Publisher handoffs</strong><small>{queueStatus === "unavailable" ? "QA queue could not be reached." : `${handoffs.length} synthetic handoff${handoffs.length === 1 ? "" : "s"} read from the QA database. Staff work stays in the internal queue.`}</small></span><Link className={styles.rowAction} href="/internal/publisher-fulfillment">Open queue <ArrowRight size={14} /></Link></div></div>
             </section>
           )}
 
@@ -365,6 +374,18 @@ export function AgentWorkspacePreview() {
       {toast && <div className={styles.toast} role="status"><CheckCircle2 size={17} /> {toast}</div>}
     </div>
   );
+}
+
+function handoffSummary(queueStatus: QueueStatus, handoffs: AgentPreviewHandoff[]) {
+  if (queueStatus === "unavailable") return "Queue unavailable";
+  if (!handoffs.length) return "No pending cases";
+  return `${handoffs.length} ${handoffStatusLabel(handoffs[0].staffStatus)}`;
+}
+
+function handoffStatusLabel(status: AgentPreviewHandoff["staffStatus"]) {
+  if (status === "in_progress") return "In progress";
+  if (status === "needs_information") return "Waiting on owner";
+  return "Needs review";
 }
 
 function ApprovalList({ approvals, onReview }: { approvals: Approval[]; onReview: (approval: Approval) => void }) {
