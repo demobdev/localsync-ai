@@ -16,6 +16,13 @@ describe("synthetic fulfillment fixture environment guard", () => {
     expect(canSeedSyntheticFulfillmentFixtures(previewEnvironment)).toBe(true);
   });
 
+  it("allows the isolated QA database through its pooled Neon endpoint", () => {
+    expect(canSeedSyntheticFulfillmentFixtures({
+      ...previewEnvironment,
+      DATABASE_URL: "postgresql://qa:example@ep-green-hall-b7gjiyit-pooler.c-13.us-east-1.aws.neon.tech/localsync_fulfillment_qa?sslmode=require",
+    })).toBe(true);
+  });
+
   it.each([
     { VERCEL_ENV: "production" },
     { VERCEL_GIT_COMMIT_REF: "main" },

@@ -10,6 +10,7 @@ const QA_DATABASE_NAME = "localsync_fulfillment_qa";
 const QA_NEON_HOSTS = new Set([
   "ep-green-hall-b7gjiyit.c-13.us-east-1.aws.neon.tech",
   "ep-green-hall-b7gjiyit-xnd.c-13.us-east-1.aws.neon.tech",
+  "ep-green-hall-b7gjiyit-pooler.c-13.us-east-1.aws.neon.tech",
 ]);
 
 const fixtures = [
