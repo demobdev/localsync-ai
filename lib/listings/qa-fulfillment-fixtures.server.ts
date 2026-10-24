@@ -1,18 +1,7 @@
 import "server-only";
 
-import { and, eq, inArray } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import {
-  clients,
-  listingPublisherAttempts,
-  listingRoutingEvents,
-  listingRoutingRuns,
-  locationVersions,
-  locations,
-  organizations,
-  publishers,
-} from "@/db/schema";
 import { EMPTY_LOCATION_PROFILE } from "@/lib/types/location-profile";
 
 const QA_ORGANIZATION_ID = "org_3L78Di29tAhX0iTmYMWjBq8b05d";
@@ -30,6 +19,7 @@ const fixtures = [
     versionId: "a8000000-0000-4000-8000-000000000002",
     runId: "a8000000-0000-4000-8000-000000000003",
     attemptId: "a8000000-0000-4000-8000-000000000004",
+    eventId: "a8000000-0000-4000-8000-000000000005",
     publisherSlug: "bbb",
     name: "LocalSync QA - Juniper Demo Cafe",
     phone: "555-010-1201",
@@ -44,6 +34,7 @@ const fixtures = [
     versionId: "a8000000-0000-4000-8000-000000000012",
     runId: "a8000000-0000-4000-8000-000000000013",
     attemptId: "a8000000-0000-4000-8000-000000000014",
+    eventId: "a8000000-0000-4000-8000-000000000015",
     publisherSlug: "data-axle",
     name: "LocalSync QA - Harbor Demo Dental",
     phone: "555-010-1202",
@@ -83,25 +74,24 @@ export async function seedSyntheticFulfillmentFixtures(operatorUserId: string) {
     throw new Error("The active database does not match the isolated QA database.");
   }
 
-  const [target] = await db
-    .select({ organizationId: organizations.id, clientId: clients.id })
-    .from(organizations)
-    .innerJoin(clients, eq(clients.organizationId, organizations.id))
-    .innerJoin(locations, eq(locations.clientId, clients.id))
-    .where(and(
-      eq(organizations.id, QA_ORGANIZATION_ID),
-      eq(organizations.name, QA_ORGANIZATION_NAME),
-    ))
-    .limit(1);
+  const targetResult = await db.execute(sql`
+    SELECT o.id AS organization_id, c.id::text AS client_id
+    FROM public.organizations o
+    INNER JOIN public.clients c ON c.organization_id = o.id
+    INNER JOIN public.locations l ON l.client_id = c.id AND l.organization_id = o.id
+    WHERE o.id = ${QA_ORGANIZATION_ID} AND o.name = ${QA_ORGANIZATION_NAME}
+    ORDER BY c.id
+    LIMIT 1
+  `);
+  const target = targetResult.rows[0] as { organization_id: string; client_id: string } | undefined;
   if (!target) throw new Error("The synthetic QA workspace was not found.");
 
-  const publisherRows = await db
-    .select({ id: publishers.id, slug: publishers.slug })
-    .from(publishers)
-    .where(and(
-      inArray(publishers.slug, fixtures.map(fixture => fixture.publisherSlug)),
-      eq(publishers.rail, "manual"),
-    ));
+  const publisherResult = await db.execute(sql`
+    SELECT id::text AS id, slug
+    FROM public.publishers
+    WHERE rail = 'manual' AND slug IN (${sql.join(fixtures.map(fixture => sql`${fixture.publisherSlug}`), sql`, `)})
+  `);
+  const publisherRows = publisherResult.rows as Array<{ id: string; slug: string }>;
   const publisherIds = new Map(publisherRows.map(row => [row.slug, row.id]));
   if (fixtures.some(fixture => !publisherIds.has(fixture.publisherSlug))) {
     throw new Error("A required manual publisher fixture is unavailable.");
@@ -129,69 +119,65 @@ export async function seedSyntheticFulfillmentFixtures(operatorUserId: string) {
       updatedAt: null,
     };
 
+    const fulfillment = {
+      nextActor: "localmap",
+      state: "needs_operator_review",
+      reasonCode: "manual_publisher_rail",
+      qaFixture: true,
+      scenario: fixture.scenario,
+      staffReview,
+    };
+    const summary = { qaFixture: true, scenario: fixture.scenario, staffReviewCount: 1 };
+    const eventDetail = {
+      publisherAttemptId: fixture.attemptId,
+      scenario: fixture.scenario,
+      synthetic: true,
+    };
+
     return [
-      db.insert(locations).values({
-        id: fixture.locationId,
-        organizationId: target.organizationId,
-        clientId: target.clientId,
-        name: fixture.name,
-        slug: fixture.scenario,
-        profile,
-      }).onConflictDoNothing(),
-      db.insert(locationVersions).values({
-        id: fixture.versionId,
-        locationId: fixture.locationId,
-        versionNumber: 1,
-        snapshot: profile,
-        source: "user",
-        actorUserId: operatorUserId,
-        changeSummary: `Synthetic QA ${fixture.scenario} fixture`,
-      }).onConflictDoNothing(),
-      db.update(locations)
-        .set({ currentVersionId: fixture.versionId, updatedAt: new Date() })
-        .where(eq(locations.id, fixture.locationId)),
-      db.insert(listingRoutingRuns).values({
-        id: fixture.runId,
-        organizationId: target.organizationId,
-        locationId: fixture.locationId,
-        locationVersionId: fixture.versionId,
-        idempotencyKey: `localsync-qa-fulfillment-${fixture.scenario}-v1`,
-        status: "waiting_for_staff",
-        trigger: "manual",
-        startedByUserId: operatorUserId,
-        summary: { qaFixture: true, scenario: fixture.scenario, staffReviewCount: 1 },
-      }).onConflictDoNothing(),
-      db.insert(listingPublisherAttempts).values({
-        id: fixture.attemptId,
-        routingRunId: fixture.runId,
-        organizationId: target.organizationId,
-        locationId: fixture.locationId,
-        publisherId,
-        rail: "manual",
-        status: "ready",
-        responseData: {
-          fulfillment: {
-            nextActor: "localmap",
-            state: "needs_operator_review",
-            reasonCode: "manual_publisher_rail",
-            qaFixture: true,
-            scenario: fixture.scenario,
-            staffReview,
-          },
-        },
-      }).onConflictDoNothing(),
-      db.insert(listingRoutingEvents).values({
-        id: fixture.attemptId.replace(/4$/, "5"),
-        routingRunId: fixture.runId,
-        organizationId: target.organizationId,
-        locationId: fixture.locationId,
-        publisherId,
-        stage: "staff_fulfillment",
-        level: "info",
-        code: "qa_synthetic_case_staged",
-        message: `Synthetic QA ${fixture.scenario} case staged; no publisher submission or owner contact was attempted.`,
-        detail: { publisherAttemptId: fixture.attemptId, scenario: fixture.scenario, synthetic: true },
-      }).onConflictDoNothing(),
+      db.execute(sql`
+        INSERT INTO public.locations (id, organization_id, client_id, name, slug, profile)
+        VALUES (${fixture.locationId}::uuid, ${target.organization_id}, ${target.client_id}::uuid,
+          ${fixture.name}, ${fixture.scenario}, ${JSON.stringify(profile)}::jsonb)
+        ON CONFLICT (id) DO NOTHING
+      `),
+      db.execute(sql`
+        INSERT INTO public.location_versions
+          (id, location_id, version_number, snapshot, source, actor_user_id, change_summary)
+        VALUES (${fixture.versionId}::uuid, ${fixture.locationId}::uuid, 1,
+          ${JSON.stringify(profile)}::jsonb, 'user', ${operatorUserId}, ${`Synthetic QA ${fixture.scenario} fixture`})
+        ON CONFLICT (id) DO NOTHING
+      `),
+      db.execute(sql`
+        UPDATE public.locations SET current_version_id = ${fixture.versionId}::uuid, updated_at = now()
+        WHERE id = ${fixture.locationId}::uuid AND organization_id = ${target.organization_id}
+      `),
+      db.execute(sql`
+        INSERT INTO public.listing_routing_runs
+          (id, organization_id, location_id, location_version_id, idempotency_key, status, trigger, started_by_user_id, summary)
+        VALUES (${fixture.runId}::uuid, ${target.organization_id}, ${fixture.locationId}::uuid,
+          ${fixture.versionId}::uuid, ${`localsync-qa-fulfillment-${fixture.scenario}-v1`},
+          'waiting_for_staff', 'manual', ${operatorUserId}, ${JSON.stringify(summary)}::jsonb)
+        ON CONFLICT DO NOTHING
+      `),
+      db.execute(sql`
+        INSERT INTO public.listing_publisher_attempts
+          (id, routing_run_id, organization_id, location_id, publisher_id, rail, status, response_data)
+        VALUES (${fixture.attemptId}::uuid, ${fixture.runId}::uuid, ${target.organization_id},
+          ${fixture.locationId}::uuid, ${publisherId}::uuid, 'manual', 'ready',
+          ${JSON.stringify({ fulfillment })}::jsonb)
+        ON CONFLICT DO NOTHING
+      `),
+      db.execute(sql`
+        INSERT INTO public.listing_routing_events
+          (id, routing_run_id, organization_id, location_id, publisher_id, stage, level, code, message, detail)
+        VALUES (${fixture.eventId}::uuid, ${fixture.runId}::uuid, ${target.organization_id},
+          ${fixture.locationId}::uuid, ${publisherId}::uuid, 'staff_fulfillment', 'info',
+          'qa_synthetic_case_staged',
+          ${`Synthetic QA ${fixture.scenario} case staged; no publisher submission or owner contact was attempted.`},
+          ${JSON.stringify(eventDetail)}::jsonb)
+        ON CONFLICT (id) DO NOTHING
+      `),
     ];
   });
 
@@ -199,12 +185,33 @@ export async function seedSyntheticFulfillmentFixtures(operatorUserId: string) {
   if (!firstStatement) throw new Error("No synthetic QA fixtures are configured.");
   await db.batch([firstStatement, ...remainingStatements]);
 
-  const created = await db
-    .select({ id: listingPublisherAttempts.id })
-    .from(listingPublisherAttempts)
-    .where(inArray(listingPublisherAttempts.id, fixtures.map(fixture => fixture.attemptId)));
-  if (created.length !== fixtures.length) {
+  const verified = await db.execute(sql`
+    SELECT a.id::text AS id, a.organization_id, a.location_id::text AS location_id,
+      a.publisher_id::text AS publisher_id, a.rail::text AS rail, a.status::text AS status,
+      a.response_data->'fulfillment'->>'scenario' AS scenario
+    FROM public.listing_publisher_attempts a
+    WHERE a.id IN (${sql.join(fixtures.map(fixture => sql`${fixture.attemptId}::uuid`), sql`, `)})
+  `);
+  const rows = verified.rows as Array<{
+    id: string;
+    organization_id: string;
+    location_id: string;
+    publisher_id: string;
+    rail: string;
+    status: string;
+    scenario: string;
+  }>;
+  const isExpectedFixture = (fixture: typeof fixtures[number]) => rows.some(row =>
+    row.id === fixture.attemptId
+      && row.organization_id === target.organization_id
+      && row.location_id === fixture.locationId
+      && row.publisher_id === publisherIds.get(fixture.publisherSlug)
+      && row.rail === "manual"
+      && row.status === "ready"
+      && row.scenario === fixture.scenario,
+  );
+  if (fixtures.some(fixture => !isExpectedFixture(fixture))) {
     throw new Error("Synthetic fixture setup did not complete. Refresh before retrying.");
   }
-  return { createdCases: created.length };
+  return { createdCases: rows.length };
 }
